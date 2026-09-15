@@ -40,7 +40,8 @@ interface ShotDef {
   scroll?: boolean;
 }
 
-const courseCard = (page: Page) => page.getByRole("button", { name: /listen · hear/ });
+// The demo inquiry finishes "聞く" (which then reopens it), so the course slides use "話す", the recommended next group.
+const courseCard = (page: Page) => page.getByRole("button", { name: /say · tell · speak · talk/ });
 const dialog = (page: Page) => page.getByRole("dialog");
 const card = (page: Page, id: string) => page.locator(`#card-demo-${id}`);
 
@@ -59,7 +60,7 @@ const shots: ShotDef[] = [
       await courseCard(page).click();
       await dialog(page).waitFor();
     },
-    rings: (page) => [[dialog(page).getByRole("button", { name: "listen", exact: true }), dialog(page).getByRole("button", { name: "hear", exact: true })]],
+    rings: (page) => [[dialog(page).getByRole("button", { name: "say", exact: true }), dialog(page).getByRole("button", { name: "tell", exact: true })]],
   },
   {
     id: "genre",
@@ -123,7 +124,7 @@ const shots: ShotDef[] = [
   {
     id: "next",
     prepare: async (_page, go) => go("/inquiry/demo"),
-    rings: (page) => [[page.getByText(either("次の一手", "Next step", true)).locator("xpath=..")]],
+    rings: (page) => [[page.getByText(/^(👉 )?(次の一手|Next step)$/).locator("xpath=..")]],
     scroll: true,
   },
 ];
