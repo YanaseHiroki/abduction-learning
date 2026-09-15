@@ -40,6 +40,12 @@ export interface CallResult<T> {
   elapsedMs: number;
 }
 
+/** The inquiry the free tier charges calls to; set by the inquiry page while it is open. */
+let activeInquiry: string | null = null;
+export function setActiveInquiry(id: string | null) {
+  activeInquiry = id;
+}
+
 function deviceId() {
   const s = getSettings();
   if (s.deviceId) return s.deviceId;
@@ -84,9 +90,10 @@ export async function structured<S extends z.ZodType>(
     usage = r.usage;
   } else if (s.provider === "shared") {
     if (!PROXY_URL) throw new MissingApiKeyError("shared");
+    if (!activeInquiry) throw new Error("free tier works inside an inquiry");
     const res = await fetch(`${PROXY_URL}/generate`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-device-id": deviceId() },
+      headers: { "content-type": "application/json", "x-device-id": deviceId(), "x-inquiry-id": activeInquiry },
       body: JSON.stringify({ system, user, schema: jsonSchema, effort, maxTokens }),
     });
     const json = (await res.json().catch(() => ({}))) as { text?: string; model?: string; error?: string; scope?: string; resetAt?: number };
@@ -124,10 +131,12 @@ export async function structured<S extends z.ZodType>(
   return { data: out.data, model, generatedAt: Date.now(), usage, elapsedMs: Date.now() - startedAt };
 }
 
+/** Inquiries that may still be started today, and the rules behind the numbers. */
 export interface Quota {
   device: { used: number; limit: number };
   ip: { used: number; limit: number };
   global: { used: number; limit: number };
+  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number };
   model: string;
   resetAt: number;
 }
@@ -151,7 +160,7 @@ export function hasCredential() {
 
 export function describeError(e: unknown): string {
   if (e instanceof MissingApiKeyError) return "missing-api-key";
-  if (e instanceof QuotaError) return "quota";
+  if (e instanceof QuotaError) return e.scope === "inquiry" ? "quota-inquiry" : "quota";
   if (e instanceof ProviderError) return `${e.provider} ${e.status}: ${e.message}`;
   if (e instanceof Error) return e.message;
   return String(e);

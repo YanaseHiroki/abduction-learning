@@ -33,11 +33,18 @@ function QuotaView() {
       <span className="tabular-nums">{v.limit - v.used} / {v.limit}</span>
     </div>
   );
+  const r = q.rules;
   return (
     <div className="space-y-1 rounded-lg border p-3">
-      <div className="mb-1 text-xs text-muted-foreground">{t({ ja: "今日の残り回数（AI呼び出し）", en: "Remaining AI calls today" })} · {q.model}</div>
+      <div className="mb-1 text-xs text-muted-foreground">{t({ ja: "今日無料で始められる探究の数", en: "Free inquiries you can start today" })} · {q.model}</div>
       {row(t({ ja: "この端末", en: "This device" }), q.device)}
       {row(t({ ja: "全体", en: "Everyone" }), q.global)}
+      <p className="pt-2 text-xs whitespace-pre-line text-muted-foreground">
+        {t({
+          ja: `初めて使う日は${r.deviceFirstDay}つ、2日目からは1日${r.device}つ始められます。\n始めた探究では、AIを${r.perInquiry}回まで呼び出せます（ふつうは15〜30回で足ります）。\n始めた探究は${r.ttlDays}日間、日をまたいでも続けられます。`,
+          en: `You can start ${r.deviceFirstDay} on your first day, then ${r.device} per day.\nEach inquiry may call the AI up to ${r.perInquiry} times (15–30 is typical).\nA started inquiry stays open for ${r.ttlDays} days, across midnight.`,
+        })}
+      </p>
       <p className="pt-1 text-xs whitespace-pre-line text-muted-foreground">{t({ ja: "例文セット1回 = 対象の語1つにつき1〜2回（文法チェックあり）。\n翻訳テスト1回 = 1回。\n1日の目安は探究1つ分です。", en: "One example set = 1–2 calls per target (with QA).\nOne translation test = 1 call.\nRoughly one inquiry per day." })}</p>
     </div>
   );

@@ -22,7 +22,7 @@ import { createExamplesCard, type ExamplesProgress } from "@/lib/actions";
 import { genres } from "@/lib/courses";
 import { addCard } from "@/lib/db";
 import { useT } from "@/lib/i18n";
-import { describeError, hasCredential } from "@/lib/llm/client";
+import { describeError, hasCredential, setActiveInquiry } from "@/lib/llm/client";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { getLangPack } from "@/lib/langpacks";
 import { useSettings } from "@/lib/settings";
@@ -99,6 +99,12 @@ export function InquiryPage() {
       setDialog(true);
     }
   }, [inquiry, cards]);
+
+  // The free tier charges every AI call on this page to this inquiry.
+  useEffect(() => {
+    setActiveInquiry(id ?? null);
+    return () => setActiveInquiry(null);
+  }, [id]);
 
   if (!inquiry || !cards) return <div className="p-8 text-muted-foreground">…</div>;
 

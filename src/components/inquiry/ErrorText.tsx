@@ -16,7 +16,9 @@ export function ErrorText({ code, className = "mt-2 text-sm text-destructive" }:
       </>
     );
   } else if (code === "quota") {
-    body = t({ ja: "本日の無料枠を使い切りました。\n明日また使えます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "Today's free tier is used up.\nIt resets tomorrow, or switch to your own key in Settings." });
+    body = t({ ja: "今日無料で始められる探究の数を使い切りました。\n明日また新しい探究を始められます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "You have started today's free inquiries.\nYou can start a new one tomorrow, or switch to your own key in Settings." });
+  } else if (code === "quota-inquiry") {
+    body = t({ ja: "この探究で無料で使える回数を使い切りました。\n続けるには設定で自分のAPIキーに切り替えてください。", en: "This inquiry has used up its free AI calls.\nSwitch to your own key in Settings to continue." });
   } else if (code.startsWith("parse-failed")) {
     body = t({ ja: "AIの応答を読み取れませんでした。\nもう一度試してください。", en: "Could not read the AI response.\nPlease try again." }) + ` (${code})`;
   }
