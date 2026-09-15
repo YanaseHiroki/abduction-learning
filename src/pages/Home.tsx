@@ -122,7 +122,14 @@ export function Home() {
             })}
           </Carousel>
           <ButtonRow className="pt-6">
-            <Button variant="outline" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
+            {/* Once every course group is started, free inquiry is the way forward, so the recommendation moves here for good. */}
+            {!nextGroup && !tutorialInquiry ? (
+              <Recommended>
+                <Button variant="recommended" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
+              </Recommended>
+            ) : (
+              <Button variant="outline" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
+            )}
           </ButtonRow>
         </section>
       ) : (
