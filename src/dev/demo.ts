@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { defaultSettings, setSettings } from "@/lib/settings";
+import { defaultSettings, getSettings, setSettings } from "@/lib/settings";
 import type { Card, CardKind, CardPayloadMap, HypothesisLine, Inquiry, SchemaNote, Sentence } from "@/lib/types";
 
 /**
@@ -175,7 +175,7 @@ export function demoData(lang: "ja" | "en") {
   return { inquiry, cards, notes: [note] };
 }
 
-/** Replaces everything in IndexedDB with the demo inquiry and sets the screen language. */
+/** Replaces everything in IndexedDB with the demo inquiry and sets the screen language (an existing API key is kept). */
 export async function seedDemo(lang: "ja" | "en") {
   const { inquiry, cards, notes } = demoData(lang);
   await db.transaction("rw", db.inquiries, db.cards, db.schemaNotes, async () => {
@@ -186,12 +186,14 @@ export async function seedDemo(lang: "ja" | "en") {
   });
   // A dummy key hides the "no AI connection" notice. Nothing is ever sent with it: the screenshot
   // script never presses an AI button and blocks every request that leaves the dev server.
+  // A browser that already has a key keeps it (and its provider), so seeding a local browser does not break its AI.
+  const { providers } = getSettings();
+  const hasKey = Object.values(providers).some((p) => p.apiKey);
   setSettings({
     uiLang: lang,
     defaultL1: "ja",
     defaultL2: "en",
-    provider: "anthropic",
-    providers: { ...defaultSettings.providers, anthropic: { ...defaultSettings.providers.anthropic, apiKey: "demo" } },
+    ...(hasKey ? {} : { provider: "anthropic", providers: { ...providers, anthropic: { ...defaultSettings.providers.anthropic, apiKey: "demo" } } }),
     showTranslations: true,
   });
 }
