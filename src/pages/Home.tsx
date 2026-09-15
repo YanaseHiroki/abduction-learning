@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Trash2 } from "lucide-react";
 import { NewInquiryDialog } from "@/components/inquiry/NewInquiryDialog";
@@ -13,16 +13,24 @@ import { LanguageFields } from "@/components/LanguageFields";
 import { Welcome } from "@/components/tutorial/Welcome";
 import { courses, languageName, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
+import type { Inquiry } from "@/lib/types";
 import { useT } from "@/lib/i18n";
 import { setTutorial, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
+
+/** Whether an inquiry is this course group's (same languages and the same target words); groups have no id on inquiries. */
+function isGroupInquiry(inq: Inquiry, g: CourseGroup, l1: string, l2: string) {
+  const labels = (xs: { label: string }[]) => xs.map((x) => x.label).sort().join("\n");
+  return inq.l1 === l1 && inq.l2 === l2 && labels(inq.targets) === labels(g.targets);
+}
 
 /** The book this notebook follows (bookstore page). */
 const BOOK_URL = "https://www.valuebooks.jp/bp/VS0095275901";
 
 export function Home() {
   const t = useT();
+  const nav = useNavigate();
   const { uiLang, defaultL1, defaultL2, tutorial } = useSettings();
   const [dialog, setDialog] = useState<{ group: CourseGroup | null } | null>(null);
   const loadedInquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []);
@@ -49,6 +57,13 @@ export function Home() {
   if (showWelcome) return <Welcome />;
 
   const tutorialInquiry = tutorial.status === "running" ? inquiries.find((x) => x.id === tutorial.inquiryId) : undefined;
+
+  // A group already explored (the tutorial's included) reopens its latest inquiry instead of starting another:
+  // a new genre or verification goes into the same inquiry, so the hypothesis keeps growing in one place.
+  // Started groups move to the end, so the book's next group comes first.
+  const groupCards = (course?.groups ?? []).map((g) => ({ g, started: inquiries.find((inq) => isGroupInquiry(inq, g, defaultL1, defaultL2)) }));
+  groupCards.sort((a, b) => Number(!!a.started) - Number(!!b.started));
+  const nextGroup = groupCards.find((x) => !x.started)?.g;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -85,14 +100,14 @@ export function Home() {
         <section className="mb-8">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
           <Carousel>
-            {course.groups.map((g, i) => {
-              // The book starts with the first group, so that card is the recommended entry point
+            {groupCards.map(({ g, started }) => {
+              // The book's order decides the recommended entry point: the first group not yet started
               // (unless the tutorial is still running: then its "continue" is the one recommendation).
-              const recommended = i === 0 && !tutorialInquiry;
+              const recommended = g === nextGroup && !tutorialInquiry;
               return (
                 <button
                   key={g.id}
-                  onClick={() => setDialog({ group: g })}
+                  onClick={() => (started ? nav(`/inquiry/${started.id}`) : setDialog({ group: g }))}
                   className={cn(
                     "relative rounded-xl border p-4 text-left shadow-xs transition",
                     recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-card hover:border-primary/50 hover:shadow-sm",
@@ -101,6 +116,7 @@ export function Home() {
                   {recommended && <RecommendedBadge />}
                   <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[defaultL1] ?? g.label.en}</div>
                   <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>
+                  {started && <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 続きから", en: "▶ Continue" })}</div>}
                 </button>
               );
             })}
