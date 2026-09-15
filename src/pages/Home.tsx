@@ -14,6 +14,9 @@ import { setSettings, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
+/** The book this notebook follows (bookstore page). */
+const BOOK_URL = "https://www.valuebooks.jp/bp/VS0095275901";
+
 export function Home() {
   const t = useT();
   const { uiLang, defaultL1, defaultL2 } = useSettings();
@@ -27,10 +30,11 @@ export function Home() {
       <section className="mb-8 rounded-2xl border bg-gradient-to-br from-card to-muted/40 p-6">
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <p className="mt-2 max-w-2xl text-sm whitespace-pre-line text-muted-foreground">
-          {t({
-            ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。\n今井むつみ先生の『アブダクション英語学習法』の手順をなぞる非公式ファンメイドの練習帳です。",
-            en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation.\nAn unofficial, fan-made notebook following the method in Professor Mutsumi Imai's book.",
-          })}
+          {t({ ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。\n今井むつみ先生の", en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation.\nAn unofficial, fan-made notebook following the method in Professor Mutsumi Imai's book " })}
+          <a href={BOOK_URL} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-foreground">
+            {t({ ja: "『アブダクション英語学習法』", en: "Abduction English Learning Method" })}
+          </a>
+          {t({ ja: "の手順をなぞる非公式ファンメイドの練習帳です。", en: "." })}
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-6">
           <div className="flex items-center gap-2 text-sm">
