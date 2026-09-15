@@ -14,7 +14,7 @@ import { db } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { fetchQuota, PROXY_URL, type Quota } from "@/lib/llm/client";
 import { providerMeta, type Provider } from "@/lib/llm/providers";
-import { setProviderSettings, setSettings, useSettings, type Theme } from "@/lib/settings";
+import { defaultSettings, setProviderSettings, setSettings, setTutorial, useSettings, type Theme } from "@/lib/settings";
 
 const providers: Provider[] = ["anthropic", "openai", "gemini"];
 // The default pressed style (--muted) hardly shows on the section gray, so fill the chosen theme instead.
@@ -152,7 +152,7 @@ export function SettingsPage() {
           <input id="import-file" type="file" accept="application/json" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { const n = await importAll(f); alert(t({ ja: `${n} 件の探究を読み込みました`, en: `Imported ${n} inquiries` })); } e.target.value = ""; }} />
         </ButtonRow>
         <ButtonRow className="pt-3">
-          <Button variant="destructive" onClick={async () => { if (confirm(t({ ja: "すべての探究・ノートを削除しますか？", en: "Delete all inquiries and notes?" }))) { await db.delete(); location.reload(); } }}>
+          <Button variant="destructive" onClick={async () => { if (confirm(t({ ja: "すべての探究・ノートを削除しますか？\nチュートリアルも最初からになります。", en: "Delete all inquiries and notes?\nThe tutorial starts over too." }))) { await db.delete(); setTutorial(defaultSettings.tutorial); location.reload(); } }}>
           {t({ ja: "🗑️ すべて削除", en: "🗑️ Delete everything" })}
           </Button>
         </ButtonRow>
