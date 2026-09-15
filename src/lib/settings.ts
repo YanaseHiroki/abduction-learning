@@ -8,6 +8,17 @@ export interface ProviderSettings {
   model: string;
 }
 
+/**
+ * The first-run tutorial: "new" until the learner starts it (or is found to have data already),
+ * "running" while its inquiry is being guided, "done" afterwards (also after skipping or importing).
+ */
+export interface TutorialState {
+  status: "new" | "running" | "done";
+  inquiryId: string | null;
+  /** which guide step the inquiry page shows (0-based), kept so a reload resumes there */
+  step: number;
+}
+
 export interface Settings {
   /** which tab is active in Settings: the shared free tier, or one provider with the learner's own key */
   provider: Provider | "shared";
@@ -21,6 +32,7 @@ export interface Settings {
   showTranslations: boolean;
   ttsRate: number;
   deviceId: string;
+  tutorial: TutorialState;
 }
 
 const KEY = "abduction-learning.settings";
@@ -44,6 +56,7 @@ export const defaultSettings: Settings = {
   showTranslations: true,
   ttsRate: 0.95,
   deviceId: "",
+  tutorial: { status: "new", inquiryId: null, step: 0 },
 };
 
 function load(): Settings {
@@ -97,6 +110,10 @@ export function setSettings(patch: Partial<Settings>) {
 
 export function setProviderSettings(provider: Provider, patch: Partial<ProviderSettings>) {
   setSettings({ providers: { ...current.providers, [provider]: { ...current.providers[provider], ...patch } } });
+}
+
+export function setTutorial(patch: Partial<TutorialState>) {
+  setSettings({ tutorial: { ...current.tutorial, ...patch } });
 }
 
 export function useSettings() {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, PanelRight } from "lucide-react";
 import { ExamplesCard } from "@/components/cards/ExamplesCard";
 import { HypothesisCard } from "@/components/cards/HypothesisCard";
@@ -10,8 +10,10 @@ import { VerifyFrameCard } from "@/components/cards/VerifyFrameCard";
 import { VerifyTranslationCard } from "@/components/cards/VerifyTranslationCard";
 import { AddCardMenu } from "@/components/inquiry/AddCardMenu";
 import { ExamplesDialog } from "@/components/inquiry/ExamplesDialog";
+import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { HypothesisPanel } from "@/components/inquiry/HypothesisPanel";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
+import { TutorialGuide } from "@/components/tutorial/TutorialGuide";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
@@ -26,6 +28,7 @@ import { describeError, hasCredential, setActiveInquiry } from "@/lib/llm/client
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { getLangPack } from "@/lib/langpacks";
 import { useSettings } from "@/lib/settings";
+import { useGuidedInquiry } from "@/lib/tutorial";
 import type { Card, CardKind, ExamplesParams } from "@/lib/types";
 
 function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothesis: boolean; onPick: (k: CardKind) => void }) {
@@ -90,21 +93,32 @@ export function InquiryPage() {
   const [generating, setGenerating] = useState<{ cardId: string; progress: ExamplesProgress } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoOpened = useRef<string | null>(null);
-
-  // A fresh inquiry always starts with STEP 1, so open the example dialog automatically (once per inquiry).
-  useEffect(() => {
-    if (!inquiry || !cards) return;
-    if (cards.length === 0 && autoOpened.current !== inquiry.id) {
-      autoOpened.current = inquiry.id;
-      setDialog(true);
-    }
-  }, [inquiry, cards]);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const guided = useGuidedInquiry(id);
 
   // The free tier charges every AI call on this page to this inquiry.
   useEffect(() => {
     setActiveInquiry(id ?? null);
     return () => setActiveInquiry(null);
   }, [id]);
+
+  // A fresh inquiry always starts with STEP 1 (once per inquiry): generate right away when the
+  // new-inquiry dialog already chose the settings, otherwise open the example dialog.
+  useEffect(() => {
+    if (!inquiry || !cards) return;
+    if (cards.length === 0 && autoOpened.current !== inquiry.id) {
+      autoOpened.current = inquiry.id;
+      const start = (location.state as StartState | null)?.generate;
+      if (start) {
+        navigate(location.pathname, { replace: true, state: null }); // a reload must not generate again
+        generate(start);
+      } else {
+        setDialog(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inquiry, cards]);
 
   if (!inquiry || !cards) return <div className="p-8 text-muted-foreground">…</div>;
 
@@ -195,11 +209,11 @@ export function InquiryPage() {
         <div className="min-w-0 space-y-4">
           {cards.length === 0 && (
             <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
-              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳はついていますが、意味の解説はあえて出しません。", en: "Start with STEP 1: generate an example set.\nTranslations are included; explanations are deliberately withheld." })}
+              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳もついていますが、単語の使い分けの解説はあえていたしません。", en: "Start with STEP 1: generate an example set.\nTranslations are included, but how the words differ is deliberately not explained." })}
             </div>
           )}
           {cards.map(render)}
-          {cards.length > 0 && !busy && (
+          {cards.length > 0 && !busy && !guided && (
             <NextSteps cards={cards} hasHypothesis={!!latest} onPick={pick} />
           )}
           {busy && !generating && (
@@ -209,9 +223,13 @@ export function InquiryPage() {
         </div>
         <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
       </div>
-      <div className="fixed bottom-12 left-1/2 z-20 -translate-x-1/2">
-        <AddCardMenu hasExamples={examples.length > 0} hasHypothesis={!!latest} onPick={pick} />
-      </div>
+      {guided ? (
+        <TutorialGuide inquiry={inquiry} cards={cards} busy={busy} error={error} onPick={pick} />
+      ) : (
+        <div className="fixed bottom-12 left-1/2 z-20 -translate-x-1/2">
+          <AddCardMenu hasExamples={examples.length > 0} hasHypothesis={!!latest} onPick={pick} />
+        </div>
+      )}
       {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}
     </div>
   );

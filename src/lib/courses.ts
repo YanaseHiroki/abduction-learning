@@ -3,6 +3,7 @@ import type { Target } from "./types";
 export interface CourseGroup {
   id: string;
   label: Record<string, string>; // L1 label keyed by l1 code, with fallback "en"
+  emoji: string;
   targets: Omit<Target, "id">[];
   hint?: Record<string, string>;
 }
@@ -19,6 +20,7 @@ export const courses: Course[] = [
     groups: [
       {
         id: "hear",
+        emoji: "👂",
         label: { ja: "聞く", en: "hear / listen" },
         targets: [
           { label: "listen", kind: "word" },
@@ -27,6 +29,7 @@ export const courses: Course[] = [
       },
       {
         id: "say",
+        emoji: "💬",
         label: { ja: "話す", en: "say / tell / speak / talk" },
         targets: [
           { label: "say", kind: "word" },
@@ -38,6 +41,7 @@ export const courses: Course[] = [
       },
       {
         id: "see",
+        emoji: "👀",
         label: { ja: "見る", en: "look / watch / see" },
         targets: [
           { label: "look at", kind: "phrase" },
@@ -48,6 +52,7 @@ export const courses: Course[] = [
       },
       {
         id: "think",
+        emoji: "🤔",
         label: { ja: "考える", en: "think / believe / know / consider" },
         targets: [
           { label: "think", kind: "word" },
@@ -62,14 +67,25 @@ export const courses: Course[] = [
 ];
 
 export const genres = [
-  { id: "basic", ja: "基本（教科書風）", en: "Basic (textbook style)" },
-  { id: "news", ja: "ニュース", en: "News" },
-  { id: "romance", ja: "恋愛ドラマ", en: "Romance drama" },
-  { id: "workplace", ja: "部下と上司の会話", en: "Workplace conversation" },
-  { id: "business_email", ja: "ビジネスメール", en: "Business email" },
-  { id: "daily", ja: "日常会話", en: "Daily conversation" },
-  { id: "academic", ja: "論文・学術", en: "Academic" },
+  { id: "basic", emoji: "📘", ja: "基本（教科書風）", en: "Basic (textbook style)" },
+  { id: "news", emoji: "📰", ja: "ニュース", en: "News" },
+  { id: "romance", emoji: "💕", ja: "恋愛ドラマ", en: "Romance drama" },
+  { id: "workplace", emoji: "💼", ja: "部下と上司の会話", en: "Workplace conversation" },
+  { id: "business_email", emoji: "✉️", ja: "ビジネスメール", en: "Business email" },
+  { id: "daily", emoji: "☕", ja: "日常会話", en: "Daily conversation" },
+  { id: "academic", emoji: "🎓", ja: "論文・学術", en: "Academic" },
 ];
+
+/** How an example set is generated, apart from which targets it covers. */
+export interface ExampleSettings {
+  genre: string;
+  level: string;
+  count: number;
+  maxWords: string; // "" = no limit
+  adverbs: boolean;
+}
+
+export const defaultExampleSettings = (genre = "news", level = "beginner"): ExampleSettings => ({ genre, level, count: 10, maxWords: "", adverbs: false });
 
 export const levels = [
   { id: "beginner", ja: "中学生レベル", en: "Beginner (junior high)" },
