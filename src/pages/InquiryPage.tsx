@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, PanelRight } from "lucide-react";
 import { ExamplesCard } from "@/components/cards/ExamplesCard";
 import { HypothesisCard } from "@/components/cards/HypothesisCard";
@@ -10,6 +10,7 @@ import { VerifyFrameCard } from "@/components/cards/VerifyFrameCard";
 import { VerifyTranslationCard } from "@/components/cards/VerifyTranslationCard";
 import { AddCardMenu } from "@/components/inquiry/AddCardMenu";
 import { ExamplesDialog } from "@/components/inquiry/ExamplesDialog";
+import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { HypothesisPanel } from "@/components/inquiry/HypothesisPanel";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -90,21 +91,31 @@ export function InquiryPage() {
   const [generating, setGenerating] = useState<{ cardId: string; progress: ExamplesProgress } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoOpened = useRef<string | null>(null);
-
-  // A fresh inquiry always starts with STEP 1, so open the example dialog automatically (once per inquiry).
-  useEffect(() => {
-    if (!inquiry || !cards) return;
-    if (cards.length === 0 && autoOpened.current !== inquiry.id) {
-      autoOpened.current = inquiry.id;
-      setDialog(true);
-    }
-  }, [inquiry, cards]);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // The free tier charges every AI call on this page to this inquiry.
   useEffect(() => {
     setActiveInquiry(id ?? null);
     return () => setActiveInquiry(null);
   }, [id]);
+
+  // A fresh inquiry always starts with STEP 1 (once per inquiry): generate right away when the
+  // new-inquiry dialog already chose the settings, otherwise open the example dialog.
+  useEffect(() => {
+    if (!inquiry || !cards) return;
+    if (cards.length === 0 && autoOpened.current !== inquiry.id) {
+      autoOpened.current = inquiry.id;
+      const start = (location.state as StartState | null)?.generate;
+      if (start) {
+        navigate(location.pathname, { replace: true, state: null }); // a reload must not generate again
+        generate(start);
+      } else {
+        setDialog(true);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inquiry, cards]);
 
   if (!inquiry || !cards) return <div className="p-8 text-muted-foreground">…</div>;
 

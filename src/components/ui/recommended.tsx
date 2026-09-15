@@ -24,7 +24,8 @@ export function RecommendedBadge({ className }: { className?: string }) {
 /** Wraps a button on the standard route so the badge can hang off its corner. Pair with `variant="recommended"`. */
 export function Recommended({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <span className={cn("relative inline-flex", className)}>
+    // *:flex-1: when a parent stretches this wrapper (stacked dialog footer on phones), the button fills it so the badge stays on its corner.
+    <span className={cn("relative inline-flex *:flex-1", className)}>
       {children}
       <RecommendedBadge />
     </span>
