@@ -111,7 +111,7 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
               return (
                 <div key={set.targetId} className="min-w-0">
                   <TargetBadge target={target} index={inquiry.targets.indexOf(target)} className="mb-1" />
-                  <ol className="divide-y">
+                  <ol className="divide-y rounded-lg border bg-background px-2">
                     {set.sentences.map((s, i) => {
                       const key = sentenceKey(set.targetId, i);
                       const els = p.analyses[key] ?? [];
@@ -123,7 +123,7 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
                             <div className="mb-2 space-y-1 pl-9 text-xs">
                               <div className="flex flex-wrap items-center gap-1">
                                 {els.map((e) => (
-                                  <span key={e.id} className="inline-flex items-center gap-1 rounded border bg-muted/50 px-1.5 py-0.5">
+                                  <span key={e.id} className="inline-flex items-center gap-1 rounded border bg-background px-1.5 py-0.5">
                                     <b className="font-mono">{e.role}</b> {e.text}
                                     <button aria-label="remove" onClick={() => updateCardPayload(card, { analyses: { ...p.analyses, [key]: els.filter((x) => x.id !== e.id) } })}><X className="size-3" /></button>
                                   </span>
@@ -157,7 +157,7 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
           <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "📐 構造パターン集計", en: "📐 Pattern summary" })}</h4>
           <div className="grid gap-3 md:grid-cols-2">
             {inquiry.targets.map((tg, ti) => (
-              <div key={tg.id} className="rounded-lg border p-2 text-sm">
+              <div key={tg.id} className="rounded-lg border bg-background p-2 text-sm">
                 <TargetBadge target={tg} index={ti} className="mb-1" />
                 <ul>
                   {[...(summary.get(tg.id) ?? new Map()).entries()].map(([pat, n]) => (

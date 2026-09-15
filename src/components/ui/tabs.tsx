@@ -90,7 +90,7 @@ function TabsPanels({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
       data-slot="tabs-panels"
-      className={cn("rounded-xl border border-foreground/15 p-4", className)}
+      className={cn("rounded-xl border border-foreground/15 bg-background p-4", className)}
       {...props}
     />
   )

@@ -144,7 +144,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
               return (
                 <div key={set.targetId} className="min-w-0">
                   <TargetBadge target={target} index={inquiry.targets.indexOf(target)} className="mb-1" />
-                  <ol className="divide-y">
+                  <ol className="divide-y rounded-lg border bg-background px-2">
                     {set.sentences.map((s, i) => (
                       <SentenceView key={i} s={s} index={i} l1={inquiry.l1} l2={inquiry.l2} targetId={set.targetId} showGuides={false} showTranslation />
                     ))}
@@ -167,7 +167,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
         <TabsContent value="list">
           <div className="grid gap-3 md:grid-cols-2">
             {inquiry.targets.map((tg, ti) => (
-              <div key={tg.id} className="rounded-lg border p-2">
+              <div key={tg.id} className="rounded-lg border bg-background p-2">
                 <TargetBadge target={tg} index={ti} className="mb-1" />
                 <ul className="space-y-1">
                   {(marksByTarget.get(tg.id) ?? []).map((mk) => (
@@ -198,12 +198,12 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
         </TabsContent>
         <TabsContent value="pivot">
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="rounded-lg border p-2">
+            <div className="rounded-lg border bg-background p-2">
               <div className="mb-1 text-xs font-semibold text-muted-foreground">{t({ ja: "🔗 複数の対象に共通", en: "🔗 Shared" })}</div>
               <div className="text-sm">{pivot.shared.join(" · ") || "—"}</div>
             </div>
             {pivot.unique.map((u, ti) => (
-              <div key={u.target.id} className="rounded-lg border p-2">
+              <div key={u.target.id} className="rounded-lg border bg-background p-2">
                 <TargetBadge target={u.target} index={ti} className="mb-1" />
                 <div className="text-xs text-muted-foreground">{t({ ja: "この対象だけ", en: "Unique" })}</div>
                 <div className="text-sm">{u.items.join(" · ") || "—"}</div>

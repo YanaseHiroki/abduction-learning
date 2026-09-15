@@ -13,18 +13,18 @@ import { cn } from "@/lib/utils";
 function Nav() {
   const t = useT();
   const item = ({ isActive }: { isActive: boolean }) =>
-    cn("inline-flex shrink-0 items-center gap-1.5 rounded-md whitespace-nowrap px-2.5 py-1.5 text-sm", isActive ? "bg-muted font-medium" : "text-muted-foreground hover:text-foreground");
+    cn("inline-flex shrink-0 items-center gap-1.5 rounded-md whitespace-nowrap px-2.5 py-1.5 text-sm", isActive ? "bg-white/15 font-medium" : "text-header-foreground/75 hover:text-header-foreground");
   // Notes stay grayed out until the first one is saved (a summary card is where they come from).
   const noteCount = useLiveQuery(() => db.schemaNotes.count(), []);
   const notesLabel = <><BookMarked className="size-4" />{t({ ja: "気づきノート", en: "Notes" })}</>;
   return (
-    <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+    <header className="sticky top-0 z-30 bg-header text-header-foreground">
       <div className="mx-auto flex h-12 max-w-6xl items-center gap-1 px-4 sm:gap-2">
-        <Link to="/" className="mr-auto flex items-center gap-2 font-semibold whitespace-nowrap"><Sprout className="size-5 text-emerald-600" />Abduction Lab</Link>
+        <Link to="/" className="mr-auto flex items-center gap-2 font-semibold whitespace-nowrap"><Sprout className="size-5 text-lime-400" />Abduction Lab</Link>
         {noteCount ? (
           <NavLink to="/notes" className={item}>{notesLabel}</NavLink>
         ) : (
-          <span role="link" aria-disabled="true" title={t({ ja: "まだノートがありません。まとめカードから保存できます。", en: "No notes yet. Save one from a summary card." })} className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-md whitespace-nowrap px-2.5 py-1.5 text-sm text-muted-foreground opacity-50">{notesLabel}</span>
+          <span role="link" aria-disabled="true" title={t({ ja: "まだノートがありません。まとめカードから保存できます。", en: "No notes yet. Save one from a summary card." })} className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-md whitespace-nowrap px-2.5 py-1.5 text-sm text-header-foreground/40">{notesLabel}</span>
         )}
         <NavLink to="/settings" className={item}><Settings className="size-4" />{t({ ja: "設定", en: "Settings" })}</NavLink>
       </div>

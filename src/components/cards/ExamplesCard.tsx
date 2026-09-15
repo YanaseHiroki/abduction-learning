@@ -121,7 +121,7 @@ export function ExamplesCard({ card, inquiry, progress }: { card: Card<"examples
           return (
             <div key={set.targetId} className="min-w-0">
               <TargetBadge target={target} index={inquiry.targets.indexOf(target)} className="mb-1" />
-              <ol className="divide-y">
+              <ol className="divide-y rounded-lg border bg-background px-2">
                 {set.sentences.map((s, i) => (
                   <div key={i}>
                     <SentenceView

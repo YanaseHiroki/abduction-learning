@@ -131,7 +131,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
             </div>
           )}
         </div>
-        <div className="space-y-3 rounded-lg border p-3 text-sm">
+        <div className="space-y-3 rounded-lg border bg-background p-3 text-sm">
           <label className="flex items-center justify-between gap-2">
             <span>{t({ ja: "候補語を限定する", en: "Restrict to candidates" })}</span>
             <Switch size="sm" checked={p.restrictToTargets} onCheckedChange={(v) => updateCardPayload(card, { restrictToTargets: v })} />
@@ -161,7 +161,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
       </div>
       <ErrorText code={error} />
       {p.result && (
-        <div className="mt-4 rounded-lg bg-muted/40 p-3">
+        <div className="mt-4 rounded-lg border bg-background p-3">
           <div className="flex items-start gap-2">
             <p className="flex-1 text-[15px] leading-7" lang={inquiry.l2}>{p.result.l2Text}</p>
             {hasVoiceFor(inquiry.l2) && <Button size="icon-sm" variant="ghost" onClick={() => speak(p.result!.l2Text, inquiry.l2, ttsRate)}>▶</Button>}
@@ -199,7 +199,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
           <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground"><ChevronDown className="size-3" />{t({ ja: `過去の試行 (${p.history.length})`, en: `Previous attempts (${p.history.length})` })}</CollapsibleTrigger>
           <CollapsibleContent className="mt-1 space-y-2 text-sm">
             {p.history.map((h, i) => (
-              <div key={i} className="rounded border p-2">
+              <div key={i} className="rounded border bg-background p-2">
                 <div className="text-muted-foreground">{h.l1Text}</div>
                 <div>{h.result.l2Text}</div>
               </div>

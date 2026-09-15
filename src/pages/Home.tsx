@@ -14,8 +14,8 @@ import { setSettings, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
-/** The book this notebook follows (bookstore page). */
-const BOOK_URL = "https://www.valuebooks.jp/bp/VS0095275901";
+/** The book this notebook follows (the publisher's official page). */
+const BOOK_URL = "https://bookplus.nikkei.com/atcl/catalog/26/03/23/02546/";
 
 export function Home() {
   const t = useT();
@@ -27,7 +27,7 @@ export function Home() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <section className="mb-8 rounded-2xl border bg-gradient-to-br from-card to-muted/40 p-6">
+      <section className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <p className="mt-2 max-w-2xl text-sm whitespace-pre-line text-muted-foreground">
           {t({ ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。\n今井むつみ先生の", en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation.\nAn unofficial, fan-made notebook following the method in Professor Mutsumi Imai's book " })}
@@ -55,7 +55,7 @@ export function Home() {
       </section>
 
       {course ? (
-        <section className="mb-8">
+        <section className="mb-8 rounded-2xl border bg-card p-5">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "📚 基本動詞コース（本と同じ13語）", en: "📚 Basic verbs course (the book's 13 verbs)" })}</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {course.groups.map((g, i) => {
@@ -67,7 +67,7 @@ export function Home() {
                   onClick={() => setDialog({ group: g })}
                   className={cn(
                     "relative rounded-xl border p-4 text-left shadow-xs transition",
-                    recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-card hover:border-primary/50 hover:shadow-sm",
+                    recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-background hover:border-primary/50 hover:shadow-sm",
                   )}
                 >
                   {recommended && <RecommendedBadge />}
@@ -83,7 +83,7 @@ export function Home() {
       )}
 
       {notes[0] && (
-        <section className="mb-8 rounded-xl border border-dashed p-4">
+        <section className="mb-8 rounded-xl border border-dashed border-foreground/20 bg-card p-4">
           <div className="mb-1 text-xs font-semibold text-muted-foreground">{t({ ja: "🔁 再訪: 前に立てたスキーマ", en: "🔁 Revisit: a schema you built" })}</div>
           <div className="flex flex-wrap gap-2 text-sm">
             {notes[0].lines.map((l) => {
@@ -95,12 +95,12 @@ export function Home() {
         </section>
       )}
 
-      <section>
+      <section className="rounded-2xl border bg-card p-5">
         <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "🗂️ 探究の一覧", en: "🗂️ Your inquiries" })}</h2>
         {inquiries.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t({ ja: "まだありません。", en: "Nothing yet." })}</p>
         ) : (
-          <ul className="divide-y rounded-xl border bg-card">
+          <ul className="divide-y rounded-xl border bg-background">
             {inquiries.map((inq) => (
               <li key={inq.id} className="flex items-center gap-6 px-4 py-3">
                 <Link to={`/inquiry/${inq.id}`} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">

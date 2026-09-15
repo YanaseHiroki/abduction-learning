@@ -39,6 +39,8 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
+    --color-header: var(--header);
+    --color-header-foreground: var(--header-foreground);
     --radius-sm: calc(var(--radius) * 0.6);
     --radius-md: calc(var(--radius) * 0.8);
     --radius-lg: var(--radius);
@@ -51,16 +53,22 @@
 :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
+    /* Base contrast, alternating by depth: a dark gray header, a white page, gray sections
+       on the page (--card), and white parts (lists, tiles, sub-boxes) back on top of those. */
+    --header: #3a3a3a;
+    --header-foreground: #ffffff;
+    --card: #f3f3f3;
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
     --primary: oklch(0.205 0 0);
     --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
+    /* A step darker than the section gray, so chips, hovers and tab rails stay visible on it. */
+    --secondary: #e8e8e8;
     --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --muted: #e8e8e8;
+    /* #666 keeps secondary text at 4.5:1 or better on the section gray, not just on white. */
+    --muted-foreground: #666666;
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
