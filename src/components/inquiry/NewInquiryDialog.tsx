@@ -167,7 +167,7 @@ export function NewInquiryDialog({
             </Recommended>
           ) : (
             <>
-              <Button variant="outline" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
+              <Button variant="outline" className="sm:mr-auto" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
               <Recommended>
                 <Button variant="recommended" disabled={chosen.length === 0} onClick={create}>{t({ ja: "🚀 探究を始める", en: "🚀 Start" })}</Button>
               </Recommended>

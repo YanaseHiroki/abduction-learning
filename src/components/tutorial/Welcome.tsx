@@ -5,7 +5,7 @@ import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { targetColor } from "@/components/inquiry/TargetBadge";
 import { LanguageFields } from "@/components/LanguageFields";
 import { Button } from "@/components/ui/button";
-import { ButtonRow } from "@/components/ui/button-row";
+import { NavRow } from "@/components/ui/button-row";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Input } from "@/components/ui/input";
 import { Recommended } from "@/components/ui/recommended";
@@ -66,22 +66,21 @@ export function Welcome() {
               {t({ ja: "前の端末の「設定 → 💾 データのバックアップ → 📤 JSONに書き出す」で作ったファイルを選びます。\nAPIキーは引き継がれません。", en: "Pick the file you made on the other device with Settings → 💾 Back up your data → 📤 Export JSON.\nAPI keys are not included." })}
             </p>
             {importError && <p className="mt-4 text-sm whitespace-pre-line text-destructive">{t({ ja: "このファイルは読み込めませんでした。\nバックアップのJSONファイルを選んでください。", en: "Could not read this file.\nPick a backup JSON file." })}</p>}
-            <ButtonRow className="pt-6">
-              <Button variant="outline" onClick={() => { setMode("tour"); setImportError(false); }}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
+            <NavRow className="pt-6" back={<Button variant="outline" onClick={() => { setMode("tour"); setImportError(false); }}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}>
               <Recommended>
                 <Button variant="recommended" size="lg" onClick={() => file.current?.click()}>{t({ ja: "📥 JSONファイルを選ぶ", en: "📥 Choose a JSON file" })}</Button>
               </Recommended>
               <input ref={file} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
-            </ButtonRow>
+            </NavRow>
           </>
         ) : (
           <>
             <p className="mt-4 text-sm whitespace-pre-line">{t({ ja: `✅ ${imported} 件の探究を読み込みました。\nホームから続きを始められます。`, en: `✅ Imported ${imported} inquiries.\nPick up where you left off from Home.` })}</p>
-            <ButtonRow className="pt-6">
+            <NavRow className="pt-6">
               <Recommended>
                 <Button variant="recommended" size="lg" onClick={finish}>{t({ ja: "🏠 ホームへ", en: "🏠 Go to Home" })}</Button>
               </Recommended>
-            </ButtonRow>
+            </NavRow>
           </>
         )}
       </Screen>
@@ -98,11 +97,11 @@ export function Welcome() {
           <p className="mt-4 text-sm whitespace-pre-line text-muted-foreground">
             {t({ ja: "AIには例文だけを出してもらい、似た語の違いを自分で見つけます。\n最初の探究を、順番に案内します。", en: "The AI only gives you examples; you find how similar words differ.\nWe will walk you through your first inquiry." })}
           </p>
-          <ButtonRow className="pt-6">
+          <NavRow className="pt-6">
             <Recommended>
               <Button variant="recommended" size="lg" onClick={() => setStep(1)}>{t({ ja: "🚀 はじめる", en: "🚀 Get started" })}</Button>
             </Recommended>
-          </ButtonRow>
+          </NavRow>
           <Disclosure className="mt-8" label="🌐 言語を変更する / Language">
             <LanguageFields />
           </Disclosure>
@@ -133,12 +132,11 @@ export function Welcome() {
             </p>
           )}
           <div className="mt-4"><FreeTierFullNote /></div>
-          <ButtonRow className="pt-6">
-            <Button variant="outline" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
+          <NavRow className="pt-6" back={<Button variant="outline" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}>
             <Recommended>
               <Button variant="recommended" size="lg" disabled={starting || (!group && !customReady)} onClick={start}>{t({ ja: "🚀 例文を出す", en: "🚀 Show examples" })}</Button>
             </Recommended>
-          </ButtonRow>
+          </NavRow>
         </div>
       )}
 

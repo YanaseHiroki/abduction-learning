@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ButtonRow } from "@/components/ui/button-row";
+import { NavRow } from "@/components/ui/button-row";
 import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import { addCard } from "@/lib/db";
@@ -87,13 +87,13 @@ export function TutorialGuide({
         ? { title: { ja: "📘 例文を出せませんでした", en: "📘 No examples yet" }, body: { ja: "上のメッセージを確かめてから、もう一度出してみてください。", en: "Check the message above, then try again." }, action: { label: { ja: "🔁 もう一度出す", en: "🔁 Try again" }, run: () => onPick("examples") }, canNext: false }
         : {
             title: { ja: "📘 例文を眺める", en: "📘 Look over the examples" },
-            body: { ja: `${pair.a} と ${pair.b} の例文が並びました。\n訳も付いていますが、意味の解説はあえて出しません。\nどんな文で使われているか、ざっと眺めてください。`, en: `Examples of ${pair.a} and ${pair.b} are ready.\nTranslations are included; explanations are withheld on purpose.\nSkim how each word is used.` },
+            body: { ja: `${pair.a} と ${pair.b} の例文が並びました。\nこの表記には訳もついていますが、単語の使い分けの解説はあえていたしません。\nどんな文で使われているか、ざっと眺めてください。`, en: `Examples of ${pair.a} and ${pair.b} are ready.\nTranslations are included, but how the words differ is deliberately not explained.\nSkim how each word is used.` },
             canNext: true,
           },
     {
       title: { ja: "👀 観察する", en: "👀 Observe" },
       body: latest("observation")
-        ? { ja: `訳文の中で ${pair.a} と ${pair.b} がどう訳されているかを探します。\n語句をなぞって選び、出てきた「追加」を押します。\n2〜3個集めたら進みましょう。`, en: `Look at how ${pair.a} and ${pair.b} are translated.\nSelect a phrase and press "Add".\nCollect two or three, then move on.` }
+        ? { ja: `訳文の中で、${pair.a} と ${pair.b} がそれぞれどう訳されているかを集めます。\n気になった訳語をなぞって選び、例文の上に出る「追加」を押すと、下の比較表の ${pair.a}・${pair.b} の欄に入ります。\n2〜3個集めて進むと、集めた訳語を手がかりに2語の違いを仮説にまとめます。`, en: `Collect how ${pair.a} and ${pair.b} are each translated.\nSelect a translation that catches your eye and press "Add" above the examples; it goes into the ${pair.a} / ${pair.b} column of the comparison table below.\nCollect two or three, then move on to turn them into a hypothesis about how the two differ.` }
         : { ja: "次は、違いの手がかりを集めます。", en: "Next, collect clues to the difference." },
       action: latest("observation") ? undefined : { label: { ja: "👀 観察カードを出す", en: "👀 Add an observation card" }, run: add("observation") },
       canNext: true,
@@ -155,8 +155,13 @@ export function TutorialGuide({
         </div>
         <h2 className="mt-2 font-semibold">{t(current.title)}</h2>
         <p className="mt-1 text-sm whitespace-pre-line text-muted-foreground">{t(current.body)}</p>
-        <ButtonRow className="pt-3">
-          {step > 0 && <Button variant="outline" onClick={() => go(step - 1)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}
+        <NavRow
+          className="pt-3"
+          back={<>
+            {step > 0 && <Button variant="outline" onClick={() => go(step - 1)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}
+            {!last && <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={finish}>{t({ ja: "⏭️ チュートリアルを終える", en: "⏭️ End the tutorial" })}</Button>}
+          </>}
+        >
           {last ? (
             <Recommended><Button variant="recommended" onClick={finish}>{t({ ja: "🏠 ホームへ", en: "🏠 Go to Home" })}</Button></Recommended>
           ) : current.action ? (
@@ -164,8 +169,7 @@ export function TutorialGuide({
           ) : (
             <Recommended><Button variant="recommended" disabled={!current.canNext} onClick={() => go(step + 1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button></Recommended>
           )}
-          {!last && <Button variant="ghost" size="sm" className="ml-auto text-muted-foreground" onClick={finish}>{t({ ja: "⏭️ チュートリアルを終える", en: "⏭️ End the tutorial" })}</Button>}
-        </ButtonRow>
+        </NavRow>
       </section>
     </div>
   );

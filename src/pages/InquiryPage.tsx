@@ -209,7 +209,7 @@ export function InquiryPage() {
         <div className="min-w-0 space-y-4">
           {cards.length === 0 && (
             <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
-              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳はついていますが、意味の解説はあえて出しません。", en: "Start with STEP 1: generate an example set.\nTranslations are included; explanations are deliberately withheld." })}
+              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳もついていますが、単語の使い分けの解説はあえていたしません。", en: "Start with STEP 1: generate an example set.\nTranslations are included, but how the words differ is deliberately not explained." })}
             </div>
           )}
           {cards.map(render)}

@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { NewInquiryDialog } from "@/components/inquiry/NewInquiryDialog";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
-import { ButtonRow } from "@/components/ui/button-row";
+import { ButtonRow, NavRow } from "@/components/ui/button-row";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Recommended, RecommendedBadge } from "@/components/ui/recommended";
 import { Carousel } from "@/components/ui/carousel";
@@ -73,12 +73,11 @@ export function Home() {
       {tutorialInquiry && (
         <section className="mb-8 rounded-xl border border-blue-600/40 bg-blue-50 p-4 dark:bg-blue-950/30">
           <h2 className="text-sm font-semibold">{t({ ja: "🎓 チュートリアルの途中です", en: "🎓 You are partway through the tutorial" })}</h2>
-          <ButtonRow className="pt-3">
+          <NavRow className="pt-3" back={<Button variant="ghost" className="text-muted-foreground" onClick={() => setTutorial({ status: "done" })}>{t({ ja: "⏭️ チュートリアルを終える", en: "⏭️ End the tutorial" })}</Button>}>
             <Recommended>
-              <Button variant="recommended" render={<Link to={`/inquiry/${tutorialInquiry.id}`} />} nativeButton={false}>{t({ ja: "▶ 続きへ", en: "▶ Continue" })}</Button>
+              <Button variant="recommended" render={<Link to={`/inquiry/${tutorialInquiry.id}`} />} nativeButton={false}>{t({ ja: "続きへ ▶", en: "Continue ▶" })}</Button>
             </Recommended>
-            <Button variant="ghost" className="text-muted-foreground" onClick={() => setTutorial({ status: "done" })}>{t({ ja: "⏭️ チュートリアルを終える", en: "⏭️ End the tutorial" })}</Button>
-          </ButtonRow>
+          </NavRow>
         </section>
       )}
 
