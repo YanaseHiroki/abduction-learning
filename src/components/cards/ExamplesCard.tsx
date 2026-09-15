@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RefreshCw, Loader2 } from "lucide-react";
 import { CardShell } from "@/components/inquiry/CardShell";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { SentenceView } from "@/components/inquiry/SentenceView";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
@@ -116,7 +117,7 @@ export function ExamplesCard({ card, inquiry }: { card: Card<"examples">; inquir
           );
         })}
       </div>
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ErrorText code={error} />
       <p className="mt-3 text-xs text-muted-foreground">
         {t({ ja: "AIは間違えることがあります。「変だな」と思った文には旗を立ててください。", en: "The AI can be wrong. Flag any sentence that feels off." })} · {p.meta.model}
       </p>

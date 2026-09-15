@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Loader2, Play, Plus, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { CardShell } from "@/components/inquiry/CardShell";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -104,7 +105,7 @@ export function VerifyFrameCard({ card, inquiry }: { card: Card<"verify_frame">;
         <Button disabled={busy || !ready} onClick={run}>{busy ? <Loader2 className="animate-spin" /> : <Play />}{t({ ja: "AIに確かめる", en: "Ask the AI" })}</Button>
         {!ready && <span className="text-xs text-muted-foreground">{t({ ja: "すべてのマスに予想を入れると実行できます", en: "Predict every cell to run" })}</span>}
       </div>
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ErrorText code={error} />
     </CardShell>
   );
 }

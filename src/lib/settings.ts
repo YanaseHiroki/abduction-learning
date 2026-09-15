@@ -1,36 +1,58 @@
 import { useSyncExternalStore } from "react";
+import type { Provider } from "./llm/providers";
 
-export interface Settings {
+export interface ProviderSettings {
   apiKey: string;
   model: string;
-  qaModel: string;
+}
+
+export interface Settings {
+  /** which tab is active in Settings: the shared free tier, or one provider with the learner's own key */
+  provider: Provider | "shared";
+  providers: Record<Provider, ProviderSettings>;
   qaEnabled: boolean;
   uiLang: "ja" | "en";
   defaultL1: string;
   defaultL2: string;
   showTranslations: boolean;
   ttsRate: number;
+  deviceId: string;
 }
 
 const KEY = "abduction-learning.settings";
 
 export const defaultSettings: Settings = {
-  apiKey: "",
-  model: "claude-opus-5",
-  qaModel: "claude-haiku-4-5",
+  provider: "shared",
+  providers: {
+    anthropic: { apiKey: "", model: "claude-opus-5" },
+    openai: { apiKey: "", model: "gpt-5-mini" },
+    gemini: { apiKey: "", model: "gemini-2.5-flash" },
+  },
   qaEnabled: true,
   uiLang: "ja",
   defaultL1: "ja",
   defaultL2: "en",
   showTranslations: true,
   ttsRate: 0.95,
+  deviceId: "",
 };
 
 function load(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings;
-    return { ...defaultSettings, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Partial<Settings> & { apiKey?: string; model?: string };
+    const merged: Settings = {
+      ...defaultSettings,
+      ...parsed,
+      providers: { ...defaultSettings.providers, ...(parsed.providers ?? {}) },
+    };
+    // migrate the v1 single-key layout
+    if (parsed.apiKey && !merged.providers.anthropic.apiKey) {
+      merged.providers.anthropic = { apiKey: parsed.apiKey, model: parsed.model ?? "claude-opus-5" };
+      merged.provider = "anthropic";
+    }
+    return merged;
   } catch {
     return defaultSettings;
   }
@@ -51,6 +73,10 @@ export function setSettings(patch: Partial<Settings>) {
     /* storage may be unavailable */
   }
   listeners.forEach((l) => l());
+}
+
+export function setProviderSettings(provider: Provider, patch: Partial<ProviderSettings>) {
+  setSettings({ providers: { ...current.providers, [provider]: { ...current.providers[provider], ...patch } } });
 }
 
 export function useSettings() {

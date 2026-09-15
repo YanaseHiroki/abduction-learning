@@ -1,0 +1,33 @@
+# Cloudflare Worker that holds the shared (owner-paid) API key and enforces daily limits.
+# Deploy: `pnpm --filter abduction-learning-proxy deploy` (or the GitHub Action in .github/workflows/worker.yml).
+name = "abduction-learning-proxy"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Which provider the shared key belongs to: anthropic | openai | gemini
+PROVIDER = "gemini"
+# Cheap model for the free tier
+MODEL = "gemini-2.5-flash-lite"
+# Comma-separated origins allowed to call this proxy (the GitHub Pages site). Empty = allow any.
+ALLOWED_ORIGINS = "https://yanasehiroki.github.io"
+# Daily limits (AI calls per day). Roughly one inquiry ≈ 15–30 calls.
+LIMIT_DEVICE = "30"
+LIMIT_IP = "60"
+LIMIT_GLOBAL = "600"
+# Hour offset for the daily reset (9 = midnight JST)
+RESET_TZ_OFFSET_HOURS = "9"
+# Hard caps on a single request
+MAX_TOKENS_CAP = "4000"
+MAX_USER_CHARS = "8000"
+
+# Secret (set with `wrangler secret put PROVIDER_API_KEY` or via the GitHub Action):
+# PROVIDER_API_KEY
+
+[durable_objects]
+bindings = [{ name = "QUOTA", class_name = "QuotaCounter" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["QuotaCounter"]

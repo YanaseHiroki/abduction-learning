@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { CardShell } from "@/components/inquiry/CardShell";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { ExamplesPicker } from "@/components/inquiry/ExamplesPicker";
 import { SelectionBar, type Selection } from "@/components/inquiry/SelectionBar";
 import { SentenceView } from "@/components/inquiry/SentenceView";
@@ -248,7 +249,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
           {p.marks.length === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "まず自分でマークしてから", en: "Mark items yourself first" })}</span>}
         </div>
       )}
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ErrorText code={error} />
     </CardShell>
   );
 }

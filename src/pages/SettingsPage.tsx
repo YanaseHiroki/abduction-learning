@@ -1,14 +1,46 @@
+import { useEffect, useState } from "react";
+import { ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
-import { db } from "@/lib/db";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { exportAll, importAll } from "@/lib/backup";
+import { db } from "@/lib/db";
 import { useT } from "@/lib/i18n";
-import { setSettings, useSettings } from "@/lib/settings";
+import { fetchQuota, PROXY_URL, type Quota } from "@/lib/llm/client";
+import { providerMeta, type Provider } from "@/lib/llm/providers";
+import { setProviderSettings, setSettings, useSettings } from "@/lib/settings";
 
-const models = ["claude-opus-5", "claude-sonnet-5", "claude-haiku-4-5"];
+const providers: Provider[] = ["anthropic", "openai", "gemini"];
+
+function QuotaView() {
+  const t = useT();
+  const [q, setQ] = useState<Quota | null | undefined>(undefined);
+  useEffect(() => {
+    fetchQuota().then(setQ);
+  }, []);
+  if (!PROXY_URL) {
+    return <p className="text-sm text-muted-foreground">{t({ ja: "このデプロイでは無料枠が設定されていません。自分のAPIキーを使ってください。", en: "This deployment has no free tier. Use your own key." })}</p>;
+  }
+  if (q === undefined) return <p className="text-sm text-muted-foreground">…</p>;
+  if (q === null) return <p className="text-sm text-destructive">{t({ ja: "無料枠サーバーに接続できませんでした。", en: "Could not reach the free-tier server." })}</p>;
+  const row = (label: string, v: { used: number; limit: number }) => (
+    <div className="flex justify-between text-sm">
+      <span>{label}</span>
+      <span className="tabular-nums">{v.limit - v.used} / {v.limit}</span>
+    </div>
+  );
+  return (
+    <div className="space-y-1 rounded-lg border p-3">
+      <div className="mb-1 text-xs text-muted-foreground">{t({ ja: "今日の残り回数（AI呼び出し）", en: "Remaining AI calls today" })} · {q.model}</div>
+      {row(t({ ja: "この端末", en: "This device" }), q.device)}
+      {row(t({ ja: "全体", en: "Everyone" }), q.global)}
+      <p className="pt-1 text-xs text-muted-foreground">{t({ ja: "例文セット1回 = 1〜2回（文法チェックあり）、翻訳テスト1回 = 1回。1日の目安は探究1つ分です。", en: "One example set = 1–2 calls (with QA), one translation test = 1 call. Roughly one inquiry per day." })}</p>
+    </div>
+  );
+}
 
 export function SettingsPage() {
   const t = useT();
@@ -16,39 +48,52 @@ export function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
       <h1 className="text-xl font-semibold">{t({ ja: "設定", en: "Settings" })}</h1>
+
       <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">{t({ ja: "AI（自分のAPIキーを使う）", en: "AI (bring your own key)" })}</h2>
-        <p className="text-sm text-muted-foreground">
-          {t({
-            ja: "このアプリはサーバーを持たず、キーはこのブラウザの localStorage にだけ保存され、Anthropic のAPIへ直接送られます。共用のPCでは使い終わったら消してください。",
-            en: "There is no server. The key is stored only in this browser's localStorage and sent directly to Anthropic's API. Clear it on shared computers.",
-          })}
-        </p>
-        <div className="grid gap-1.5">
-          <Label>Anthropic API key</Label>
-          <Input type="password" autoComplete="off" value={s.apiKey} onChange={(e) => setSettings({ apiKey: e.target.value.trim() })} placeholder="sk-ant-…" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="grid gap-1.5">
-            <Label>{t({ ja: "生成モデル", en: "Model" })}</Label>
-            <Select value={s.model} onValueChange={(v) => v && setSettings({ model: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="grid gap-1.5">
-            <Label>{t({ ja: "文法チェック用モデル", en: "QA model" })}</Label>
-            <Select value={s.qaModel} onValueChange={(v) => v && setSettings({ qaModel: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-        </div>
+        <h2 className="font-semibold">{t({ ja: "AIの接続先", en: "AI connection" })}</h2>
+        <p className="text-sm text-muted-foreground">{t({ ja: "開いているタブの設定が使われます。自分のキーはこのブラウザの localStorage にだけ保存され、各社のAPIへ直接送られます。共用のPCでは使い終わったら消してください。", en: "The open tab is the one in use. Your own keys are stored only in this browser's localStorage and sent directly to each provider. Clear them on shared computers." })}</p>
+        <Tabs value={s.provider} onValueChange={(v) => setSettings({ provider: v as Provider | "shared" })}>
+          <TabsList className="flex-wrap">
+            <TabsTrigger value="shared">{t({ ja: "無料枠", en: "Free tier" })}</TabsTrigger>
+            {providers.map((p) => <TabsTrigger key={p} value={p}>{providerMeta[p].label}</TabsTrigger>)}
+          </TabsList>
+          <TabsContent value="shared" className="space-y-2 pt-2">
+            <p className="text-sm">{t({ ja: "運営者が用意した安価なモデルを、回数制限つきで無料で使えます。キーの用意は不要です。", en: "Use an inexpensive model provided by the site owner, free with a daily limit. No key needed." })}</p>
+            <QuotaView />
+          </TabsContent>
+          {providers.map((p) => (
+            <TabsContent key={p} value={p} className="space-y-3 pt-2">
+              <div className="grid gap-1.5">
+                <div className="flex items-center justify-between">
+                  <Label>API key</Label>
+                  <a href={providerMeta[p].keysUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline">
+                    {t({ ja: "APIキーを発行するページ", en: "Get an API key" })} <ExternalLink className="size-3" />
+                  </a>
+                </div>
+                <Input type="password" autoComplete="off" value={s.providers[p].apiKey} onChange={(e) => setProviderSettings(p, { apiKey: e.target.value.trim() })} />
+              </div>
+              <div className="grid gap-1.5">
+                <Label>{t({ ja: "モデル", en: "Model" })}</Label>
+                <div className="flex gap-2">
+                  <Select items={providerMeta[p].models.map((m) => ({ value: m, label: m }))} value={providerMeta[p].models.includes(s.providers[p].model) ? s.providers[p].model : "__custom"} onValueChange={(v) => v && v !== "__custom" && setProviderSettings(p, { model: v })}>
+                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {providerMeta[p].models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Input className="flex-1" value={s.providers[p].model} onChange={(e) => setProviderSettings(p, { model: e.target.value.trim() })} placeholder={providerMeta[p].defaultModel} />
+                </div>
+                <p className="text-xs text-muted-foreground">{t({ ja: "右の欄に直接モデル名を書けば、一覧にないモデルも使えます。", en: "Type any model name on the right to use one not in the list." })}</p>
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
         <label className="flex items-center justify-between text-sm">
-          <span>{t({ ja: "生成した例文を安価なモデルで文法チェックし、怪しい文に「？」を付ける", en: "Check generated sentences with the cheap model and flag suspicious ones" })}</span>
+          <span>{t({ ja: "生成した例文を安価なモデルで文法チェックし、怪しい文に「？」を付ける", en: "Check generated sentences with a cheap model and flag suspicious ones" })}</span>
           <Switch checked={s.qaEnabled} onCheckedChange={(v) => setSettings({ qaEnabled: v })} />
         </label>
       </section>
+
       <section className="space-y-3 rounded-xl border bg-card p-4">
         <h2 className="font-semibold">{t({ ja: "表示", en: "Display" })}</h2>
         <div className="grid gap-1.5">
@@ -68,6 +113,7 @@ export function SettingsPage() {
           <p className="text-xs text-muted-foreground">{t({ ja: "読み上げはブラウザ内蔵の音声を使います（無料・トークン消費なし）。声の質と対応言語はOSによります。", en: "Speech uses the browser's built-in voices (free, no tokens). Quality and languages depend on the OS." })}</p>
         </div>
       </section>
+
       <section className="space-y-3 rounded-xl border bg-card p-4">
         <h2 className="font-semibold">{t({ ja: "データ", en: "Data" })}</h2>
         <p className="text-sm text-muted-foreground">{t({ ja: "すべての探究はこのブラウザの中（IndexedDB）にだけ保存されます。別の端末に持っていくときや、念のためのバックアップにはJSONの書き出しを使ってください。", en: "All inquiries live only in this browser (IndexedDB). Export JSON to move to another device or as a backup." })}</p>

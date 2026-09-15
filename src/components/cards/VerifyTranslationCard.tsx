@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Loader2, Play } from "lucide-react";
 import { CardShell } from "@/components/inquiry/CardShell";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -155,7 +156,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
           {!ready && <p className="text-xs text-muted-foreground">{t({ ja: "番号を入れて、すべてに予想を付けると実行できます。", en: "Add markers and predict each one to run." })}</p>}
         </div>
       </div>
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ErrorText code={error} />
       {p.result && (
         <div className="mt-4 rounded-lg bg-muted/40 p-3">
           <div className="flex items-start gap-2">

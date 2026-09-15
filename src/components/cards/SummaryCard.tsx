@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BookMarked, Check, Loader2, Sparkles } from "lucide-react";
 import { CardShell } from "@/components/inquiry/CardShell";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -85,7 +86,7 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
         </Button>
         <span className="text-xs text-muted-foreground">{t({ ja: "正解・不正解ではなく、根拠と確信度を返します", en: "Evidence and confidence, not verdicts" })}</span>
       </div>
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ErrorText code={error} />
     </CardShell>
   );
 }

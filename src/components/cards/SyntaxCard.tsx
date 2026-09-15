@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Loader2, Sparkles, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { CardShell } from "@/components/inquiry/CardShell";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { ExamplesPicker } from "@/components/inquiry/ExamplesPicker";
 import { SelectionBar, type Selection } from "@/components/inquiry/SelectionBar";
 import { SentenceView } from "@/components/inquiry/SentenceView";
@@ -179,7 +180,7 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
           {taggedCount === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "まず自分でタグ付けしてから", en: "Tag at least one sentence first" })}</span>}
         </div>
       )}
-      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+      <ErrorText code={error} />
       <p className="mt-2 text-xs text-muted-foreground">{uiLang === "ja" ? "役割: " : "Roles: "}{roles.map((r) => `${r.id}=${uiLang === "ja" ? r.ja : r.en}`).join("、 ")}</p>
     </CardShell>
   );

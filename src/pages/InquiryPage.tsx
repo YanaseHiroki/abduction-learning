@@ -20,7 +20,8 @@ import { createExamplesCard } from "@/lib/actions";
 import { genres } from "@/lib/courses";
 import { addCard } from "@/lib/db";
 import { useT } from "@/lib/i18n";
-import { describeError } from "@/lib/llm/client";
+import { describeError, hasCredential } from "@/lib/llm/client";
+import { ErrorText } from "@/components/inquiry/ErrorText";
 import { getLangPack } from "@/lib/langpacks";
 import { useSettings } from "@/lib/settings";
 import type { Card, CardKind, ExamplesParams } from "@/lib/types";
@@ -73,7 +74,7 @@ function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothe
 export function InquiryPage() {
   const { id } = useParams();
   const t = useT();
-  const { uiLang, apiKey } = useSettings();
+  const { uiLang } = useSettings();
   const inquiry = useInquiry(id);
   const cards = useCards(id);
   const [dialog, setDialog] = useState(false);
@@ -168,10 +169,10 @@ export function InquiryPage() {
         </div>
       </div>
       {inquiry.question && <p className="mb-4 rounded-lg border border-dashed px-3 py-2 text-sm"><span className="mr-2 text-muted-foreground">{t({ ja: "問い", en: "Question" })}</span>{inquiry.question}</p>}
-      {!apiKey && (
+      {!hasCredential() && (
         <Alert className="mb-4">
-          <AlertTitle>{t({ ja: "APIキーが未設定です", en: "No API key set" })}</AlertTitle>
-          <AlertDescription>{t({ ja: "例文の生成や翻訳テストには自分の Anthropic API キーが必要です。", en: "Generating examples and running tests needs your own Anthropic API key." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
+          <AlertTitle>{t({ ja: "AIの接続先が未設定です", en: "No AI connection configured" })}</AlertTitle>
+          <AlertDescription>{t({ ja: "例文の生成や翻訳テストには、無料枠か自分のAPIキー（Anthropic / OpenAI / Gemini）が必要です。", en: "Generating examples and running tests needs the free tier or your own key (Anthropic / OpenAI / Gemini)." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
         </Alert>
       )}
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
@@ -188,7 +189,7 @@ export function InquiryPage() {
           {busy && (
             <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文を生成しています…（文法チェックも同時に行います）", en: "Generating examples… (with a grammar check)" })}</div>
           )}
-          {error && <p className="text-sm text-destructive">{error}</p>}
+          <ErrorText code={error} className="text-sm text-destructive" />
         </div>
         <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
       </div>

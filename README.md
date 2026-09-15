@@ -14,8 +14,40 @@
 
 ## 使い方
 
-- 公開ページを開き、設定画面で自分の Anthropic API キーを入れる（キーはブラウザの localStorage にだけ保存され、Anthropic のAPIへ直接送られます）。
-- 学習データはすべてブラウザ内（IndexedDB）に保存されます。サーバーはありません。
+学習データはすべてブラウザ内（IndexedDB）に保存されます。サーバーは持ちません。
+
+AIの接続先は設定画面のタブで選びます。開いているタブが使われます。
+
+| タブ | 内容 |
+|---|---|
+| 無料枠 | 運営者が用意した安価なモデルを、1日の回数制限つきで無料で使う（下記の Worker を配置した場合のみ） |
+| Anthropic / OpenAI / Gemini | 自分のAPIキーを入れる。キーはブラウザの localStorage にだけ保存され、各社のAPIへ直接送られる |
+
+## 無料枠（共有キー）の仕組みと制限
+
+静的サイトには秘密を置けないため、共有キーは Cloudflare Worker（無料枠）に置き、サイトはその Worker 経由で呼び出します。リポジトリのシークレットをビルドに埋め込む方式は、キーが公開JSに含まれて誰でも取り出せてしまうので採用していません。
+
+Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
+
+- 端末ごと（ブラウザの匿名ID）: 1日 30 回 — 探究1つ分の目安
+- IPごと: 1日 60 回 — 匿名IDを消して回避されるのを鈍らせる
+- 全体: 1日 600 回 — 運営者の上限額を固定する安全弁
+- モデル固定・出力トークン上限・入力文字数上限
+- アプリのシステムプロンプト署名を持つ要求だけ受け付ける（汎用プロキシとして使えない）
+- 配信元オリジンの制限
+
+リセットは日本時間の0時です。上限に達すると「本日の無料枠を使い切りました」と表示され、自分のキーに切り替えれば続けられます。
+
+### 運営者の設定手順
+
+1. Cloudflare アカウント（無料）を作り、API トークン（Workers 編集権限）とアカウントIDを控える。
+2. GitHub リポジトリの Settings → Secrets and variables → Actions に以下を登録する。
+   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROVIDER_API_KEY`（共有するAPIキー）
+   - Variables: `PROXY_ENABLED` = `true`, `PROVIDER`（`anthropic` / `openai` / `gemini`）, `MODEL`（例: `gemini-2.5-flash-lite`, `claude-haiku-4-5`, `gpt-5-nano`）
+3. Actions の「Deploy shared-key proxy」を実行すると Worker が配置され、`https://abduction-learning-proxy.<account>.workers.dev` のURLが出る。
+4. そのURLを Variables の `PROXY_URL` に登録し、「Deploy to GitHub Pages」を再実行する。
+
+`worker/wrangler.toml` の `ALLOWED_ORIGINS` は自分の Pages のURLに合わせてください。
 
 ## 開発
 
@@ -28,7 +60,7 @@ pnpm dev
 
 ## 技術
 
-Vite + React + TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、Dexie（IndexedDB）、Anthropic TypeScript SDK（構造化出力）。
+Vite + React + TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、Dexie（IndexedDB）、Anthropic TypeScript SDK / OpenAI・Gemini REST（JSON Schema 構造化出力）、Cloudflare Workers + Durable Objects（共有キーの回数制限）。
 
 ## ライセンス
 

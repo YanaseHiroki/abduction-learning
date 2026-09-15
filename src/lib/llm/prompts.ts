@@ -1,6 +1,5 @@
 import * as z from "zod/v4";
 import { structured } from "./client";
-import { getSettings } from "../settings";
 import type { Sentence, Target } from "../types";
 
 function langName(code: string) {
@@ -124,7 +123,7 @@ export async function qaCheck(l1: string, l2: string, sets: { sentences: Sentenc
     `You are a careful proofreader of ${langName(l2)}. Output only the JSON schema.`,
     user,
     QASchema,
-    { model: getSettings().qaModel, effort: "low", maxTokens: 2000 },
+    { cheap: true, effort: "low", maxTokens: 2000 },
   );
   return data.issues;
 }
