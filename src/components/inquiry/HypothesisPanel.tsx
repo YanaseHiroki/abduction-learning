@@ -30,7 +30,7 @@ export function HypothesisPanel({ inquiry, latest, cards }: { inquiry: Inquiry; 
             })}
           </ul>
         ) : (
-          <p className="text-sm text-muted-foreground">{t({ ja: "例文を眺めて、まずは間違っていてもいいので一行の仮説を立てましょう。", en: "Look at the examples and write a one-line hypothesis. Being wrong is fine." })}</p>
+          <p className="text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "例文を眺めて、まずは間違っていてもいいので一行の仮説を立てましょう。", en: "Look at the examples and write a one-line hypothesis.\nBeing wrong is fine." })}</p>
         )}
       </div>
       <div className="rounded-xl border bg-card p-4 text-sm shadow-xs">

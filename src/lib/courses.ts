@@ -44,7 +44,7 @@ export const courses: Course[] = [
           { label: "watch", kind: "word" },
           { label: "see", kind: "word" },
         ],
-        hint: { ja: "look は前置詞で意味が変わります。まずは look at に絞るとよいでしょう", en: "look changes meaning with prepositions; start with look at." },
+        hint: { ja: "look は前置詞で意味が変わります。\nまずは look at に絞るとよいでしょう", en: "look changes meaning with prepositions.\nStart with look at." },
       },
       {
         id: "think",

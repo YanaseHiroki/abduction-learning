@@ -4,6 +4,7 @@ import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
+import { ButtonRow } from "@/components/ui/button-row";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,10 +109,10 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
             onBlur={() => dirty && updateCardPayload(card, { l1Text: text })}
             placeholder={t({ ja: "例: 嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。", en: "e.g. You should ①listen to harsh opinions; rumors just ②reach your ears." })}
           />
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+          <ButtonRow className="mt-3">
             <Button size="xs" variant="outline" onClick={insertMarker}>{t({ ja: `${circled[markers.length] ?? "①"} を挿入`, en: `Insert ${circled[markers.length] ?? "①"}` })}</Button>
             <span className="text-xs text-muted-foreground">{t({ ja: "カーソル位置に番号を入れます", en: "Inserts at the cursor" })}</span>
-          </div>
+          </ButtonRow>
           {markers.length > 0 && (
             <div className="mt-3 space-y-1.5">
               {markers.map((i) => (
@@ -149,10 +150,12 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
               </SelectContent>
             </Select>
           </div>
-          <Button className="w-full" disabled={busy || !ready} onClick={run}>
-            {busy ? <Loader2 className="animate-spin" /> : <Play />}
-            {p.result ? t({ ja: "もう一度翻訳させる", en: "Translate again" }) : t({ ja: "翻訳させる", en: "Translate" })}
-          </Button>
+          <ButtonRow className="pt-3">
+            <Button className="w-full" disabled={busy || !ready} onClick={run}>
+              {busy ? <Loader2 className="animate-spin" /> : <Play />}
+              {p.result ? t({ ja: "もう一度翻訳させる", en: "Translate again" }) : t({ ja: "翻訳させる", en: "Translate" })}
+            </Button>
+          </ButtonRow>
           {!ready && <p className="text-xs text-muted-foreground">{t({ ja: "番号を入れて、すべてに予想を付けると実行できます。", en: "Add markers and predict each one to run." })}</p>}
         </div>
       </div>

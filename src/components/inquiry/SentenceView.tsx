@@ -69,7 +69,7 @@ export function SentenceView({
           </p>
         )}
       </div>
-      <div className="flex shrink-0 items-start gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+      <div className="flex shrink-0 items-start gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         {canSpeak && (
           <Button variant="ghost" size="icon-sm" aria-label="speak" onClick={() => speak(s.l2, l2, ttsRate)}>
             <Volume2 />

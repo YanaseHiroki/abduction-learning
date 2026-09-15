@@ -8,6 +8,7 @@ import { SelectionBar, type Selection } from "@/components/inquiry/SelectionBar"
 import { SentenceView } from "@/components/inquiry/SentenceView";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
+import { ButtonRow } from "@/components/ui/button-row";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -172,13 +173,13 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
       )}
       <Textarea className="mt-3" placeholder={t({ ja: "構造について気づいたこと（目的語をとる／とらない、that節、前置詞…）", en: "Notes on structure (takes an object or not, that-clause, prepositions…)" })} defaultValue={p.notes} onBlur={(e) => e.target.value !== p.notes && updateCardPayload(card, { notes: e.target.value })} />
       {examples && !p.aiRevealed && (
-        <div className="mt-2 flex items-center gap-2">
+        <ButtonRow className="mt-4">
           <Button size="sm" variant="outline" disabled={busy || taggedCount === 0} onClick={askAi}>
             {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
             {t({ ja: "AIの分析を見る", en: "Show the AI's analysis" })}
           </Button>
           {taggedCount === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "まず自分でタグ付けしてから", en: "Tag at least one sentence first" })}</span>}
-        </div>
+        </ButtonRow>
       )}
       <ErrorText code={error} />
       <p className="mt-2 text-xs text-muted-foreground">{uiLang === "ja" ? "役割: " : "Roles: "}{roles.map((r) => `${r.id}=${uiLang === "ja" ? r.ja : r.en}`).join("、 ")}</p>

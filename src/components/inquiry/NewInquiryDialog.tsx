@@ -70,13 +70,13 @@ export function NewInquiryDialog({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{group ? (group.label[l1] ?? group.label.en) : t({ ja: "自由に探究する", en: "Custom inquiry" })}</DialogTitle>
-          <DialogDescription>
-            {t({ ja: "意味の似た語を2〜4個選びます。2語ずつ比べるのがいちばん見通しがよいです。", en: "Pick 2–4 similar expressions. Two at a time is easiest to see." })}
+          <DialogDescription className="whitespace-pre-line">
+            {t({ ja: "意味の似た語を2〜4個選びます。\n2語ずつ比べるのがいちばん見通しがよいです。", en: "Pick 2–4 similar expressions.\nTwo at a time is easiest to see." })}
             {group?.hint && <span className="mt-1 block">{group.hint[l1] ?? group.hint.en}</span>}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-3">
             {targets.map((x, i) => {
               const on = enabled.has(x.id);
               return (
@@ -97,7 +97,7 @@ export function NewInquiryDialog({
               );
             })}
           </div>
-          <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); addTarget(); }}>
+          <form className="flex gap-4" onSubmit={(e) => { e.preventDefault(); addTarget(); }}>
             <Input lang={l2} value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t({ ja: "語・句・パターンを追加（例: look at, I consider + O + C）", en: "Add a word, phrase, or pattern" })} />
             <Select items={[{ value: "word", label: t({ ja: "語", en: "word" }) }, { value: "phrase", label: t({ ja: "句", en: "phrase" }) }, { value: "pattern", label: t({ ja: "パターン", en: "pattern" }) }]} value={kind} onValueChange={(v) => v && setKind(v as TargetKind)}>
               <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>

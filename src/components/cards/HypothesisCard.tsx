@@ -38,7 +38,7 @@ export function HypothesisCard({ card, inquiry, cards }: { card: Card<"hypothesi
       createdAt={card.createdAt}
       onDelete={() => deleteCard(card.id)}
       actions={
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {notes.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button size="sm" variant="ghost" />}>
@@ -69,7 +69,7 @@ export function HypothesisCard({ card, inquiry, cards }: { card: Card<"hypothesi
           const prev = previous?.payload.lines.find((l) => l.targetId === tg.id)?.text;
           return (
             <div key={tg.id} className="grid gap-1 sm:grid-cols-[140px_1fr]">
-              <div className="flex items-start gap-2 pt-1.5">
+              <div className="flex items-start gap-4 pt-1.5">
                 <TargetBadge target={tg} index={ti} />
                 <button
                   type="button"

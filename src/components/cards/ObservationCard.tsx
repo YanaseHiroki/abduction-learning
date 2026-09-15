@@ -8,6 +8,7 @@ import { SelectionBar, type Selection } from "@/components/inquiry/SelectionBar"
 import { SentenceView } from "@/components/inquiry/SentenceView";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
+import { ButtonRow } from "@/components/ui/button-row";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -241,13 +242,13 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
         onBlur={(e) => e.target.value !== p.notes && updateCardPayload(card, { notes: e.target.value })}
       />
       {usesExamples && examples && !p.aiRevealed && (
-        <div className="mt-2 flex items-center gap-2">
+        <ButtonRow className="mt-4">
           <Button size="sm" variant="outline" disabled={busy || p.marks.length === 0} onClick={askAi}>
             {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
             {t({ ja: "AIにも抽出させて比べる", en: "Let the AI extract too, then compare" })}
           </Button>
           {p.marks.length === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "まず自分でマークしてから", en: "Mark items yourself first" })}</span>}
-        </div>
+        </ButtonRow>
       )}
       <ErrorText code={error} />
     </CardShell>

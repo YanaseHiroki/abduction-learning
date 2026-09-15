@@ -15,14 +15,14 @@ export function Notes() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
       <h1 className="mb-1 text-xl font-semibold">{t({ ja: "気づきノート", en: "Notes" })}</h1>
-      <p className="mb-4 text-sm text-muted-foreground">{t({ ja: "探究の末に残ったスキーマ。新しい探究の仮説として持ち込めます。", en: "Schemas you arrived at. They can be brought into new inquiries as starting hypotheses." })}</p>
+      <p className="mb-4 text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "探究の末に残ったスキーマ。\n新しい探究の仮説として持ち込めます。", en: "Schemas you arrived at.\nThey can be brought into new inquiries as starting hypotheses." })}</p>
       {notes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t({ ja: "まだありません。まとめカードから保存できます。", en: "Nothing yet. Save from a summary card." })}</p>
+        <p className="text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "まだありません。\nまとめカードから保存できます。", en: "Nothing yet.\nSave from a summary card." })}</p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {notes.map((n) => (
             <li key={n.id} className="rounded-xl border bg-card p-4 shadow-xs">
-              <div className="mb-2 flex items-center gap-2">
+              <div className="mb-2 flex items-center gap-4">
                 <div className="flex flex-wrap gap-1">{n.targets.map((x, i) => <TargetBadge key={x.id} target={x} index={i} />)}</div>
                 <span className="ml-auto text-xs text-muted-foreground">{fmtDate(n.createdAt, uiLang)}</span>
                 <Button variant="ghost" size="icon-sm" aria-label="delete" onClick={() => db.schemaNotes.delete(n.id)}><Trash2 /></Button>

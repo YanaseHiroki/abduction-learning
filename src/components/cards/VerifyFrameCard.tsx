@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { Button } from "@/components/ui/button";
+import { ButtonRow } from "@/components/ui/button-row";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { deleteCard, updateCardPayload } from "@/lib/db";
@@ -49,10 +50,10 @@ export function VerifyFrameCard({ card, inquiry }: { card: Card<"verify_frame">;
 
   return (
     <CardShell kind="verify_frame" id={card.id} createdAt={card.createdAt} onDelete={() => deleteCard(card.id)}>
-      <p className="mb-2 text-sm text-muted-foreground">
-        {t({ ja: "診断的な「枠」を当てて、成り立つかを予想します。例:「〜するつもりだ」「たまたま〜」「〜に向かって命令する」。", en: "Apply diagnostic frames and predict whether each target fits. e.g. 'plan to …', 'happen to …', imperative." })}
+      <p className="mb-2 text-sm whitespace-pre-line text-muted-foreground">
+        {t({ ja: "診断的な「枠」を当てて、成り立つかを予想します。\n例:「〜するつもりだ」「たまたま〜」「〜に向かって命令する」。", en: "Apply diagnostic frames and predict whether each target fits.\ne.g. 'plan to …', 'happen to …', imperative." })}
       </p>
-      <form className="mb-3 flex gap-2" onSubmit={(e) => { e.preventDefault(); addFrame(); }}>
+      <form className="mb-6 flex gap-4" onSubmit={(e) => { e.preventDefault(); addFrame(); }}>
         <Input value={draft} onChange={(e) => setDraft(e.target.value)} lang={inquiry.l1} placeholder={t({ ja: "枠を母語で書く", en: "Describe a frame in your language" })} />
         <Button type="submit" variant="outline"><Plus />{t({ ja: "追加", en: "Add" })}</Button>
       </form>
@@ -101,10 +102,10 @@ export function VerifyFrameCard({ card, inquiry }: { card: Card<"verify_frame">;
           </tbody>
         </table>
       </div>
-      <div className="mt-3 flex items-center gap-2">
+      <ButtonRow className="mt-6">
         <Button disabled={busy || !ready} onClick={run}>{busy ? <Loader2 className="animate-spin" /> : <Play />}{t({ ja: "AIに確かめる", en: "Ask the AI" })}</Button>
         {!ready && <span className="text-xs text-muted-foreground">{t({ ja: "すべてのマスに予想を入れると実行できます", en: "Predict every cell to run" })}</span>}
-      </div>
+      </ButtonRow>
       <ErrorText code={error} />
     </CardShell>
   );

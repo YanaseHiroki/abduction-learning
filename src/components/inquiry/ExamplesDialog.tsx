@@ -47,7 +47,7 @@ export function ExamplesDialog({
         <div className="grid gap-4">
           <div className="grid gap-1.5">
             <Label>{t({ ja: "対象", en: "Targets" })}</Label>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-3">
               {inquiry.targets.map((x, i) => {
                 const on = targetIds.includes(x.id);
                 return (

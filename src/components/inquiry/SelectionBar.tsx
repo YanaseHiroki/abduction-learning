@@ -13,7 +13,7 @@ export interface Selection {
 export function SelectionBar({ sel, onAdd, extra }: { sel: Selection | null; onAdd: () => void; extra?: ReactNode }) {
   const t = useT();
   return (
-    <div className="sticky top-14 z-10 mb-3 flex min-h-9 flex-wrap items-center gap-2 rounded-lg border bg-background/95 px-3 py-1.5 text-sm shadow-xs backdrop-blur">
+    <div className="sticky top-14 z-10 mb-3 flex min-h-9 flex-wrap items-center gap-4 rounded-lg border bg-background/95 px-6 py-3 text-sm shadow-xs backdrop-blur">
       {sel ? (
         <>
           <span className="text-muted-foreground">{t({ ja: "選択中:", en: "Selected:" })}</span>

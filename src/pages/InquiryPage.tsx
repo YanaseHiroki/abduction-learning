@@ -14,6 +14,7 @@ import { HypothesisPanel } from "@/components/inquiry/HypothesisPanel";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ButtonRow } from "@/components/ui/button-row";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { latestHypothesis, useCards, useInquiry } from "@/hooks/useInquiry";
 import { createExamplesCard, type ExamplesProgress } from "@/lib/actions";
@@ -59,14 +60,14 @@ function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothe
       break;
   }
   return (
-    <div className="rounded-xl border border-dashed p-4">
-      <div className="mb-2 text-xs font-semibold text-muted-foreground">{t({ ja: "次の一手", en: "Next step" })}</div>
-      <div className="flex flex-wrap gap-2">
+    <div className="rounded-xl border border-dashed p-8">
+      <div className="mb-4 text-xs font-semibold text-muted-foreground">{t({ ja: "次の一手", en: "Next step" })}</div>
+      <ButtonRow>
         {suggestions.map((s, i) => (
           <Button key={i} size="sm" variant={i === 0 ? "default" : "outline"} onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
         ))}
-      </div>
-      <p className="mt-2 text-xs text-muted-foreground">{t({ ja: "順番は自由です。画面下の「カードを追加」からはどの種類でも追加できます。", en: "Any order is fine. The button at the bottom adds any kind of card." })}</p>
+      </ButtonRow>
+      <p className="mt-4 text-xs whitespace-pre-line text-muted-foreground">{t({ ja: "順番は自由です。\n画面下の「カードを追加」からはどの種類でも追加できます。", en: "Any order is fine.\nThe button at the bottom adds any kind of card." })}</p>
     </div>
   );
 }
@@ -155,8 +156,8 @@ export function InquiryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-28">
-      <div className="flex flex-wrap items-center gap-3 py-4">
+    <div className="mx-auto max-w-6xl px-4 pb-56">
+      <div className="flex flex-wrap items-center gap-6 py-4">
         <Button render={<Link to="/" />} nativeButton={false} variant="ghost" size="sm"><ArrowLeft />{t({ ja: "ホーム", en: "Home" })}</Button>
         {inquiry.groupLabel && <span className="text-sm text-muted-foreground">{inquiry.groupLabel}</span>}
         <div className="flex flex-wrap gap-1.5">
@@ -180,8 +181,8 @@ export function InquiryPage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-4">
           {cards.length === 0 && (
-            <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。訳はついていますが、意味の解説はあえて出しません。", en: "Start with STEP 1: generate an example set. Translations are included; explanations are deliberately withheld." })}
+            <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
+              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳はついていますが、意味の解説はあえて出しません。", en: "Start with STEP 1: generate an example set.\nTranslations are included; explanations are deliberately withheld." })}
             </div>
           )}
           {cards.map(render)}
@@ -195,7 +196,7 @@ export function InquiryPage() {
         </div>
         <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
       </div>
-      <div className="fixed bottom-6 left-1/2 z-20 -translate-x-1/2">
+      <div className="fixed bottom-12 left-1/2 z-20 -translate-x-1/2">
         <AddCardMenu hasExamples={examples.length > 0} hasHypothesis={!!latest} onPick={pick} />
       </div>
       {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}

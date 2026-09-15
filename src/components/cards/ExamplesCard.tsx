@@ -135,7 +135,7 @@ export function ExamplesCard({ card, inquiry, progress }: { card: Card<"examples
                       onFlag={() => toggleFlag(si, i)}
                     />
                     {s.flag && (
-                      <div className="mb-2 pl-9">
+                      <div className="mt-1 mb-4 pl-9">
                         <Button size="xs" variant="outline" disabled={busy !== null} onClick={() => regenerate(si, i)}>
                           {busy === `${si}:${i}` ? <Loader2 className="animate-spin" /> : <RefreshCw />}
                           {t({ ja: "指摘して再生成", en: "Point it out and regenerate" })}
@@ -150,8 +150,8 @@ export function ExamplesCard({ card, inquiry, progress }: { card: Card<"examples
         })}
       </div>
       <ErrorText code={error} />
-      <p className="mt-3 text-xs text-muted-foreground">
-        {t({ ja: "AIは間違えることがあります。「変だな」と思った文には旗を立ててください。", en: "The AI can be wrong. Flag any sentence that feels off." })} · {p.meta.model}
+      <p className="mt-3 text-xs whitespace-pre-line text-muted-foreground">
+        {t({ ja: "AIは間違えることがあります。\n「変だな」と思った文には旗を立ててください。", en: "The AI can be wrong.\nFlag any sentence that feels off." })} · {p.meta.model}
       </p>
     </CardShell>
   );

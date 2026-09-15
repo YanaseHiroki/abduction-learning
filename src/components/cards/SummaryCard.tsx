@@ -4,6 +4,7 @@ import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
+import { ButtonRow } from "@/components/ui/button-row";
 import { Textarea } from "@/components/ui/textarea";
 import { saveSchemaNote } from "@/lib/actions";
 import { deleteCard, updateCardPayload } from "@/lib/db";
@@ -55,13 +56,14 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
           );
         })}
       </div>
-      <div className="mt-2">
+      <ButtonRow className="mt-4">
         {p.savedNoteId ? (
+
           <span className="inline-flex items-center gap-1 text-sm text-emerald-700"><Check className="size-4" />{t({ ja: "気づきノートに保存済み", en: "Saved to notes" })}</span>
         ) : (
           <Button size="sm" variant="outline" onClick={save}><BookMarked />{t({ ja: "気づきノートに保存", en: "Save to notes" })}</Button>
         )}
-      </div>
+      </ButtonRow>
 
       <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "ライティング: このスキーマを使って自分の場面で書く", en: "Writing: apply the schema to your own situations" })}</h4>
       <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "仕事や趣味など、自分が実際に使いそうな場面の文を3つ。", en: "Three sentences from situations you would actually use." })}</p>
@@ -79,13 +81,13 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
           </div>
         ))}
       </div>
-      <div className="mt-2 flex items-center gap-2">
+      <ButtonRow className="mt-4">
         <Button size="sm" variant="outline" disabled={busy || !writing.some((s) => s.trim())} onClick={feedback}>
           {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
           {t({ ja: "相棒のコメントをもらう", en: "Get partner comments" })}
         </Button>
         <span className="text-xs text-muted-foreground">{t({ ja: "正解・不正解ではなく、根拠と確信度を返します", en: "Evidence and confidence, not verdicts" })}</span>
-      </div>
+      </ButtonRow>
       <ErrorText code={error} />
     </CardShell>
   );
