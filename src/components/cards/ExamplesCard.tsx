@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RefreshCw, Loader2 } from "lucide-react";
+import { AlertCircle, Check, RefreshCw, Loader2 } from "lucide-react";
 import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { SentenceView } from "@/components/inquiry/SentenceView";
@@ -13,9 +13,31 @@ import { describeError } from "@/lib/llm/client";
 import { regenerateSentence } from "@/lib/llm/prompts";
 import { useSettings } from "@/lib/settings";
 import { genres, levels } from "@/lib/courses";
+import type { ExamplesProgress, TargetProgress } from "@/lib/actions";
 import type { Card, Inquiry } from "@/lib/types";
 
-export function ExamplesCard({ card, inquiry }: { card: Card<"examples">; inquiry: Inquiry }) {
+/** Placeholder shown in a target's column while its sentences are still being generated. */
+function TargetPending({ progress, count }: { progress: TargetProgress; count: number }) {
+  const t = useT();
+  const label = {
+    generating: t({ ja: `例文を生成中…（${count}文）`, en: `Generating ${count} sentences…` }),
+    checking: t({ ja: "文法チェック中…", en: "Checking grammar…" }),
+    done: t({ ja: "完了", en: "Done" }),
+    error: t({ ja: "生成に失敗しました", en: "Generation failed" }),
+  }[progress.status];
+  const Icon = progress.status === "error" ? AlertCircle : progress.status === "done" ? Check : Loader2;
+  return (
+    <div className="flex min-h-24 flex-col justify-center gap-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+      <div className="flex items-center gap-2">
+        <Icon className={progress.status === "generating" || progress.status === "checking" ? "size-4 animate-spin" : "size-4"} />
+        {label}
+      </div>
+      {progress.error && <ErrorText code={progress.error} className="text-xs text-destructive" />}
+    </div>
+  );
+}
+
+export function ExamplesCard({ card, inquiry, progress }: { card: Card<"examples">; inquiry: Inquiry; progress?: ExamplesProgress }) {
   const t = useT();
   const { uiLang, showTranslations } = useSettings();
   const [showTr, setShowTr] = useState(showTranslations);
@@ -83,9 +105,19 @@ export function ExamplesCard({ card, inquiry }: { card: Card<"examples">; inquir
         </p>
       )}
       <div className="grid gap-4 md:grid-cols-2">
-        {p.sets.map((set, si) => {
-          const target = inquiry.targets.find((x) => x.id === set.targetId);
-          if (!target) return null;
+        {inquiry.targets.filter((x) => p.params.targetIds.includes(x.id)).map((target) => {
+          const si = p.sets.findIndex((s) => s.targetId === target.id);
+          const set = p.sets[si];
+          if (!set) {
+            const pr = progress?.[target.id];
+            if (!pr) return null;
+            return (
+              <div key={target.id} className="min-w-0">
+                <TargetBadge target={target} index={inquiry.targets.indexOf(target)} className="mb-1" />
+                <TargetPending progress={pr} count={p.params.count} />
+              </div>
+            );
+          }
           return (
             <div key={set.targetId} className="min-w-0">
               <TargetBadge target={target} index={inquiry.targets.indexOf(target)} className="mb-1" />

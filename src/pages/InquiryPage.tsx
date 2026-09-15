@@ -16,7 +16,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { latestHypothesis, useCards, useInquiry } from "@/hooks/useInquiry";
-import { createExamplesCard } from "@/lib/actions";
+import { createExamplesCard, type ExamplesProgress } from "@/lib/actions";
 import { genres } from "@/lib/courses";
 import { addCard } from "@/lib/db";
 import { useT } from "@/lib/i18n";
@@ -79,6 +79,7 @@ export function InquiryPage() {
   const cards = useCards(id);
   const [dialog, setDialog] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [generating, setGenerating] = useState<{ cardId: string; progress: ExamplesProgress } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoOpened = useRef<string | null>(null);
 
@@ -102,13 +103,14 @@ export function InquiryPage() {
     if (!inquiry) return;
     setBusy(true);
     setError(null);
+    setDialog(false); // the card itself shows per-target progress from here on
     try {
-      await createExamplesCard(inquiry, params);
-      setDialog(false);
+      await createExamplesCard(inquiry, params, (cardId, progress) => setGenerating({ cardId, progress }));
     } catch (e) {
       setError(describeError(e));
     } finally {
       setBusy(false);
+      setGenerating(null);
     }
   }
 
@@ -142,7 +144,7 @@ export function InquiryPage() {
 
   function render(c: Card) {
     switch (c.kind) {
-      case "examples": return <ExamplesCard key={c.id} card={c as Card<"examples">} inquiry={inquiry!} />;
+      case "examples": return <ExamplesCard key={c.id} card={c as Card<"examples">} inquiry={inquiry!} progress={generating?.cardId === c.id ? generating.progress : undefined} />;
       case "observation": return <ObservationCard key={c.id} card={c as Card<"observation">} inquiry={inquiry!} cards={cards!} />;
       case "syntax": return <SyntaxCard key={c.id} card={c as Card<"syntax">} inquiry={inquiry!} cards={cards!} />;
       case "hypothesis": return <HypothesisCard key={c.id} card={c as Card<"hypothesis">} inquiry={inquiry!} cards={cards!} />;
@@ -186,8 +188,8 @@ export function InquiryPage() {
           {cards.length > 0 && !busy && (
             <NextSteps cards={cards} hasHypothesis={!!latest} onPick={pick} />
           )}
-          {busy && (
-            <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文を生成しています…（文法チェックも同時に行います）", en: "Generating examples… (with a grammar check)" })}</div>
+          {busy && !generating && (
+            <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文の生成を始めています…", en: "Starting generation…" })}</div>
           )}
           <ErrorText code={error} className="text-sm text-destructive" />
         </div>

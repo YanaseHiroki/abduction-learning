@@ -1,5 +1,5 @@
 import * as z from "zod/v4";
-import { structured } from "./client";
+import { structured, type CallOptions } from "./client";
 import type { Sentence, Target } from "../types";
 
 function langName(code: string) {
@@ -48,19 +48,16 @@ const SentenceSchema = z.object({
   preposition_phrase: z.string().nullable().describe("prepositional phrase attached to the target, exactly as written, or null"),
 });
 
-const ExamplesSchema = z.object({
-  sets: z.array(
-    z.object({
-      target: z.string().describe("the target label exactly as given"),
-      sentences: z.array(SentenceSchema),
-    }),
-  ),
+const TargetExamplesSchema = z.object({
+  sentences: z.array(SentenceSchema),
 });
 
 export interface GenerateExamplesInput {
   l1: string;
   l2: string;
+  /** every target in this generation; each one is requested separately */
   targets: Target[];
+  /** labels of the inquiry's other targets that were left out, to contrast against */
   contrastWith: string[];
   count: number;
   level: string;
@@ -69,37 +66,56 @@ export interface GenerateExamplesInput {
   adverbs: boolean;
 }
 
-export async function generateExamples(input: GenerateExamplesInput) {
+export interface TargetExamples {
+  targetId: string;
+  sentences: Sentence[];
+  meta: { model: string; generatedAt: number };
+  usage?: { input: number; output: number };
+  elapsedMs: number;
+}
+
+/**
+ * One request per target, so a set of 2–4 targets is generated in parallel and each
+ * finished target can be shown as soon as it arrives.
+ */
+export async function generateExamplesForTarget(input: GenerateExamplesInput, target: Target, opts: CallOptions = {}): Promise<TargetExamples> {
   const { l1, l2, targets, contrastWith, count, level, genre, maxWords, adverbs } = input;
+  const siblings = targets.filter((t) => t.id !== target.id).map((t) => t.label);
+  const others = [...siblings, ...contrastWith];
+  const quoted = others.map((c) => `"${c}"`).join(", ");
   const constraints = [
-    `Produce ${count} sentences for each target.`,
+    `Produce exactly ${count} sentences for this target.`,
     `Level: ${level}.`,
     `Genre / register: ${genre}.`,
     maxWords ? `Each sentence at most ${maxWords} words.` : null,
+    others.length ? `The learner compares "${target.label}" with ${quoted}. Do not use those expressions in the sentences.` : null,
     adverbs
-      ? `Every sentence must contain an adverb modifying the target that reveals how the targets differ${
-          contrastWith.length ? ` from ${contrastWith.map((c) => `"${c}"`).join(", ")}` : ""
-        }.`
-      : null,
-    contrastWith.length && !adverbs
-      ? `Choose contexts that reveal how the targets differ from ${contrastWith.map((c) => `"${c}"`).join(", ")}, but do not include those words.`
-      : null,
+      ? `Every sentence must contain an adverb modifying the target${others.length ? ` that reveals how "${target.label}" differs from ${quoted}` : ""}.`
+      : others.length
+        ? `Choose contexts typical of "${target.label}" that reveal how it differs from ${quoted}.`
+        : null,
     `Vary sentence types (statements, questions, imperatives, negatives) and syntactic patterns where natural.`,
     `Fill object / complement / adverb / preposition_phrase only with substrings that literally appear in l2.`,
   ]
     .filter(Boolean)
     .join("\n");
 
-  const user = `Targets:\n${describeTargets(targets)}\n\n${constraints}`;
-  const { data, model, generatedAt } = await structured(systemPrompt(l1, l2), user, ExamplesSchema, {
+  const user = `Target:\n${describeTargets([target])}\n\n${constraints}`;
+  const { data, model, generatedAt, usage, elapsedMs } = await structured(systemPrompt(l1, l2), user, TargetExamplesSchema, {
     effort: "low",
+    maxTokens: 4000,
+    ...opts,
   });
-  const sets = targets.map((t) => {
-    const found = data.sets.find((s) => s.target.trim().toLowerCase() === t.label.trim().toLowerCase()) ?? data.sets[targets.indexOf(t)];
-    const sentences: Sentence[] = (found?.sentences ?? []).map((s) => ({ ...s, flag: null }));
-    return { targetId: t.id, sentences };
-  });
-  return { sets, meta: { model, generatedAt } };
+  const sentences: Sentence[] = data.sentences.map((s) => ({ ...s, flag: null }));
+  return { targetId: target.id, sentences, meta: { model, generatedAt }, usage, elapsedMs };
+}
+
+/** All targets at once (parallel). Kept for callers that do not need per-target progress. */
+export async function generateExamples(input: GenerateExamplesInput, opts: CallOptions = {}) {
+  const results = await Promise.all(input.targets.map((t) => generateExamplesForTarget(input, t, opts)));
+  const sets = results.map(({ targetId, sentences }) => ({ targetId, sentences }));
+  const last = results[results.length - 1];
+  return { sets, meta: { model: last?.meta.model ?? "", generatedAt: last?.meta.generatedAt ?? Date.now() }, results };
 }
 
 // ---------- QA pass (cheap model) ----------
@@ -114,7 +130,7 @@ const QASchema = z.object({
   ),
 });
 
-export async function qaCheck(l1: string, l2: string, sets: { sentences: Sentence[] }[]) {
+export async function qaCheck(l1: string, l2: string, sets: { sentences: Sentence[] }[], opts: CallOptions = {}) {
   const listing = sets
     .map((s, si) => s.sentences.map((x, i) => `[${si},${i}] ${x.l2}`).join("\n"))
     .join("\n");
@@ -123,7 +139,7 @@ export async function qaCheck(l1: string, l2: string, sets: { sentences: Sentenc
     `You are a careful proofreader of ${langName(l2)}. Output only the JSON schema.`,
     user,
     QASchema,
-    { cheap: true, effort: "low", maxTokens: 2000 },
+    { cheap: true, effort: "low", maxTokens: 2000, ...opts },
   );
   return data.issues;
 }
@@ -219,7 +235,7 @@ export interface TranslateTestInput {
   feasibilityTarget: Target | null;
 }
 
-export async function translateTest(input: TranslateTestInput) {
+export async function translateTest(input: TranslateTestInput, opts: CallOptions = {}) {
   const { l1, l2, l1Text, targets, restrictToTargets, fixedGloss, feasibilityTarget } = input;
   const rules = [
     `Translate the ${langName(l1)} text into natural ${langName(l2)}. The text contains circled numbers (①②③…) placed right before expressions the learner is studying.`,
@@ -236,11 +252,12 @@ export async function translateTest(input: TranslateTestInput) {
   ]
     .filter(Boolean)
     .join("\n");
-  const { data, model, generatedAt } = await structured(systemPrompt(l1, l2), `${rules}\n\nText:\n${l1Text}`, TranslationSchema, {
+  const { data, model, generatedAt, usage, elapsedMs } = await structured(systemPrompt(l1, l2), `${rules}\n\nText:\n${l1Text}`, TranslationSchema, {
     effort: "medium",
     maxTokens: 3000,
+    ...opts,
   });
-  return { ...data, meta: { model, generatedAt } };
+  return { ...data, meta: { model, generatedAt }, usage, elapsedMs };
 }
 
 // ---------- Verification: frame test ----------
