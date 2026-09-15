@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2, PanelRight } from "lucide-react";
 import { ExamplesCard } from "@/components/cards/ExamplesCard";
@@ -79,6 +79,16 @@ export function InquiryPage() {
   const [dialog, setDialog] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const autoOpened = useRef<string | null>(null);
+
+  // A fresh inquiry always starts with STEP 1, so open the example dialog automatically (once per inquiry).
+  useEffect(() => {
+    if (!inquiry || !cards) return;
+    if (cards.length === 0 && autoOpened.current !== inquiry.id) {
+      autoOpened.current = inquiry.id;
+      setDialog(true);
+    }
+  }, [inquiry, cards]);
 
   if (!inquiry || !cards) return <div className="p-8 text-muted-foreground">…</div>;
 
