@@ -114,7 +114,7 @@ export function Home() {
 
       {course ? (
         <section className="mb-8 rounded-2xl border bg-card p-5">
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
           <Carousel>
             {groupCards.map((card) => {
               const { g, latest, started, remaining } = card;
