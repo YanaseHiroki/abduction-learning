@@ -71,6 +71,12 @@ pnpm dev
 結果は「Copy Markdown」で貼り付けられます。
 2026年9月の実測は docs/model-bench-2026-09.md にあります。
 
+### ヘルプのスクリーンショット
+
+ヘルプ（`#/help`）のスクリーンショットは `pnpm shots` で撮り直します（AI は呼びません）。
+画面を変えたら実行してください。
+手順は docs/help-screenshots.md にあります。
+
 ## 技術
 
 Vite + React + TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、Dexie（IndexedDB）、Anthropic TypeScript SDK / OpenAI・Gemini REST（JSON Schema 構造化出力）、Cloudflare Workers + Durable Objects（共有キーの回数制限）。
