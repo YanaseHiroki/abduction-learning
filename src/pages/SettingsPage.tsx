@@ -45,7 +45,6 @@ function QuotaView() {
           en: `You can start ${r.deviceFirstDay} on your first day, then ${r.device} per day.\nEach inquiry may call the AI up to ${r.perInquiry} times (15–30 is typical).\nA started inquiry stays open for ${r.ttlDays} days, across midnight.`,
         })}
       </p>
-      <p className="pt-1 text-xs whitespace-pre-line text-muted-foreground">{t({ ja: "例文セット1回 = 対象の語1つにつき1〜2回（文法チェックあり）。\n翻訳テスト1回 = 1回。\n1日の目安は探究1つ分です。", en: "One example set = 1–2 calls per target (with QA).\nOne translation test = 1 call.\nRoughly one inquiry per day." })}</p>
     </div>
   );
 }
