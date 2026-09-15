@@ -47,15 +47,17 @@ export const providerMeta: Record<Provider, { label: string; keysUrl: string; de
   openai: {
     label: "OpenAI",
     keysUrl: "https://platform.openai.com/api-keys",
-    defaultModel: "gpt-5-mini",
-    cheapModel: "gpt-5-nano",
+    // 2026-09 benchmark: gpt-5.6-luna beat gpt-5-mini on cost, speed and naturalness
+    defaultModel: "gpt-5.6-luna",
+    cheapModel: "gpt-5.6-luna",
     models: ["gpt-5.6", "gpt-5.6-terra", "gpt-5.6-luna", "gpt-5-mini", "gpt-5-nano"],
   },
   gemini: {
     label: "Google Gemini",
     keysUrl: "https://aistudio.google.com/apikey",
-    defaultModel: "gemini-2.5-flash",
-    cheapModel: "gemini-2.5-flash-lite",
+    // 2026-09 benchmark: gemini-3.1-flash-lite generated 10 sentences in ~3 s with one tense slip
+    defaultModel: "gemini-3.1-flash-lite",
+    cheapModel: "gemini-3.1-flash-lite",
     models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash", "gemini-2.5-flash-lite"],
   },
 };

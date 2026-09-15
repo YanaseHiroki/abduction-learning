@@ -43,7 +43,7 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 1. Cloudflare アカウント（無料）を作り、API トークン（Workers 編集権限）とアカウントIDを控える。
 2. GitHub リポジトリの Settings → Secrets and variables → Actions に以下を登録する。
    - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROVIDER_API_KEY`（共有するAPIキー）
-   - Variables: `PROXY_ENABLED` = `true`, `PROVIDER`（`anthropic` / `openai` / `gemini`）, `MODEL`（例: `gemini-2.5-flash-lite`, `gpt-5-nano`, `gpt-5.6-luna`, `claude-haiku-4-5`）
+   - Variables: `PROXY_ENABLED` = `true`, `PROVIDER`（`anthropic` / `openai` / `gemini`）, `MODEL`（既定は `gpt-5.6-luna`。選定の根拠は docs/model-bench-2026-09.md）
 3. Actions の「Deploy shared-key proxy」を実行すると Worker が配置され、`https://abduction-learning-proxy.<account>.workers.dev` のURLが出る。
 4. そのURLを Variables の `PROXY_URL` に登録し、「Deploy to GitHub Pages」を再実行する。
 
@@ -63,6 +63,7 @@ pnpm dev
 `#/bench` はナビゲーションに出ない開発用ページです。
 設定画面に入れた各社のキーを使い、listen & hear の例文セット（10文 × 2語を並列生成）＋文法チェック＋翻訳テストを候補モデルごとに同条件で実行し、応答時間・トークン数・1回あたりの費用と、審判モデルによる採点（文法・自然さ・訳の質・「頼むまで解説しない」の遵守）を表にします。
 結果は「Copy Markdown」で貼り付けられます。
+2026年9月の実測は docs/model-bench-2026-09.md にあります。
 
 ## 技術
 

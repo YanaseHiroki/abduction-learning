@@ -22,15 +22,15 @@ export interface Settings {
 const KEY = "abduction-learning.settings";
 
 /**
- * Default model per provider when the learner brings their own key: the provider's
- * mid-tier model for the main generation (QA uses providerMeta[p].cheapModel).
+ * Default model per provider when the learner brings their own key (QA uses providerMeta[p].cheapModel).
+ * Keep in sync with providerMeta.defaultModel; see docs/model-bench-2026-09.md for how they were chosen.
  */
 export const defaultSettings: Settings = {
   provider: "shared",
   providers: {
     anthropic: { apiKey: "", model: "claude-opus-5" },
-    openai: { apiKey: "", model: "gpt-5-mini" },
-    gemini: { apiKey: "", model: "gemini-2.5-flash" },
+    openai: { apiKey: "", model: "gpt-5.6-luna" },
+    gemini: { apiKey: "", model: "gemini-3.1-flash-lite" },
   },
   qaEnabled: true,
   uiLang: "ja",
