@@ -39,7 +39,8 @@ export class QuotaCounter extends DurableObject<Env> {
   }
 
   private read(day: number, scope: string, key: string): number {
-    const row = this.ctx.storage.sql.exec("SELECT n FROM counters WHERE day = ? AND scope = ? AND key = ?", day, scope, key).one() as { n: number } | null;
+    // .one() throws when there is no row yet, so take the first row of the array instead.
+    const row = this.ctx.storage.sql.exec("SELECT n FROM counters WHERE day = ? AND scope = ? AND key = ?", day, scope, key).toArray()[0] as { n: number } | undefined;
     return row?.n ?? 0;
   }
 
