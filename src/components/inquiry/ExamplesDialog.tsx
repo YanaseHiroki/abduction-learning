@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Recommended } from "@/components/ui/recommended";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -110,7 +111,9 @@ export function ExamplesDialog({
           </label>
         </div>
         <DialogFooter>
+          <Recommended>
           <Button
+            variant="recommended"
             disabled={busy || targetIds.length === 0}
             onClick={() =>
               onSubmit({
@@ -127,6 +130,7 @@ export function ExamplesDialog({
             {busy && <Loader2 className="animate-spin" />}
             {t({ ja: "出力する", en: "Generate" })}
           </Button>
+          </Recommended>
         </DialogFooter>
       </DialogContent>
     </Dialog>

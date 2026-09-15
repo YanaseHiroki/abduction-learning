@@ -5,12 +5,14 @@ import { ArrowRight, Sparkles, Trash2 } from "lucide-react";
 import { NewInquiryDialog } from "@/components/inquiry/NewInquiryDialog";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
+import { RecommendedBadge } from "@/components/ui/recommended";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { courses, languageName, languageOptions, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { setSettings, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
+import { cn } from "@/lib/utils";
 
 export function Home() {
   const t = useT();
@@ -52,12 +54,24 @@ export function Home() {
         <section className="mb-8">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "基本動詞コース（本と同じ13語）", en: "Basic verbs course (the book's 13 verbs)" })}</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {course.groups.map((g) => (
-              <button key={g.id} onClick={() => setDialog({ group: g })} className="rounded-xl border bg-card p-4 text-left shadow-xs transition hover:border-primary/50 hover:shadow-sm">
-                <div className="text-lg font-semibold">{g.label[defaultL1] ?? g.label.en}</div>
-                <div className="mt-1 text-sm text-muted-foreground">{g.targets.map((x) => x.label).join(" · ")}</div>
-              </button>
-            ))}
+            {course.groups.map((g, i) => {
+              // The book starts with the first group, so that card is the recommended entry point.
+              const recommended = i === 0;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setDialog({ group: g })}
+                  className={cn(
+                    "relative rounded-xl border p-4 text-left shadow-xs transition",
+                    recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-card hover:border-primary/50 hover:shadow-sm",
+                  )}
+                >
+                  {recommended && <RecommendedBadge />}
+                  <div className="text-lg font-semibold">{g.label[defaultL1] ?? g.label.en}</div>
+                  <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>
+                </button>
+              );
+            })}
           </div>
         </section>
       ) : (

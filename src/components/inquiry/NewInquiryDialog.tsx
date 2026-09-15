@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
+import { Recommended } from "@/components/ui/recommended";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -131,7 +132,9 @@ export function NewInquiryDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button disabled={chosen.length === 0} onClick={create}>{t({ ja: "探究を始める", en: "Start" })}</Button>
+          <Recommended>
+            <Button variant="recommended" disabled={chosen.length === 0} onClick={create}>{t({ ja: "探究を始める", en: "Start" })}</Button>
+          </Recommended>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -15,6 +15,7 @@ import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
+import { Recommended } from "@/components/ui/recommended";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { latestHypothesis, useCards, useInquiry } from "@/hooks/useInquiry";
 import { createExamplesCard, type ExamplesProgress } from "@/lib/actions";
@@ -63,9 +64,15 @@ function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothe
     <div className="rounded-xl border border-dashed p-8">
       <div className="mb-4 text-xs font-semibold text-muted-foreground">{t({ ja: "次の一手", en: "Next step" })}</div>
       <ButtonRow>
-        {suggestions.map((s, i) => (
-          <Button key={i} size="sm" variant={i === 0 ? "default" : "outline"} onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
-        ))}
+        {suggestions.map((s, i) =>
+          i === 0 ? (
+            <Recommended key={i}>
+              <Button size="sm" variant="recommended" onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
+            </Recommended>
+          ) : (
+            <Button key={i} size="sm" variant="outline" onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
+          ),
+        )}
       </ButtonRow>
       <p className="mt-4 text-xs whitespace-pre-line text-muted-foreground">{t({ ja: "順番は自由です。\n画面下の「カードを追加」からはどの種類でも追加できます。", en: "Any order is fine.\nThe button at the bottom adds any kind of card." })}</p>
     </div>
