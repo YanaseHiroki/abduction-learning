@@ -4,7 +4,7 @@ import { nanoid } from "nanoid";
 import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { Button } from "@/components/ui/button";
-import { ButtonRow } from "@/components/ui/button-row";
+import { NavRow } from "@/components/ui/button-row";
 import { Input } from "@/components/ui/input";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { deleteCard, updateCardPayload } from "@/lib/db";
@@ -102,10 +102,10 @@ export function VerifyFrameCard({ card, inquiry }: { card: Card<"verify_frame">;
           </tbody>
         </table>
       </div>
-      <ButtonRow className="mt-6">
-        <Button disabled={busy || !ready} onClick={run}>{busy ? <Loader2 className="animate-spin" /> : <Play />}{t({ ja: "AIに確かめる", en: "Ask the AI" })}</Button>
+      <NavRow className="mt-6">
         {!ready && <span className="text-xs text-muted-foreground">{t({ ja: "すべてのマスに予想を入れると実行できます", en: "Predict every cell to run" })}</span>}
-      </ButtonRow>
+        <Button disabled={busy || !ready} onClick={run}>{busy ? <Loader2 className="animate-spin" /> : <Play />}{t({ ja: "AIに確かめる", en: "Ask the AI" })}</Button>
+      </NavRow>
       <ErrorText code={error} />
     </CardShell>
   );
