@@ -1,3 +1,4 @@
+import { Carousel } from "@/components/ui/carousel";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,11 +8,11 @@ import { useT } from "@/lib/i18n";
 import { useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
-/** The one decision shown up front when generating examples: which kind of scene. */
+/** The one decision shown up front when generating examples: which kind of scene (at most three tiles in view). */
 export function GenreTiles({ value, onChange }: { value: string; onChange: (id: string) => void }) {
   const { uiLang } = useSettings();
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <Carousel size="tile">
       {genres.map((g) => (
         <button
           key={g.id}
@@ -27,7 +28,7 @@ export function GenreTiles({ value, onChange }: { value: string; onChange: (id: 
           <span>{uiLang === "ja" ? g.ja : g.en}</span>
         </button>
       ))}
-    </div>
+    </Carousel>
   );
 }
 

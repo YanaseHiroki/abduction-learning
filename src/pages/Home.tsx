@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Trash2 } from "lucide-react";
@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Recommended, RecommendedBadge } from "@/components/ui/recommended";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { courses, languageName, languageOptions, type CourseGroup } from "@/lib/courses";
+import { Carousel } from "@/components/ui/carousel";
+import { LanguageFields } from "@/components/LanguageFields";
+import { Welcome } from "@/components/tutorial/Welcome";
+import { courses, languageName, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
 import { useT } from "@/lib/i18n";
-import { setSettings, useSettings } from "@/lib/settings";
+import { setTutorial, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
@@ -21,13 +23,32 @@ const BOOK_URL = "https://www.valuebooks.jp/bp/VS0095275901";
 
 export function Home() {
   const t = useT();
-  const { uiLang, defaultL1, defaultL2 } = useSettings();
+  const { uiLang, defaultL1, defaultL2, tutorial } = useSettings();
   const [dialog, setDialog] = useState<{ group: CourseGroup | null } | null>(null);
-  const inquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []) ?? [];
-  const notes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []) ?? [];
+  const loadedInquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []);
+  const loadedNotes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []);
+  const inquiries = loadedInquiries ?? [];
+  const notes = loadedNotes ?? [];
   const course = courses.find((c) => c.l2 === defaultL2);
 
-  const langItems = languageOptions.map((c) => ({ value: c, label: languageName(c, uiLang) }));
+  // No data and no finished tutorial = a first-time visitor: show the one-way welcome instead of the menu.
+  // Once shown it stays up until the tutorial is started, skipped or data is imported (importing adds data
+  // while the welcome is still showing its result).
+  const loaded = loadedInquiries !== undefined && loadedNotes !== undefined;
+  const empty = loaded && inquiries.length === 0 && notes.length === 0;
+  const [welcomed, setWelcomed] = useState(false);
+  if (!welcomed && empty && tutorial.status !== "done") setWelcomed(true);
+  const showWelcome = welcomed && tutorial.status !== "done";
+
+  // Learners who already have data (from before the tutorial existed) never need it.
+  useEffect(() => {
+    if (loaded && !empty && !welcomed && tutorial.status === "new") setTutorial({ status: "done" });
+  }, [loaded, empty, welcomed, tutorial.status]);
+
+  if (!loaded) return null;
+  if (showWelcome) return <Welcome />;
+
+  const tutorialInquiry = tutorial.status === "running" ? inquiries.find((x) => x.id === tutorial.inquiryId) : undefined;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -35,25 +56,7 @@ export function Home() {
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <Disclosure label={t({ ja: "🌐 言語を変更する", en: "🌐 Change languages" })} hint={`${languageName(defaultL1, uiLang)} → ${languageName(defaultL2, uiLang)}`}>
-            <div className="grid gap-3 text-sm">
-              <div className="grid grid-cols-[6rem_1fr] items-center gap-2">
-                <span className="text-muted-foreground">{t({ ja: "母語", en: "I speak" })}</span>
-                <Select items={langItems} value={defaultL1} onValueChange={(v) => v && setSettings({ defaultL1: v })}>
-                  <SelectTrigger size="sm" className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>{languageOptions.map((c) => <SelectItem key={c} value={c}>{languageName(c, uiLang)}</SelectItem>)}</SelectContent>
-                </Select>
-                <span className="text-muted-foreground">{t({ ja: "学ぶ言語", en: "Learning" })}</span>
-                <Select items={langItems} value={defaultL2} onValueChange={(v) => v && setSettings({ defaultL2: v })}>
-                  <SelectTrigger size="sm" className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent>{languageOptions.map((c) => <SelectItem key={c} value={c}>{languageName(c, uiLang)}</SelectItem>)}</SelectContent>
-                </Select>
-                <span className="text-muted-foreground">{t({ ja: "画面の言語", en: "Screen" })}</span>
-                <Select items={[{ value: "ja", label: "日本語" }, { value: "en", label: "English" }]} value={uiLang} onValueChange={(v) => v && setSettings({ uiLang: v as "ja" | "en" })}>
-                  <SelectTrigger size="sm" className="w-full"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="ja">日本語</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
-                </Select>
-              </div>
-            </div>
+            <LanguageFields />
           </Disclosure>
           <Disclosure label={t({ ja: "📖 このアプリについて", en: "📖 About this app" })}>
             <p className="text-sm whitespace-pre-line text-muted-foreground">
@@ -67,13 +70,26 @@ export function Home() {
         </div>
       </section>
 
+      {tutorialInquiry && (
+        <section className="mb-8 rounded-xl border border-blue-600/40 bg-blue-50 p-4 dark:bg-blue-950/30">
+          <h2 className="text-sm font-semibold">{t({ ja: "🎓 チュートリアルの途中です", en: "🎓 You are partway through the tutorial" })}</h2>
+          <ButtonRow className="pt-3">
+            <Recommended>
+              <Button variant="recommended" render={<Link to={`/inquiry/${tutorialInquiry.id}`} />} nativeButton={false}>{t({ ja: "▶ 続きへ", en: "▶ Continue" })}</Button>
+            </Recommended>
+            <Button variant="ghost" className="text-muted-foreground" onClick={() => setTutorial({ status: "done" })}>{t({ ja: "⏭️ チュートリアルを終える", en: "⏭️ End the tutorial" })}</Button>
+          </ButtonRow>
+        </section>
+      )}
+
       {course ? (
         <section className="mb-8">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <Carousel>
             {course.groups.map((g, i) => {
-              // The book starts with the first group, so that card is the recommended entry point.
-              const recommended = i === 0;
+              // The book starts with the first group, so that card is the recommended entry point
+              // (unless the tutorial is still running: then its "continue" is the one recommendation).
+              const recommended = i === 0 && !tutorialInquiry;
               return (
                 <button
                   key={g.id}
@@ -89,7 +105,7 @@ export function Home() {
                 </button>
               );
             })}
-          </div>
+          </Carousel>
           <ButtonRow className="pt-6">
             <Button variant="outline" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
           </ButtonRow>

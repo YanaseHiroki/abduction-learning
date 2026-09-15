@@ -13,6 +13,7 @@ import { ExamplesDialog } from "@/components/inquiry/ExamplesDialog";
 import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { HypothesisPanel } from "@/components/inquiry/HypothesisPanel";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
+import { TutorialGuide } from "@/components/tutorial/TutorialGuide";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
@@ -27,6 +28,7 @@ import { describeError, hasCredential, setActiveInquiry } from "@/lib/llm/client
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { getLangPack } from "@/lib/langpacks";
 import { useSettings } from "@/lib/settings";
+import { useGuidedInquiry } from "@/lib/tutorial";
 import type { Card, CardKind, ExamplesParams } from "@/lib/types";
 
 function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothesis: boolean; onPick: (k: CardKind) => void }) {
@@ -93,6 +95,7 @@ export function InquiryPage() {
   const autoOpened = useRef<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const guided = useGuidedInquiry(id);
 
   // The free tier charges every AI call on this page to this inquiry.
   useEffect(() => {
@@ -210,7 +213,7 @@ export function InquiryPage() {
             </div>
           )}
           {cards.map(render)}
-          {cards.length > 0 && !busy && (
+          {cards.length > 0 && !busy && !guided && (
             <NextSteps cards={cards} hasHypothesis={!!latest} onPick={pick} />
           )}
           {busy && !generating && (
@@ -220,9 +223,13 @@ export function InquiryPage() {
         </div>
         <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
       </div>
-      <div className="fixed bottom-12 left-1/2 z-20 -translate-x-1/2">
-        <AddCardMenu hasExamples={examples.length > 0} hasHypothesis={!!latest} onPick={pick} />
-      </div>
+      {guided ? (
+        <TutorialGuide inquiry={inquiry} cards={cards} busy={busy} error={error} onPick={pick} />
+      ) : (
+        <div className="fixed bottom-12 left-1/2 z-20 -translate-x-1/2">
+          <AddCardMenu hasExamples={examples.length > 0} hasHypothesis={!!latest} onPick={pick} />
+        </div>
+      )}
       {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}
     </div>
   );

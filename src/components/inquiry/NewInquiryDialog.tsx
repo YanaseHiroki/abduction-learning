@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import { nanoid } from "nanoid";
@@ -13,11 +13,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { defaultExampleSettings, type CourseGroup, type ExampleSettings } from "@/lib/courses";
 import { createInquiry } from "@/lib/db";
 import { useT } from "@/lib/i18n";
-import { fetchQuota, type Quota } from "@/lib/llm/client";
-import { useSettings } from "@/lib/settings";
 import type { ExamplesParams, Target, TargetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ExampleSettingsFields, GenreTiles } from "./ExampleOptions";
+import { FreeTierFullNote } from "./FreeTierFullNote";
 import { targetColor } from "./TargetBadge";
 
 /** Router state handed to the inquiry page so it generates the first example set right away. */
@@ -43,7 +42,6 @@ export function NewInquiryDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const t = useT();
-  const { provider } = useSettings();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [targets, setTargets] = useState<Target[]>(() =>
@@ -54,13 +52,6 @@ export function NewInquiryDialog({
   const [kind, setKind] = useState<TargetKind>("word");
   const [question, setQuestion] = useState("");
   const [settings, setSettings] = useState<ExampleSettings>(() => defaultExampleSettings());
-
-  // On the free tier, say before starting when no more inquiries can be started today.
-  const [quota, setQuota] = useState<Quota | null>(null);
-  useEffect(() => {
-    if (open && provider === "shared") fetchQuota().then(setQuota);
-  }, [open, provider]);
-  const freeFull = provider === "shared" && !!quota && [quota.device, quota.ip, quota.global].some((v) => v.used >= v.limit);
 
   const chosen = group ? targets.filter((x) => enabled.has(x.id)) : targets;
 
@@ -168,11 +159,7 @@ export function NewInquiryDialog({
           </div>
         )}
 
-        {freeFull && (
-          <p className="text-sm whitespace-pre-line text-destructive">
-            {t({ ja: "今日無料で始められる探究の数を使い切りました。\n明日また始められます。\n今日始めた探究は続けられます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "You have started today's free inquiries.\nYou can start another tomorrow; today's inquiries can be continued.\nOr switch to your own key in Settings." })}
-          </p>
-        )}
+        <FreeTierFullNote active={open} />
         <DialogFooter>
           {step === 0 ? (
             <Recommended>
