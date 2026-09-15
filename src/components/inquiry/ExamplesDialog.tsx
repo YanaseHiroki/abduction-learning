@@ -42,7 +42,7 @@ export function ExamplesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t({ ja: "例文セットを出力する", en: "Generate an example set" })}</DialogTitle>
+          <DialogTitle>{t({ ja: "📝 例文セットを出力する", en: "📝 Generate an example set" })}</DialogTitle>
           <DialogDescription>{t({ ja: "AIには「頼むまで解説しない」という指示が常に付きます。", en: "The AI is always told not to explain until asked." })}</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4">

@@ -154,7 +154,7 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
               );
             })}
           </div>
-          <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "構造パターン集計", en: "Pattern summary" })}</h4>
+          <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "📐 構造パターン集計", en: "📐 Pattern summary" })}</h4>
           <div className="grid gap-3 md:grid-cols-2">
             {inquiry.targets.map((tg, ti) => (
               <div key={tg.id} className="rounded-lg border p-2 text-sm">

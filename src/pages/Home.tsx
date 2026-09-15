@@ -56,7 +56,7 @@ export function Home() {
 
       {course ? (
         <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "基本動詞コース（本と同じ13語）", en: "Basic verbs course (the book's 13 verbs)" })}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "📚 基本動詞コース（本と同じ13語）", en: "📚 Basic verbs course (the book's 13 verbs)" })}</h2>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {course.groups.map((g, i) => {
               // The book starts with the first group, so that card is the recommended entry point.
@@ -84,7 +84,7 @@ export function Home() {
 
       {notes[0] && (
         <section className="mb-8 rounded-xl border border-dashed p-4">
-          <div className="mb-1 text-xs font-semibold text-muted-foreground">{t({ ja: "再訪: 前に立てたスキーマ", en: "Revisit: a schema you built" })}</div>
+          <div className="mb-1 text-xs font-semibold text-muted-foreground">{t({ ja: "🔁 再訪: 前に立てたスキーマ", en: "🔁 Revisit: a schema you built" })}</div>
           <div className="flex flex-wrap gap-2 text-sm">
             {notes[0].lines.map((l) => {
               const tg = notes[0].targets.find((x) => x.id === l.targetId);
@@ -96,7 +96,7 @@ export function Home() {
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "探究の一覧", en: "Your inquiries" })}</h2>
+        <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "🗂️ 探究の一覧", en: "🗂️ Your inquiries" })}</h2>
         {inquiries.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t({ ja: "まだありません。", en: "Nothing yet." })}</p>
         ) : (

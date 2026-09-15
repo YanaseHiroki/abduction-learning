@@ -14,7 +14,7 @@ export function Notes() {
   const notes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().toArray(), []) ?? [];
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
-      <h1 className="mb-1 text-xl font-semibold">{t({ ja: "気づきノート", en: "Notes" })}</h1>
+      <h1 className="mb-1 text-xl font-semibold">{t({ ja: "📒 気づきノート", en: "📒 Notes" })}</h1>
       <p className="mb-4 text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "探究の末に残ったスキーマ。\n新しい探究の仮説として持ち込めます。", en: "Schemas you arrived at.\nThey can be brought into new inquiries as starting hypotheses." })}</p>
       {notes.length === 0 ? (
         <p className="text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "まだありません。\nまとめカードから保存できます。", en: "Nothing yet.\nSave from a summary card." })}</p>

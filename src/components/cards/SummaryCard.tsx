@@ -42,7 +42,7 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
 
   return (
     <CardShell kind="summary" id={card.id} createdAt={card.createdAt} onDelete={() => deleteCard(card.id)}>
-      <h4 className="mb-1 text-sm font-semibold">{t({ ja: "スキーマ（最終仮説）", en: "Schema (final hypothesis)" })}</h4>
+      <h4 className="mb-1 text-sm font-semibold">{t({ ja: "🧠 スキーマ（最終仮説）", en: "🧠 Schema (final hypothesis)" })}</h4>
       <div className="space-y-1.5">
         {p.lines.map((l) => {
           const tg = inquiry.targets.find((x) => x.id === l.targetId);
@@ -65,7 +65,7 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
         )}
       </ButtonRow>
 
-      <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "ライティング: このスキーマを使って自分の場面で書く", en: "Writing: apply the schema to your own situations" })}</h4>
+      <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "✍️ ライティング: このスキーマを使って自分の場面で書く", en: "✍️ Writing: apply the schema to your own situations" })}</h4>
       <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "仕事や趣味など、自分が実際に使いそうな場面の文を3つ。", en: "Three sentences from situations you would actually use." })}</p>
       <div className="space-y-2">
         {writing.map((w, i) => (

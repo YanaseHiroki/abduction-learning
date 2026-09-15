@@ -78,7 +78,7 @@ export function NewInquiryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{group ? (group.label[l1] ?? group.label.en) : t({ ja: "自由に探究する", en: "Custom inquiry" })}</DialogTitle>
+          <DialogTitle>{group ? `📚 ${group.label[l1] ?? group.label.en}` : t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</DialogTitle>
           <DialogDescription className="whitespace-pre-line">
             {t({ ja: "意味の似た語を2〜4個選びます。\n2語ずつ比べるのがいちばん見通しがよいです。", en: "Pick 2–4 similar expressions.\nTwo at a time is easiest to see." })}
             {group?.hint && <span className="mt-1 block">{group.hint[l1] ?? group.hint.en}</span>}

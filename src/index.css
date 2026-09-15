@@ -117,6 +117,25 @@
     --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Before switching tabs, show what the switch would change: while a tab that isn't
+   selected is hovered or keyboard-focused, the panel box below gets a thicker, darker
+   outline. The selected and disabled tabs are left out — pressing them changes nothing. */
+[data-slot="tabs-panels"] {
+    transition: box-shadow 120ms ease;
+}
+[data-slot="tabs-list"]:has(
+    [data-slot="tabs-trigger"]:hover:not([data-active], [data-disabled]),
+    [data-slot="tabs-trigger"]:focus-visible:not([data-active], [data-disabled])
+  )
+  + [data-slot="tabs-panels"] {
+    box-shadow: inset 0 0 0 2px var(--ring);
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-slot="tabs-panels"] {
+        transition: none;
+    }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -14,7 +14,7 @@ export function HypothesisPanel({ inquiry, latest, cards }: { inquiry: Inquiry; 
     <aside className="space-y-4">
       <div className="rounded-xl border bg-card p-4 shadow-xs">
         <div className="mb-2 flex items-baseline justify-between">
-          <h3 className="font-semibold">{t({ ja: "現在の仮説", en: "Current hypothesis" })}</h3>
+          <h3 className="font-semibold">{t({ ja: "💡 現在の仮説", en: "💡 Current hypothesis" })}</h3>
           {latest && <a href={`#card-${latest.id}`} className="text-xs text-muted-foreground hover:underline">v{latest.payload.version}</a>}
         </div>
         {latest ? (
@@ -34,7 +34,7 @@ export function HypothesisPanel({ inquiry, latest, cards }: { inquiry: Inquiry; 
         )}
       </div>
       <div className="rounded-xl border bg-card p-4 text-sm shadow-xs">
-        <h3 className="mb-2 font-semibold">{t({ ja: "学びのサイクル", en: "The learning cycle" })}</h3>
+        <h3 className="mb-2 font-semibold">{t({ ja: "🔄 学びのサイクル", en: "🔄 The learning cycle" })}</h3>
         <ol className="space-y-1.5">
           <li className="flex justify-between"><span>1. {t({ ja: "例文を出力する", en: "Generate examples" })}</span><span className="tabular-nums text-muted-foreground">{counts.examples}</span></li>
           <li className="flex justify-between"><span>2. {t({ ja: "比較・検討して仮説を立てる", en: "Compare and hypothesize" })}</span><span className="tabular-nums text-muted-foreground">{counts.observation} / {counts.hypothesis}</span></li>

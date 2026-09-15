@@ -238,13 +238,13 @@ export function BenchPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
-      <h1 className="text-xl font-semibold">Model benchmark (listen &amp; hear)</h1>
+      <h1 className="text-xl font-semibold">🏁 Model benchmark (listen &amp; hear)</h1>
       <p className="text-sm whitespace-pre-line text-muted-foreground">
         {"Uses the API keys saved in Settings.\nEach candidate runs STEP 1 (10 sentences × 2 targets, in parallel) + the QA pass with itself + one translation test.\nThen a judge model grades grammar, naturalness, translation quality and rule adherence."}
       </p>
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">Candidates</h2>
+        <h2 className="font-semibold">🧪 Candidates</h2>
         <div className="grid gap-2 sm:grid-cols-2">
           {candidates.map((c) => (
             <label key={c.model} className="flex items-center gap-2 text-sm">

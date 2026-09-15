@@ -62,7 +62,7 @@ function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothe
   }
   return (
     <div className="rounded-xl border border-dashed p-8">
-      <div className="mb-4 text-xs font-semibold text-muted-foreground">{t({ ja: "次の一手", en: "Next step" })}</div>
+      <div className="mb-4 text-xs font-semibold text-muted-foreground">{t({ ja: "👉 次の一手", en: "👉 Next step" })}</div>
       <ButtonRow>
         {suggestions.map((s, i) =>
           i === 0 ? (

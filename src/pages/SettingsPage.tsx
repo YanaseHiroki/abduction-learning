@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsPanels, TabsTrigger } from "@/components/ui/tabs";
 import { exportAll, importAll } from "@/lib/backup";
 import { db } from "@/lib/db";
 import { useT } from "@/lib/i18n";
@@ -54,55 +54,60 @@ export function SettingsPage() {
   const s = useSettings();
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
-      <h1 className="text-xl font-semibold">{t({ ja: "設定", en: "Settings" })}</h1>
+      <h1 className="text-xl font-semibold">{t({ ja: "⚙️ 設定", en: "⚙️ Settings" })}</h1>
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">{t({ ja: "AIの接続先", en: "AI connection" })}</h2>
+        <h2 className="font-semibold">{t({ ja: "🤖 AIの接続先", en: "🤖 AI connection" })}</h2>
         <p className="text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "開いているタブの設定が使われます。\n自分のキーはこのブラウザの localStorage にだけ保存され、各社のAPIへ直接送られます。\n共用のPCでは使い終わったら消してください。", en: "The open tab is the one in use.\nYour own keys are stored only in this browser's localStorage and sent directly to each provider.\nClear them on shared computers." })}</p>
         <Tabs value={s.provider} onValueChange={(v) => setSettings({ provider: v as Provider | "shared" })}>
-          <TabsList className="flex-wrap">
+          <TabsList variant="fitted">
             <TabsTrigger value="shared">{t({ ja: "無料枠", en: "Free tier" })}</TabsTrigger>
             {providers.map((p) => <TabsTrigger key={p} value={p}>{providerMeta[p].label}</TabsTrigger>)}
           </TabsList>
-          <TabsContent value="shared" className="space-y-2 pt-2">
-            <p className="text-sm whitespace-pre-line">{t({ ja: "運営者が用意した安価なモデルを、回数制限つきで無料で使えます。\nキーの用意は不要です。", en: "Use an inexpensive model provided by the site owner, free with a daily limit.\nNo key needed." })}</p>
-            <QuotaView />
-          </TabsContent>
-          {providers.map((p) => (
-            <TabsContent key={p} value={p} className="space-y-3 pt-2">
-              <div className="grid gap-1.5">
-                <div className="flex items-center justify-between">
-                  <Label>API key</Label>
-                  <a href={providerMeta[p].keysUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline">
-                    {t({ ja: "APIキーを発行するページ", en: "Get an API key" })} <ExternalLink className="size-3" />
-                  </a>
-                </div>
-                <Input type="password" autoComplete="off" value={s.providers[p].apiKey} onChange={(e) => setProviderSettings(p, { apiKey: e.target.value.trim() })} />
-              </div>
-              <div className="grid gap-1.5">
-                <Label>{t({ ja: "モデル", en: "Model" })}</Label>
-                <div className="flex gap-2">
-                  <Select items={providerMeta[p].models.map((m) => ({ value: m, label: m }))} value={providerMeta[p].models.includes(s.providers[p].model) ? s.providers[p].model : "__custom"} onValueChange={(v) => v && v !== "__custom" && setProviderSettings(p, { model: v })}>
-                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {providerMeta[p].models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input className="flex-1" value={s.providers[p].model} onChange={(e) => setProviderSettings(p, { model: e.target.value.trim() })} placeholder={providerMeta[p].defaultModel} />
-                </div>
-                <p className="text-xs text-muted-foreground">{t({ ja: "右の欄に直接モデル名を書けば、一覧にないモデルも使えます。", en: "Type any model name on the right to use one not in the list." })}</p>
-              </div>
+          <TabsPanels>
+            <TabsContent value="shared" className="space-y-2">
+              <p className="text-sm whitespace-pre-line">{t({ ja: "運営者が用意した安価なモデルを、回数制限つきで無料で使えます。\nキーの用意は不要です。", en: "Use an inexpensive model provided by the site owner, free with a daily limit.\nNo key needed." })}</p>
+              <QuotaView />
             </TabsContent>
-          ))}
+            {providers.map((p) => (
+              <TabsContent key={p} value={p} className="space-y-3">
+                <div className="grid gap-1.5">
+                  <div className="flex items-center justify-between">
+                    <Label>API key</Label>
+                    <a href={providerMeta[p].keysUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline">
+                      {t({ ja: "APIキーを発行するページ", en: "Get an API key" })} <ExternalLink className="size-3" />
+                    </a>
+                  </div>
+                  <Input type="password" autoComplete="off" value={s.providers[p].apiKey} onChange={(e) => setProviderSettings(p, { apiKey: e.target.value.trim() })} />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label>{t({ ja: "モデル", en: "Model" })}</Label>
+                  <div className="flex gap-2">
+                    <Select items={providerMeta[p].models.map((m) => ({ value: m, label: m }))} value={providerMeta[p].models.includes(s.providers[p].model) ? s.providers[p].model : "__custom"} onValueChange={(v) => v && v !== "__custom" && setProviderSettings(p, { model: v })}>
+                      <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {providerMeta[p].models.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                    <Input className="flex-1" value={s.providers[p].model} onChange={(e) => setProviderSettings(p, { model: e.target.value.trim() })} placeholder={providerMeta[p].defaultModel} />
+                  </div>
+                  <p className="text-xs text-muted-foreground">{t({ ja: "右の欄に直接モデル名を書けば、一覧にないモデルも使えます。", en: "Type any model name on the right to use one not in the list." })}</p>
+                </div>
+              </TabsContent>
+            ))}
+          </TabsPanels>
         </Tabs>
-        <label className="flex items-center justify-between text-sm">
-          <span>{t({ ja: "生成した例文を安価なモデルで文法チェックし、怪しい文に「？」を付ける", en: "Check generated sentences with a cheap model and flag suspicious ones" })}</span>
+        <label className="flex items-center justify-between gap-4 pt-2">
+          <span className="grid gap-0.5">
+            <span className="text-sm font-medium">{t({ ja: "✅ 文法ダブルチェック", en: "✅ Grammar double-check" })}</span>
+            <span className="text-xs text-muted-foreground">{t({ ja: "生成した例文を安価なモデルで文法チェックし、怪しい文に「？」を付けます。", en: "Checks generated sentences with a cheap model and flags suspicious ones with “?”." })}</span>
+          </span>
           <Switch checked={s.qaEnabled} onCheckedChange={(v) => setSettings({ qaEnabled: v })} />
         </label>
       </section>
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">{t({ ja: "表示", en: "Display" })}</h2>
+        <h2 className="font-semibold">{t({ ja: "🎨 表示", en: "🎨 Display" })}</h2>
         <div className="grid gap-1.5">
           <Label>{t({ ja: "UIの言語", en: "UI language" })}</Label>
           <Select items={[{ value: "ja", label: "日本語" }, { value: "en", label: "English" }]} value={s.uiLang} onValueChange={(v) => v && setSettings({ uiLang: v as "ja" | "en" })}>
@@ -122,7 +127,7 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
-        <h2 className="font-semibold">{t({ ja: "データ", en: "Data" })}</h2>
+        <h2 className="font-semibold">{t({ ja: "💾 データ", en: "💾 Data" })}</h2>
         <p className="text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "すべての探究はこのブラウザの中（IndexedDB）にだけ保存されます。\n別の端末に持っていくときや、念のためのバックアップにはJSONの書き出しを使ってください。", en: "All inquiries live only in this browser (IndexedDB).\nExport JSON to move to another device or as a backup." })}</p>
         <ButtonRow className="pt-3">
           <Button variant="outline" onClick={exportAll}>{t({ ja: "JSONに書き出す", en: "Export JSON" })}</Button>

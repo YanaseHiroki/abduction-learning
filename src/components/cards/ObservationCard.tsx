@@ -157,7 +157,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
       )}
       {usesExamples && !examples && <p className="text-sm text-muted-foreground">{t({ ja: "先に例文セットを出力してください。", en: "Generate an example set first." })}</p>}
 
-      <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "比較表", en: "Comparison table" })}</h4>
+      <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "📊 比較表", en: "📊 Comparison table" })}</h4>
       <Tabs defaultValue="list">
         <TabsList>
           <TabsTrigger value="list">{t({ ja: "対象ごと", en: "By target" })}</TabsTrigger>
@@ -199,7 +199,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
         <TabsContent value="pivot">
           <div className="grid gap-3 md:grid-cols-2">
             <div className="rounded-lg border p-2">
-              <div className="mb-1 text-xs font-semibold text-muted-foreground">{t({ ja: "複数の対象に共通", en: "Shared" })}</div>
+              <div className="mb-1 text-xs font-semibold text-muted-foreground">{t({ ja: "🔗 複数の対象に共通", en: "🔗 Shared" })}</div>
               <div className="text-sm">{pivot.shared.join(" · ") || "—"}</div>
             </div>
             {pivot.unique.map((u, ti) => (
