@@ -21,6 +21,10 @@ export interface Settings {
 
 const KEY = "abduction-learning.settings";
 
+/**
+ * Default model per provider when the learner brings their own key: the provider's
+ * mid-tier model for the main generation (QA uses providerMeta[p].cheapModel).
+ */
 export const defaultSettings: Settings = {
   provider: "shared",
   providers: {

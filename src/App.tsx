@@ -4,6 +4,7 @@ import { Home } from "@/pages/Home";
 import { InquiryPage } from "@/pages/InquiryPage";
 import { Notes } from "@/pages/Notes";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { BenchPage } from "@/pages/BenchPage";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,8 @@ export default function App() {
           <Route path="/inquiry/:id" element={<InquiryPage />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/settings" element={<SettingsPage />} />
+          {/* unlinked developer page: model comparison for the free tier */}
+          <Route path="/bench" element={<BenchPage />} />
         </Routes>
       </main>
     </HashRouter>

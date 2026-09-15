@@ -8,7 +8,10 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 # Which provider the shared key belongs to: anthropic | openai | gemini
 PROVIDER = "gemini"
-# Cheap model for the free tier
+# Cheap model for the free tier. Public list prices (USD per 1M tokens, Sep 2026):
+#   gemini-2.5-flash-lite $0.10 / $0.40   gpt-5-nano $0.05 / $0.40 (reasoning tokens are billed as output)
+#   gemini-3.1-flash-lite $0.25 / $1.50   gpt-5.6-luna $0.20 / $1.20   claude-haiku-4-5 $1.00 / $5.00
+# Compare candidates on the app's unlinked #/bench page before changing this.
 MODEL = "gemini-2.5-flash-lite"
 # Comma-separated origins allowed to call this proxy (the GitHub Pages site). Empty = allow any.
 ALLOWED_ORIGINS = "https://yanasehiroki.github.io"
