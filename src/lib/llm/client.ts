@@ -26,6 +26,18 @@ export interface CallOptions {
   maxTokens?: number;
   /** use the provider's cheapest model (QA pass) */
   cheap?: boolean;
+  /** bypass Settings and call one specific provider/model with the given key (model benchmarks) */
+  override?: { provider: Provider; model: string; apiKey: string };
+}
+
+export interface CallResult<T> {
+  data: T;
+  model: string;
+  generatedAt: number;
+  /** provider-reported tokens; undefined for the shared proxy */
+  usage?: { input: number; output: number };
+  /** wall-clock milliseconds for the request */
+  elapsedMs: number;
 }
 
 function deviceId() {
@@ -36,8 +48,12 @@ function deviceId() {
   return id;
 }
 
+/**
+ * Inline every sub-schema: OpenAI strict mode, Gemini's responseJsonSchema and Anthropic's
+ * json_schema format all accept the plain nested form, while $ref/$defs support varies.
+ */
 export function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
-  const js = z.toJSONSchema(schema, { reused: "ref" }) as Record<string, unknown>;
+  const js = z.toJSONSchema(schema, { reused: "inline" }) as Record<string, unknown>;
   delete js.$schema;
   return js;
 }
@@ -51,15 +67,22 @@ export async function structured<S extends z.ZodType>(
   user: string,
   schema: S,
   opts: CallOptions = {},
-): Promise<{ data: z.infer<S>; model: string; generatedAt: number }> {
+): Promise<CallResult<z.infer<S>>> {
   const s = getSettings();
   const jsonSchema = toJsonSchema(schema);
   const effort = opts.effort ?? "low";
   const maxTokens = opts.maxTokens ?? 8000;
+  const startedAt = Date.now();
   let text: string;
   let model: string;
+  let usage: CallResult<unknown>["usage"];
 
-  if (s.provider === "shared") {
+  if (opts.override) {
+    const r = await callProvider({ ...opts.override, system, user, schema: jsonSchema, effort, maxTokens, browser: true });
+    text = r.text;
+    model = r.model;
+    usage = r.usage;
+  } else if (s.provider === "shared") {
     if (!PROXY_URL) throw new MissingApiKeyError("shared");
     const res = await fetch(`${PROXY_URL}/generate`, {
       method: "POST",
@@ -87,6 +110,7 @@ export async function structured<S extends z.ZodType>(
     });
     text = r.text;
     model = r.model;
+    usage = r.usage;
   }
 
   let parsed: unknown;
@@ -97,7 +121,7 @@ export async function structured<S extends z.ZodType>(
   }
   const out = schema.safeParse(parsed);
   if (!out.success) throw new Error("parse-failed: " + out.error.issues.slice(0, 3).map((i) => i.path.join(".") + " " + i.message).join("; "));
-  return { data: out.data, model, generatedAt: Date.now() };
+  return { data: out.data, model, generatedAt: Date.now(), usage, elapsedMs: Date.now() - startedAt };
 }
 
 export interface Quota {
