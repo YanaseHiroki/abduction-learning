@@ -26,8 +26,8 @@ export function Home() {
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
           {t({
-            ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。今井むつみ『アブダクション英語学習法』の手順をなぞる非公式ファンメイドの練習帳です。答えは教えません。",
-            en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation. An unofficial, fan-made notebook following the method in Mutsumi Imai's book. It never gives you the answer.",
+            ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。今井むつみ先生の『アブダクション英語学習法』の手順をなぞる非公式ファンメイドの練習帳です。",
+            en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation. An unofficial, fan-made notebook following the method in Professor Mutsumi Imai's book.",
           })}
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">

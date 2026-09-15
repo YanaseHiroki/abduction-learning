@@ -25,6 +25,51 @@ import { getLangPack } from "@/lib/langpacks";
 import { useSettings } from "@/lib/settings";
 import type { Card, CardKind, ExamplesParams } from "@/lib/types";
 
+function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothesis: boolean; onPick: (k: CardKind) => void }) {
+  const t = useT();
+  const last = cards[cards.length - 1];
+  const suggestions: { kind: CardKind; label: { ja: string; en: string } }[] = [];
+  switch (last.kind) {
+    case "examples":
+      suggestions.push({ kind: "observation", label: { ja: "着眼点を決めて比べる", en: "Pick a perspective and compare" } });
+      suggestions.push({ kind: "hypothesis", label: { ja: "仮説を書いてみる", en: "Write a hypothesis" } });
+      suggestions.push({ kind: "examples", label: { ja: "ジャンルを変えてもう一度出す", en: "Generate with another genre" } });
+      break;
+    case "observation":
+    case "syntax":
+      suggestions.push({ kind: "hypothesis", label: { ja: hasHypothesis ? "仮説を次の版に進める" : "仮説を書いてみる", en: hasHypothesis ? "Advance the hypothesis" : "Write a hypothesis" } });
+      suggestions.push({ kind: "observation", label: { ja: "別の着眼点でも比べる", en: "Compare from another perspective" } });
+      suggestions.push({ kind: "syntax", label: { ja: "構文を分析する", en: "Analyze syntax" } });
+      break;
+    case "hypothesis":
+      suggestions.push({ kind: "verify_translation", label: { ja: "翻訳テストで確かめる", en: "Verify by translation test" } });
+      suggestions.push({ kind: "verify_frame", label: { ja: "フレームテストで確かめる", en: "Verify by frame test" } });
+      suggestions.push({ kind: "observation", label: { ja: "もう少し観察する", en: "Observe more" } });
+      break;
+    case "verify_translation":
+    case "verify_frame":
+      suggestions.push({ kind: "hypothesis", label: { ja: "結果を踏まえて仮説を修正する", en: "Revise the hypothesis" } });
+      suggestions.push({ kind: "verify_translation", label: { ja: "別の文でもう一度試す", en: "Try another sentence" } });
+      suggestions.push({ kind: "examples", label: { ja: "ジャンルを変えて再出力して確かめる", en: "Re-generate in another genre" } });
+      suggestions.push({ kind: "summary", label: { ja: "まとめて書いてみる", en: "Summarize and write" } });
+      break;
+    case "summary":
+      suggestions.push({ kind: "examples", label: { ja: "同じ語で別ジャンルを見る", en: "Same words, another genre" } });
+      break;
+  }
+  return (
+    <div className="rounded-xl border border-dashed p-4">
+      <div className="mb-2 text-xs font-semibold text-muted-foreground">{t({ ja: "次の一手", en: "Next step" })}</div>
+      <div className="flex flex-wrap gap-2">
+        {suggestions.map((s, i) => (
+          <Button key={i} size="sm" variant={i === 0 ? "default" : "outline"} onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">{t({ ja: "順番は自由です。画面下の「カードを追加」からはどの種類でも追加できます。", en: "Any order is fine. The button at the bottom adds any kind of card." })}</p>
+    </div>
+  );
+}
+
 export function InquiryPage() {
   const { id } = useParams();
   const t = useT();
@@ -127,6 +172,9 @@ export function InquiryPage() {
             </div>
           )}
           {cards.map(render)}
+          {cards.length > 0 && !busy && (
+            <NextSteps cards={cards} hasHypothesis={!!latest} onPick={pick} />
+          )}
           {busy && (
             <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文を生成しています…（文法チェックも同時に行います）", en: "Generating examples… (with a grammar check)" })}</div>
           )}
