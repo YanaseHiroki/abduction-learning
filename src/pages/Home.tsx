@@ -19,10 +19,17 @@ import { setTutorial, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
-/** Whether an inquiry is this course group's (same languages and the same target words); groups have no id on inquiries. */
-function isGroupInquiry(inq: Inquiry, g: CourseGroup, l1: string, l2: string) {
-  const labels = (xs: { label: string }[]) => xs.map((x) => x.label).sort().join("\n");
-  return inq.l1 === l1 && inq.l2 === l2 && labels(inq.targets) === labels(g.targets);
+/**
+ * How far a course group has got in these languages. Its inquiries are the ones started from its card (or the
+ * tutorial), recognized by their group label; "done" once they have covered every word of the group between them.
+ */
+function groupProgress(g: CourseGroup, inquiries: Inquiry[], l1: string, l2: string) {
+  const label = g.label[l1] ?? g.label.en;
+  const own = inquiries.filter((inq) => inq.l1 === l1 && inq.l2 === l2 && inq.groupLabel === label);
+  const covered = new Set(own.flatMap((inq) => inq.targets.map((x) => x.label)));
+  const remaining = g.targets.map((x) => x.label).filter((x) => !covered.has(x));
+  // inquiries come newest first, so own[0] is the one to reopen
+  return { latest: remaining.length === 0 ? own[0] : undefined, started: own.length > 0, remaining, covered };
 }
 
 /** The book this notebook follows (the publisher's official page). */
@@ -32,7 +39,7 @@ export function Home() {
   const t = useT();
   const nav = useNavigate();
   const { uiLang, defaultL1, defaultL2, tutorial } = useSettings();
-  const [dialog, setDialog] = useState<{ group: CourseGroup | null } | null>(null);
+  const [dialog, setDialog] = useState<{ group: CourseGroup | null; preselect?: string[] } | null>(null);
   const loadedInquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []);
   const loadedNotes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []);
   const inquiries = loadedInquiries ?? [];
@@ -58,12 +65,21 @@ export function Home() {
 
   const tutorialInquiry = tutorial.status === "running" ? inquiries.find((x) => x.id === tutorial.inquiryId) : undefined;
 
-  // A group already explored (the tutorial's included) reopens its latest inquiry instead of starting another:
-  // a new genre or verification goes into the same inquiry, so the hypothesis keeps growing in one place.
-  // Started groups move to the end, so the book's next group comes first.
-  const groupCards = (course?.groups ?? []).map((g) => ({ g, started: inquiries.find((inq) => isGroupInquiry(inq, g, defaultL1, defaultL2)) }));
-  groupCards.sort((a, b) => Number(!!a.started) - Number(!!b.started));
-  const nextGroup = groupCards.find((x) => !x.started)?.g;
+  // A group whose words have all been explored (the tutorial's included) reopens its latest inquiry instead of
+  // starting another: a new genre or verification goes into the same inquiry, so the hypothesis keeps growing in
+  // one place. Those groups move to the end. A group explored only partway (say & tell of four) stays in place and
+  // starts its next inquiry with the words not yet compared.
+  const groupCards = (course?.groups ?? []).map((g) => ({ g, ...groupProgress(g, inquiries, defaultL1, defaultL2) }));
+  groupCards.sort((a, b) => Number(!!a.latest) - Number(!!b.latest));
+  const nextGroup = groupCards.find((x) => !x.latest)?.g;
+
+  function openGroup({ g, latest, started, remaining, covered }: (typeof groupCards)[number]) {
+    if (latest) return nav(`/inquiry/${latest.id}`);
+    if (!started) return setDialog({ group: g });
+    // Compare two at a time: the words left, topped up with one already explored when only one is left.
+    const preselect = [...remaining, ...g.targets.map((x) => x.label).filter((x) => covered.has(x))].slice(0, Math.max(2, remaining.length));
+    setDialog({ group: g, preselect });
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -100,14 +116,15 @@ export function Home() {
         <section className="mb-8 rounded-2xl border bg-card p-5">
           <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
           <Carousel>
-            {groupCards.map(({ g, started }) => {
-              // The book's order decides the recommended entry point: the first group not yet started
+            {groupCards.map((card) => {
+              const { g, latest, started, remaining } = card;
+              // The book's order decides the recommended entry point: the first group not yet finished
               // (unless the tutorial is still running: then its "continue" is the one recommendation).
               const recommended = g === nextGroup && !tutorialInquiry;
               return (
                 <button
                   key={g.id}
-                  onClick={() => (started ? nav(`/inquiry/${started.id}`) : setDialog({ group: g }))}
+                  onClick={() => openGroup(card)}
                   className={cn(
                     "relative rounded-xl border p-4 text-left shadow-xs transition",
                     recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-background hover:border-primary/50 hover:shadow-sm",
@@ -116,7 +133,11 @@ export function Home() {
                   {recommended && <RecommendedBadge />}
                   <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[defaultL1] ?? g.label.en}</div>
                   <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>
-                  {started && <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 続きから", en: "▶ Continue" })}</div>}
+                  {latest ? (
+                    <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 続きから", en: "▶ Continue" })}</div>
+                  ) : started && (
+                    <div className={cn("mt-2 text-xs font-medium", recommended ? "text-blue-100" : "text-muted-foreground")}>{t({ ja: `▶ 次は ${remaining.join(" · ")}`, en: `▶ Next: ${remaining.join(" · ")}` })}</div>
+                  )}
                 </button>
               );
             })}
@@ -175,7 +196,7 @@ export function Home() {
         </section>
       )}
 
-      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={defaultL1} l2={defaultL2} group={dialog.group} open onOpenChange={(o) => !o && setDialog(null)} />}
+      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={defaultL1} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} open onOpenChange={(o) => !o && setDialog(null)} />}
     </div>
   );
 }

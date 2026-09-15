@@ -32,12 +32,15 @@ export function NewInquiryDialog({
   l1,
   l2,
   group,
+  preselect,
   open,
   onOpenChange,
 }: {
   l1: string;
   l2: string;
   group: CourseGroup | null; // null = custom
+  /** labels of the group's words to start with (default: its first two) */
+  preselect?: string[];
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -47,7 +50,7 @@ export function NewInquiryDialog({
   const [targets, setTargets] = useState<Target[]>(() =>
     group ? group.targets.map((x) => ({ ...x, id: nanoid(6) })) : [],
   );
-  const [enabled, setEnabled] = useState<Set<string>>(() => new Set(group ? targets.slice(0, 2).map((x) => x.id) : []));
+  const [enabled, setEnabled] = useState<Set<string>>(() => new Set(group ? (preselect ? targets.filter((x) => preselect.includes(x.label)) : targets.slice(0, 2)).map((x) => x.id) : []));
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<TargetKind>("word");
   const [question, setQuestion] = useState("");
