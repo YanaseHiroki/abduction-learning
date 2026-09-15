@@ -44,6 +44,7 @@ export function Home() {
   const loadedNotes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []);
   const inquiries = loadedInquiries ?? [];
   const notes = loadedNotes ?? [];
+  const noteCount = useLiveQuery(() => db.schemaNotes.count(), []) ?? 0;
   const course = courses.find((c) => c.l2 === defaultL2);
 
   // No data and no finished tutorial = a first-time visitor: show the one-way welcome instead of the menu.
@@ -174,6 +175,9 @@ export function Home() {
             })}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{t({ ja: "今日も1文、このスキーマで書いてみませんか？", en: "Write one more sentence with it today?" })} <Link to={`/inquiry/${notes[0].inquiryId}`} className="underline">{t({ ja: "探究を開く", en: "Open" })}</Link></p>
+          <ButtonRow className="pt-3">
+            <Button variant="outline" size="sm" render={<Link to="/notes" />} nativeButton={false}>{t({ ja: `📒 気づきノートを見る（${noteCount}件）`, en: `📒 See your notes (${noteCount})` })}</Button>
+          </ButtonRow>
         </section>
       )}
 

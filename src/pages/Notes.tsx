@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
@@ -14,6 +14,7 @@ export function Notes() {
   const notes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().toArray(), []) ?? [];
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">
+      <Button render={<Link to="/" />} nativeButton={false} variant="ghost" size="sm" className="mb-3 -ml-2"><ArrowLeft />{t({ ja: "ホーム", en: "Home" })}</Button>
       <h1 className="mb-1 text-xl font-semibold">{t({ ja: "📒 気づきノート", en: "📒 Notes" })}</h1>
       <p className="mb-4 text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "探究の末に残ったスキーマ。\n新しい探究の仮説として持ち込めます。", en: "Schemas you arrived at.\nThey can be brought into new inquiries as starting hypotheses." })}</p>
       {notes.length === 0 ? (

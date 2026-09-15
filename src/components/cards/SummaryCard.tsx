@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { BookMarked, Check, Loader2, Sparkles } from "lucide-react";
 import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
@@ -58,7 +59,7 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
       </div>
       <NavRow className="mt-4">
         {p.savedNoteId ? (
-          <span className="inline-flex items-center gap-1 text-sm text-emerald-700"><Check className="size-4" />{t({ ja: "気づきノートに保存済み", en: "Saved to notes" })}</span>
+          <Link to="/notes" className="inline-flex items-center gap-1 text-sm text-emerald-700 underline-offset-2 hover:underline"><Check className="size-4" />{t({ ja: "気づきノートに保存済み（見る ▶）", en: "Saved to notes (see ▶)" })}</Link>
         ) : (
           <Button onClick={save}><BookMarked />{t({ ja: "気づきノートに保存", en: "Save to notes" })}</Button>
         )}
