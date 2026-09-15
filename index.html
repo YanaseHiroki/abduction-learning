@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Pick the theme before first paint (the same rule as applyTheme in src/lib/settings.ts).
+      try {
+        var theme = JSON.parse(localStorage.getItem("abduction-learning.settings") || "{}").theme || "system";
+        if (theme === "dark" || (theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches))
+          document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
     <title>Abduction Lab — アブダクション語学学習</title>
   </head>
   <body>

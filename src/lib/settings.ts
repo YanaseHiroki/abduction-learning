@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from "react";
 import type { Provider } from "./llm/providers";
 
+export type Theme = "light" | "dark" | "system";
+
 export interface ProviderSettings {
   apiKey: string;
   model: string;
@@ -12,6 +14,8 @@ export interface Settings {
   providers: Record<Provider, ProviderSettings>;
   qaEnabled: boolean;
   uiLang: "ja" | "en";
+  /** "system" follows the OS light/dark preference */
+  theme: Theme;
   defaultL1: string;
   defaultL2: string;
   showTranslations: boolean;
@@ -34,6 +38,7 @@ export const defaultSettings: Settings = {
   },
   qaEnabled: true,
   uiLang: "ja",
+  theme: "system",
   defaultL1: "ja",
   defaultL2: "en",
   showTranslations: true,
@@ -69,8 +74,19 @@ export function getSettings() {
   return current;
 }
 
+const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+/** index.html runs the same check before first paint, so a dark page doesn't flash white. */
+function applyTheme() {
+  const dark = current.theme === "dark" || (current.theme === "system" && darkQuery.matches);
+  document.documentElement.classList.toggle("dark", dark);
+}
+applyTheme();
+darkQuery.addEventListener("change", applyTheme);
+
 export function setSettings(patch: Partial<Settings>) {
   current = { ...current, ...patch };
+  if (patch.theme) applyTheme();
   try {
     localStorage.setItem(KEY, JSON.stringify(current));
   } catch {

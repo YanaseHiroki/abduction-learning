@@ -6,15 +6,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tabs, TabsContent, TabsList, TabsPanels, TabsTrigger } from "@/components/ui/tabs";
 import { exportAll, importAll } from "@/lib/backup";
 import { db } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { fetchQuota, PROXY_URL, type Quota } from "@/lib/llm/client";
 import { providerMeta, type Provider } from "@/lib/llm/providers";
-import { setProviderSettings, setSettings, useSettings } from "@/lib/settings";
+import { setProviderSettings, setSettings, useSettings, type Theme } from "@/lib/settings";
 
 const providers: Provider[] = ["anthropic", "openai", "gemini"];
+// The default pressed style (--muted) hardly shows on the section gray, so fill the chosen theme instead.
+const themeItem = "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground";
 
 function QuotaView() {
   const t = useT();
@@ -114,6 +117,14 @@ export function SettingsPage() {
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent><SelectItem value="ja">日本語</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
           </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label>{t({ ja: "テーマ", en: "Theme" })}</Label>
+          <ToggleGroup value={[s.theme]} onValueChange={(v) => v[0] && setSettings({ theme: v[0] as Theme })} variant="outline" className="w-fit">
+            <ToggleGroupItem value="light" className={themeItem}>{t({ ja: "☀️ ライト", en: "☀️ Light" })}</ToggleGroupItem>
+            <ToggleGroupItem value="dark" className={themeItem}>{t({ ja: "🌙 ダーク", en: "🌙 Dark" })}</ToggleGroupItem>
+            <ToggleGroupItem value="system" className={themeItem}>{t({ ja: "💻 OSに合わせる", en: "💻 Match OS" })}</ToggleGroupItem>
+          </ToggleGroup>
         </div>
         <label className="flex items-center justify-between text-sm">
           <span>{t({ ja: "例文の訳を最初から表示する", en: "Show translations by default" })}</span>
