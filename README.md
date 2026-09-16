@@ -56,8 +56,8 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 2. GitHub リポジトリの Settings → Secrets and variables → Actions に以下を登録する。
    - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROVIDER_API_KEY`（共有するAPIキー）, `RESEND_API_KEY`, `FEEDBACK_TO`（下記「ご意見フォーム」）
    - Variables: `PROXY_ENABLED` = `true`, `PROVIDER`（`anthropic` / `openai` / `gemini`）, `MODEL`（既定は `gpt-5.6-luna`。選定の根拠は docs/model-bench-2026-09.md）
-3. Actions の「Deploy shared-key proxy」を実行すると Worker が配置され、`https://abduction-learning-proxy.<account>.workers.dev` のURLが出る。
-4. そのURLを Variables の `PROXY_URL` に登録し、「Deploy to GitHub Pages」を再実行する。
+3. Actions の「Deploy」を target `worker` で実行すると（CI が通った後に） Worker が配置され、`https://abduction-learning-proxy.<account>.workers.dev` のURLが出る。
+4. そのURLを Variables の `PROXY_URL` に登録し、「Deploy」を target `pages` で再実行する。
 
 `worker/wrangler.toml` の `ALLOWED_ORIGINS` は自分の Pages のURLに合わせてください。
 
