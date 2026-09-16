@@ -63,10 +63,12 @@ CI で止めています）。直し方は2通りで、出力もどちらかを�
 
 ## マージと本番
 
-**`main` への push が、そのまま本番反映です。** `.github/workflows/pages.yml` が GitHub Pages へ
-デプロイします（concurrency group `pages` が `cancel-in-progress` なので、連続してマージすると前の
-デプロイは cancelled になりますが、後続が両方を含みます）。`worker/**` を触った場合は
-`.github/workflows/worker.yml` も走ります（`PROXY_ENABLED` が `true` のときだけ）。
+**`main` への push が、そのまま本番反映です。** `.github/workflows/deploy.yml` が、まず CI
+（`ci.yml` を呼び出す）を通し、成功したときだけ GitHub Pages へデプロイします。CI が落ちたコミットは
+本番に出ません。Pages のデプロイは concurrency group `pages` が `cancel-in-progress` なので、連続して
+マージすると前のデプロイは cancelled になりますが、後続が両方を含みます（CI はコミットごとに最後まで
+走ります）。`worker/**` か `src/lib/llm/providers.ts` を触った場合は、同じく CI の後に Cloudflare
+Worker もデプロイします（`PROXY_ENABLED` が `true` のときだけ）。
 
 マージ＝公開なので、他のセッションが作業中の内容を巻き込んでいないかを確かめてからマージします。
 

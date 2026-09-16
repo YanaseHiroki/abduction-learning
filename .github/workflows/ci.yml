@@ -2,15 +2,22 @@ name: CI
 
 # Until now only the deploy ran in CI, so a PR could go in with a type error or a failing test and
 # nothing said so. The steps are split rather than one `pnpm test` so a failure names itself.
+#
+# Pushes to main do not trigger this directly: deploy.yml calls it and deploys only once it passes, so a
+# change that fails here never reaches production.
 on:
   pull_request:
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
+# Only superseded PR pushes are cancelled. When called from deploy.yml, github.workflow is the caller's
+# name, and each main commit keeps its own run (see deploy.yml for why).
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
 
 jobs:
   ci:

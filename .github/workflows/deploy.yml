@@ -1,0 +1,138 @@
+name: Deploy
+
+# Pages and the Worker used to deploy from their own push-triggered workflows, side by side with CI, so a
+# change that failed lint or tests still went to production. Both now wait on CI for the same commit.
+# They live in one workflow so CI runs once per push; the Worker's old `paths` filter can't be expressed
+# per job, so the `changes` job reproduces it.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: What to deploy (CI runs first either way)
+        type: choice
+        options: [all, pages, worker]
+        default: all
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      worker: ${{ steps.diff.outputs.worker }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # Keep in sync with what the Worker is built from.
+          paths=(worker/ src/lib/llm/providers.ts .github/workflows/deploy.yml)
+          if [ "$GITHUB_EVENT_NAME" != push ]; then
+            worker=true
+          elif ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            # First push or a force push: nothing reliable to diff against, so deploy rather than miss it.
+            worker=true
+          elif git diff --quiet "$BEFORE" "$GITHUB_SHA" -- "${paths[@]}"; then
+            worker=false
+          else
+            worker=true
+          fi
+          echo "worker=$worker" >> "$GITHUB_OUTPUT"
+
+  pages-build:
+    needs: ci
+    if: ${{ github.event_name == 'push' || inputs.target != 'worker' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_PROXY_URL: ${{ vars.PROXY_URL }}
+          VITE_SUPPORT_GITHUB: ${{ vars.SUPPORT_GITHUB }}
+          VITE_SUPPORT_KOFI: ${{ vars.SUPPORT_KOFI }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  pages-deploy:
+    needs: pages-build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    # Cancelling here (not at the workflow level) lets a newer push replace an in-flight Pages deploy
+    # without also cancelling an older commit's CI or Worker deploy, which the newer run may not repeat.
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  worker:
+    needs: [ci, changes]
+    # Skipped until the owner adds the Cloudflare secrets (see README).
+    if: >-
+      ${{ vars.PROXY_ENABLED == 'true'
+          && needs.changes.outputs.worker == 'true'
+          && (github.event_name == 'push' || inputs.target != 'pages') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: worker
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          packageManager: pnpm
+          command: deploy
+          secrets: |
+            PROVIDER_API_KEY
+            RESEND_API_KEY
+            FEEDBACK_TO
+          vars: |
+            PROVIDER
+            MODEL
+        env:
+          PROVIDER_API_KEY: ${{ secrets.PROVIDER_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          FEEDBACK_TO: ${{ secrets.FEEDBACK_TO }}
+          PROVIDER: ${{ vars.PROVIDER || 'openai' }}
+          MODEL: ${{ vars.MODEL || 'gpt-5.6-luna' }}

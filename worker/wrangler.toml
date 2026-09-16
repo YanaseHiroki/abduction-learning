@@ -1,5 +1,5 @@
 # Cloudflare Worker that holds the shared (owner-paid) API key and enforces daily limits.
-# Deploy: `pnpm --filter abduction-learning-proxy deploy` (or the GitHub Action in .github/workflows/worker.yml).
+# Deploy: `pnpm --filter abduction-learning-proxy deploy` (or the GitHub Action in .github/workflows/deploy.yml).
 name = "abduction-learning-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
