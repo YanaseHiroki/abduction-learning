@@ -3,6 +3,7 @@ import { HashRouter, Link, NavLink, Route, Routes } from "react-router-dom";
 import { CircleHelp, MessageSquareText, Settings, Sprout } from "lucide-react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { Home } from "@/pages/Home";
 import { HelpPage } from "@/pages/HelpPage";
 import { InquiryPage } from "@/pages/InquiryPage";
@@ -59,6 +60,7 @@ export default function App() {
           </Routes>
         </ErrorBoundary>
       </main>
+      <UpdateBanner />
     </HashRouter>
   );
 }
