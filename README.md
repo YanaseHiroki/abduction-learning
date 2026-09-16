@@ -61,6 +61,21 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 
 `worker/wrangler.toml` の `ALLOWED_ORIGINS` は自分の Pages のURLに合わせてください。
 
+### Worker のログを見る
+
+Worker のログは Cloudflare の Workers Logs に残ります（`worker/wrangler.toml` の `[observability]`）。
+無料プランでは3日間・1日20万件まで保持されるので、監視していなかった時間の障害も後から追えます。
+
+- 後から見る: Cloudflare ダッシュボードの Workers & Pages → `abduction-learning-proxy` → Observability（Logs）。
+  ログはフィールドごとに絞り込めます。たとえば `event` が `generate_quota`（429。`scope` が device / ip / global / inquiry / budget）、
+  `provider_failed`（AI の失敗。`status` と `error`）、`feedback_failed`（ご意見メールの送信失敗）、`exception`（捕まえていない例外）。
+  すべてのリクエストに `event` = `request` の行（`route`・`status`・`ms`）が1行ずつ出ます。
+- いま流れているものを見る: `pnpm --filter abduction-learning-proxy exec wrangler tail`（`--format json` も可）。
+  こちらはコマンドを止めると何も残りません。
+
+ログには IP・探究や意見の本文・メールアドレス・APIキーを出しません。端末IDは短いハッシュ（`deviceTag`）だけです。
+Cloudflare が自動で残す呼び出しログ（invocation logs）はリクエストヘッダー（IP を含む）を記録するので、切ってあります。
+
 リンクを共有したときのカード（og:image など）は `https://<owner>.github.io/<repo>/` を前提に絶対URLで組み立てます。独自ドメインで公開する場合は Variables に `SITE_URL`（例 `https://example.com/`）を登録してください。画像は `scripts/og-image.svg` を直して `pnpm og-image` で `public/og-image.png` を作り直します。
 
 ## ご意見フォーム
