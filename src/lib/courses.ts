@@ -26,21 +26,20 @@ export function showsTargetList(g: CourseGroup, lang: string) {
 export interface Course {
   id: string;
   l2: string;
-  /** The heading over the course's cards, keyed by uiLang code with fallback "en" (it is screen copy, not a concept label). */
-  title: Record<string, string>;
   groups: CourseGroup[];
 }
 
 /**
  * Default courses, in the order they are recommended. A language may have several; the first one is the
- * tutorial's (see tutorialGroup), so new courses go after it.
+ * tutorial's (see tutorialGroup), so new courses go after it. On screen they are not told apart: all their groups
+ * share one "basic course" row, because to the learner every card there is the same kind of thing, a ready-made
+ * set of words, as opposed to free inquiry.
  */
 export const courses: Course[] = [
   {
     // The 13 basic verbs in 4 groups: the scope used in the book.
     id: "verbs",
     l2: "en",
-    title: { ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" },
     groups: [
       {
         id: "hear",
@@ -94,7 +93,6 @@ export const courses: Course[] = [
     // the contrast the learner is looking for.
     id: "prepositions",
     l2: "en",
-    title: { ja: "🧭 前置詞コース（場所と時間）", en: "🧭 Prepositions course (place and time)" },
     groups: [
       {
         id: "at-in-on",
