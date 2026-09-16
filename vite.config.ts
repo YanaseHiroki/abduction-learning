@@ -29,6 +29,32 @@ function absoluteOgTags(): Plugin {
   };
 }
 
+/**
+ * Counts visits with Cloudflare Web Analytics, because GitHub Pages keeps no access log and the Worker
+ * only sees learners who reach the AI. The beacon sets no cookie and keeps no per-person identifier.
+ * Build-only and only with VITE_CF_BEACON_TOKEN (a repository variable, see deploy.yml), so dev servers,
+ * UI tests and forks never call out. The script is on another origin, outside workbox's globPatterns,
+ * so the service worker neither precaches it nor serves a stale copy.
+ */
+function cloudflareBeacon(): Plugin {
+  let token = "";
+  return {
+    name: "cloudflare-beacon",
+    apply: "build",
+    configResolved(config) {
+      token = config.env.VITE_CF_BEACON_TOKEN ?? "";
+    },
+    transformIndexHtml() {
+      if (!token) return [];
+      return [{
+        tag: "script",
+        attrs: { defer: true, src: "https://static.cloudflareinsights.com/beacon.min.js", "data-cf-beacon": JSON.stringify({ token }) },
+        injectTo: "body",
+      }];
+    },
+  };
+}
+
 // GitHub Pages serves the site under /<repo>/ — override with VITE_BASE when needed.
 const base = process.env.VITE_BASE ?? "/";
 
@@ -38,6 +64,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     absoluteOgTags(),
+    cloudflareBeacon(),
     VitePWA({
       // Never swap versions under the learner: a new build waits until they press "update" (UpdateBanner).
       registerType: "prompt",

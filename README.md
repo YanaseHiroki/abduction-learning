@@ -63,6 +63,20 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 
 リンクを共有したときのカード（og:image など）は `https://<owner>.github.io/<repo>/` を前提に絶対URLで組み立てます。独自ドメインで公開する場合は Variables に `SITE_URL`（例 `https://example.com/`）を登録してください。画像は `scripts/og-image.svg` を直して `pnpm og-image` で `public/og-image.png` を作り直します。
 
+## 閲覧数
+
+GitHub Pages にはアクセスログがないため、ページが開かれた回数は [Cloudflare Web Analytics](https://www.cloudflare.com/web-analytics/) で数えます。
+Cookie を使わず、個人を特定する情報を持たないビーコンです。本番ビルドで Variables に `CF_BEACON_TOKEN` があるときだけ `index.html` に入り、開発サーバーとテストでは読み込まれません。
+有効なときは、トップページの「このアプリについて」にその旨を表示します。
+
+設定手順:
+
+1. Cloudflare ダッシュボードの Analytics & Logs → Web Analytics → Add a site で、ホスト名に `yanasehiroki.github.io` を入れる（DNS が Cloudflare にないので JS スニペット方式になる）。
+2. 表示されるスニペットの `"token": "..."` の値を、GitHub の Variables に `CF_BEACON_TOKEN` として登録する。
+3. Actions の「Deploy」を target `pages` で実行する。
+
+`#/` 以降の画面遷移は細かく取れないので、見るのは主に訪問数・参照元（X からは `t.co`）・国・端末です。広告ブロッカーを使う人の分は数えられません。
+
 ## ご意見フォーム
 
 ヘッダーの「ご意見」から、使い方の質問・不具合・要望を送れます（Worker を配置した場合のみ表示）。

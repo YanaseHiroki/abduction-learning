@@ -83,6 +83,7 @@ jobs:
           VITE_PROXY_URL: ${{ vars.PROXY_URL }}
           VITE_SUPPORT_GITHUB: ${{ vars.SUPPORT_GITHUB }}
           VITE_SUPPORT_KOFI: ${{ vars.SUPPORT_KOFI }}
+          VITE_CF_BEACON_TOKEN: ${{ vars.CF_BEACON_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
