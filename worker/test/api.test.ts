@@ -11,7 +11,7 @@ const ORIGIN = "https://yanasehiroki.github.io";
 const system = `${SYSTEM_SIGNATURE} English through abductive reasoning.`;
 
 interface Upstream {
-  calls: { url: string; body: Record<string, any> }[];
+  calls: { url: string; headers: Record<string, string>; body: Record<string, any> }[];
   reply: (url: string) => { status: number; body: unknown };
 }
 
@@ -36,7 +36,9 @@ beforeEach(() => {
     } catch {
       /* not JSON */
     }
-    upstream.calls.push({ url, body });
+    const headers: Record<string, string> = {};
+    new Headers(init?.headers as HeadersInit).forEach((v, k) => (headers[k] = v));
+    upstream.calls.push({ url, headers, body });
     const { status, body: out } = upstream.reply(url);
     return new Response(JSON.stringify(out), { status, headers: { "content-type": "application/json" } });
   });
@@ -61,7 +63,12 @@ const generate = (body: Record<string, unknown> = {}, init: { headers?: Record<s
     body: JSON.stringify({ system, user: "Target: listen", schema: { type: "object" }, effort: "low", maxTokens: 1000, ...body }),
   });
 
-const sentTo = (host: string) => upstream.calls.find((c) => c.url.includes(host))!.body;
+function callTo(host: string) {
+  const call = upstream.calls.find((c) => c.url.includes(host));
+  if (!call) throw new Error(`nothing was sent to ${host} (sent: ${upstream.calls.map((c) => c.url).join(", ") || "nothing"})`);
+  return call;
+}
+const sentTo = (host: string) => callTo(host).body;
 
 describe("CORS and origins", () => {
   it("answers a preflight with the allowed origin and the headers the app sends", async () => {
@@ -131,10 +138,13 @@ describe("POST /generate", () => {
     expect(sent.messages[1].content).toBe("Target: listen");
   });
 
-  it("uses the owner's key, never one from the request", async () => {
+  it("authenticates with the owner's key, never with one from the request", async () => {
     await generate({ apiKey: "sk-caller-supplied" });
-    expect(upstream.calls[0].url).toContain("api.openai.com");
-    expect(JSON.stringify(sentTo("openai"))).not.toContain("sk-caller-supplied");
+
+    // the key travels in the header, so that is where a leak would show
+    const call = callTo("openai");
+    expect(call.headers.authorization).toBe("Bearer test-key");
+    expect(JSON.stringify(call)).not.toContain("sk-caller-supplied");
   });
 
   it("tells the app how many calls the inquiry has left", async () => {
@@ -221,6 +231,7 @@ describe("POST /feedback", () => {
     const res = await send({ email: "learner@example.com", context: { page: "/inquiry" } });
 
     expect(res.status).toBe(200);
+    expect(callTo("resend").headers.authorization).toBe("Bearer test-resend-key");
     const mail = sentTo("resend");
     expect(mail.to).toBe("owner@example.com");
     expect(mail.reply_to).toBe("learner@example.com");

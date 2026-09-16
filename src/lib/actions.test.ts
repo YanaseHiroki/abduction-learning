@@ -78,22 +78,31 @@ describe("createExamplesCard", () => {
   });
 
   it("shows each set as soon as it arrives, so the card fills in while the rest is still running", async () => {
-    let cardId = "";
-    const seen: number[] = [];
+    // t2 answers only when the test lets it, so "while the rest is still running" is a fact, not a race
+    let releaseT2 = () => {};
+    const t2Waiting = new Promise<void>((r) => (releaseT2 = r));
     mockedGenerate.mockImplementation(async (_input, target) => {
-      if (target.id === "t2") await new Promise((r) => setTimeout(r, 30));
+      if (target.id === "t2") await t2Waiting;
       return { targetId: target.id, sentences: [sentence(target.label)], meta: { model: "m", generatedAt: 1 }, elapsedMs: 1 };
     });
 
-    const done = createExamplesCard(inquiry, params, (id) => {
+    let cardId = "";
+    let t1Done = () => {};
+    const t1Arrived = new Promise<void>((r) => (t1Done = r));
+    const done = createExamplesCard(inquiry, params, (id, progress) => {
       cardId = id;
+      // the card is written before a target is reported done, so its set is on disk by now
+      if (progress.t1?.status === "done") t1Done();
     });
-    await new Promise((r) => setTimeout(r, 15));
-    seen.push((await cardOf(cardId)).payload.sets.length);
-    await done;
-    seen.push((await cardOf(cardId)).payload.sets.length);
 
-    expect(seen).toEqual([1, 2]);
+    await t1Arrived;
+    const whileRunning = (await cardOf(cardId)).payload.sets;
+    releaseT2();
+    await done;
+    const afterwards = (await cardOf(cardId)).payload.sets;
+
+    expect(whileRunning.map((s) => s.targetId)).toEqual(["t1"]);
+    expect(afterwards.map((s) => s.targetId)).toEqual(["t1", "t2"]);
   });
 
   it("reports each target's progress from generating to done", async () => {

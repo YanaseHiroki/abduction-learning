@@ -259,20 +259,38 @@ describe("working inside an inquiry", () => {
     expect(await saved.inputValue()).toBe("listen は自分から耳を向ける");
   });
 
-  it("asks before deleting a card that holds work", async () => {
+  it("asks before deleting a card that holds work, and keeps it when the answer is no", async () => {
     app = await openApp({ seed: true });
     await app.go("/inquiry/demo");
-    const before = await app.page.locator("section[id^='card-demo-']").count();
+    const cards = app.page.locator("section[id^='card-demo-']");
+    const observation = app.page.locator("#card-demo-observation");
+    const before = await cards.count();
 
-    app.page.on("dialog", (d) => d.dismiss());
-    const card = app.page.locator("#card-demo-observation");
-    const remove = card.getByRole("button", { name: /削除|捨てる|Delete/ }).first();
-    if (await remove.count()) {
-      await remove.click();
-      await app.page.waitForTimeout(300);
-    }
+    const asked: string[] = [];
+    let answer: "accept" | "dismiss" = "dismiss";
+    app.page.on("dialog", (d) => {
+      asked.push(d.message());
+      return answer === "accept" ? d.accept() : d.dismiss();
+    });
 
-    expect(await app.page.locator("section[id^='card-demo-']").count()).toBe(before);
+    const remove = observation.getByRole("button", { name: "このカードを削除" });
+    expect(await remove.count()).toBe(1);
+
+    await remove.click();
+    await app.page.waitForTimeout(300);
+
+    expect(asked).toHaveLength(1);
+    expect(asked[0]).toContain("元に戻せません");
+    expect(await cards.count()).toBe(before);
+    expect(await observation.count()).toBe(1);
+
+    // and it goes when the answer is yes
+    answer = "accept";
+    await remove.click();
+    await observation.waitFor({ state: "detached" });
+
+    expect(asked).toHaveLength(2);
+    expect(await cards.count()).toBe(before - 1);
   });
 
   it("goes back to the home screen from the inquiry", async () => {
