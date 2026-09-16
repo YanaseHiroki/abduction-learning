@@ -32,6 +32,17 @@ describe("loading", () => {
     expect(getSettings().providers.gemini).toEqual(defaultSettings.providers.gemini);
   });
 
+  it("frees a pair stored with the same language on both sides, without waiting for the learner to touch it", async () => {
+    const { getSettings } = await freshSettings({ defaultL1: "en", defaultL2: "en" });
+    expect(getSettings().defaultL1).toBe("en");
+    expect(getSettings().defaultL2).not.toBe("en");
+  });
+
+  it("leaves a stored pair of two different languages exactly as it was", async () => {
+    const { getSettings } = await freshSettings({ defaultL1: "fr", defaultL2: "ja" });
+    expect(getSettings()).toMatchObject({ defaultL1: "fr", defaultL2: "ja" });
+  });
+
   it("keeps provider entries that were stored and defaults the others", async () => {
     const { getSettings, defaultSettings } = await freshSettings({ providers: { openai: { apiKey: "sk-x", model: "gpt-5.6" } } });
     expect(getSettings().providers.openai).toEqual({ apiKey: "sk-x", model: "gpt-5.6" });

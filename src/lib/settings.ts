@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { chooseLanguage } from "./courses";
 import type { Provider } from "./llm/providers";
 
 export type Theme = "light" | "dark" | "system";
@@ -69,6 +70,12 @@ function load(): Settings {
       ...parsed,
       providers: { ...defaultSettings.providers, ...(parsed.providers ?? {}) },
     };
+    // A pair saved as the same language on both sides was reachable before chooseLanguage, and would
+    // leave the learner studying the language they speak. Free it on the way in, so a profile that is
+    // never touched again does not keep starting inquiries like that.
+    if (merged.defaultL1 === merged.defaultL2) {
+      merged.defaultL2 = chooseLanguage("l1", merged.defaultL1, { l1: merged.defaultL1, l2: merged.defaultL2 }).l2;
+    }
     // migrate the v1 single-key layout
     if (parsed.apiKey && !merged.providers.anthropic.apiKey) {
       merged.providers.anthropic = { apiKey: parsed.apiKey, model: parsed.model ?? "claude-opus-5" };
