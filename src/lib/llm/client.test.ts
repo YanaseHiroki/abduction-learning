@@ -243,6 +243,8 @@ describe("describeError", () => {
     expect(describeError(new MissingApiKeyError("shared"))).toBe("missing-api-key");
     expect(describeError(new QuotaError("device", 0))).toBe("quota");
     expect(describeError(new QuotaError("inquiry", 0))).toBe("quota-inquiry");
+    // The global scope is the owner's daily budget, not this learner's share, and is said differently.
+    expect(describeError(new QuotaError("global", 0))).toBe("quota-global");
     expect(describeError(new QuotaError("budget", 0))).toBe("quota-budget");
   });
 

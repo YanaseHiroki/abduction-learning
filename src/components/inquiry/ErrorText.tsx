@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useT, type Localized } from "@/lib/i18n";
+import { hasSupportLinks } from "@/lib/support";
 import { cn } from "@/lib/utils";
 
 /**
@@ -43,10 +44,35 @@ export function ErrorText({ code, className = "mt-2 text-sm text-destructive" }:
     );
   } else if (code === "quota") {
     body = t({ ja: "今日無料で始められる探究の数を使い切りました。\n明日また新しい探究を始められます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "You have started today's free inquiries.\nYou can start a new one tomorrow, or switch to your own key in Settings." });
+  } else if (code === "quota-global") {
+    // Only here is the day's ceiling the owner's budget rather than this learner's own share,
+    // so only here does asking for help make sense.
+    body = (
+      <>
+        {t({ ja: "今日ぶんの無料枠が、利用者全体で尽きました。\n明日また新しい探究を始められます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "Today's free inquiries have been used up by everyone together.\nYou can start a new one tomorrow, or switch to your own key in Settings." })}
+        {hasSupportLinks() && (
+          <>
+            <br />
+            <Link className="underline text-muted-foreground" to="/support">{t({ ja: "全体の上限は運営者が出せる額で決まっています ▶", en: "What sets the shared ceiling, and how to help raise it ▶" })}</Link>
+          </>
+        )}
+      </>
+    );
   } else if (code === "quota-inquiry") {
     body = t({ ja: "この探究で無料で使える回数を使い切りました。\n続けるには設定で自分のAPIキーに切り替えてください。", en: "This inquiry has used up its free AI calls.\nSwitch to your own key in Settings to continue." });
   } else if (code === "quota-budget") {
-    body = t({ ja: "今日の無料枠は、全体の上限に達しました。\n明日また続けられます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "The free tier has reached today's overall limit.\nYou can continue tomorrow, or switch to your own key in Settings." });
+    // The day's money ran out, so even an inquiry under way stops; like quota-global, it is the owner's budget.
+    body = (
+      <>
+        {t({ ja: "今日ぶんの無料枠が、利用者全体で尽きました。\n明日また続けられます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "Today's free tier has been used up by everyone together.\nYou can continue tomorrow, or switch to your own key in Settings." })}
+        {hasSupportLinks() && (
+          <>
+            <br />
+            <Link className="underline text-muted-foreground" to="/support">{t({ ja: "全体の上限は運営者が出せる額で決まっています ▶", en: "What sets the shared ceiling, and how to help raise it ▶" })}</Link>
+          </>
+        )}
+      </>
+    );
   } else if (code.startsWith("parse-failed")) {
     body = t({ ja: "AIの応答を読み取れませんでした。\nもう一度試してください。", en: "Could not read the AI response.\nPlease try again." }) + ` (${code})`;
   } else {

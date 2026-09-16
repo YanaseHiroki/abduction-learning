@@ -346,6 +346,14 @@ describe("POST /feedback", () => {
     expect(upstream.calls).toHaveLength(0);
   });
 
+  it("carries the support kind, so an offer to help is not filed as a bug report", async () => {
+    await send({ kind: "support", message: "継続で支援したいのですが" });
+
+    const mail = sentTo("resend");
+    expect(mail.subject).toContain("支援");
+    expect(mail.text).toContain("継続で支援したいのですが");
+  });
+
   it("does not let an inherited property name become the kind", async () => {
     await send({ kind: "toString" });
 

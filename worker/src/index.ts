@@ -196,7 +196,7 @@ export class QuotaCounter extends DurableObject<Env> {
   }
 }
 
-const FEEDBACK_KINDS = { usage: "使い方", bug: "不具合", request: "要望", other: "その他" } as const;
+const FEEDBACK_KINDS = { usage: "使い方", bug: "不具合", request: "要望", support: "支援", other: "その他" } as const;
 
 /**
  * Build the Resend request for one feedback message, or return why it was rejected. The learner's
