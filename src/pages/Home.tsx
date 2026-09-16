@@ -123,6 +123,17 @@ export function Home() {
               </a>
               {t({ ja: "の手順をなぞる非公式ファンメイドの練習帳です。", en: "." })}
             </p>
+            {/* The app is a hobby project that one person can't grow alone, so invite people to build on it. */}
+            <p className="mt-3 text-sm whitespace-pre-line text-muted-foreground">
+              {t({
+                ja: "ソースコードは公開リポジトリにあります。\n一緒に開発したい方、続きを開発したい方は大歓迎です（非営利に限ります）。",
+                en: "The source code is in a public repository.\nAnyone who wants to develop it with us, or carry it on, is very welcome (non-commercial use only).",
+              })}
+              <br />
+              <a className="underline underline-offset-2 hover:text-foreground" href="https://github.com/YanaseHiroki/abduction-learning" target="_blank" rel="noreferrer">
+                {t({ ja: "🛠️ GitHub で見る", en: "🛠️ View on GitHub" })}
+              </a>
+            </p>
           </Disclosure>
         </div>
       </section>
