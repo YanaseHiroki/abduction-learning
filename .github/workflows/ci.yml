@@ -45,5 +45,10 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Screen tests
         run: pnpm test:ui
+      # Changing the wording on a screen without re-shooting leaves the help showing copy the app no
+      # longer uses, which is easy to miss in review because the pictures look fine on their own. This
+      # lives in the required "ci" job (not a path-filtered workflow) so auto-merge waits for it too.
+      - name: Help screenshots match the screens
+        run: pnpm shots:check
       - name: Worker tests
         run: pnpm test:worker
