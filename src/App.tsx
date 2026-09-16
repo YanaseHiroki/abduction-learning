@@ -26,13 +26,13 @@ function Nav() {
       <div className="mx-auto flex h-12 max-w-6xl items-center gap-1 px-4 sm:gap-2">
         <Link to="/" className="mr-auto flex min-w-0 items-center gap-2 text-sm font-semibold whitespace-nowrap sm:text-base"><Sprout className="size-5 shrink-0 text-lime-400" /><span className="truncate">Abduction Learning</span></Link>
         <NavLink to="/help" className={item}><CircleHelp className="size-4" />{t({ ja: "ヘルプ", en: "Help" })}</NavLink>
-        <NavLink to="/settings" className={item}><Settings className="size-4" />{t({ ja: "設定", en: "Settings" })}</NavLink>
         {/* feedback goes out through the proxy, so there is nowhere to send it without one; icon only on phones to leave room for the name */}
         {PROXY_URL && (
           <button type="button" onClick={() => setFeedback(true)} aria-label={t({ ja: "ご意見", en: "Feedback" })} className={item({ isActive: feedback })}>
             <MessageSquareText className="size-4" /><span className="hidden sm:inline">{t({ ja: "ご意見", en: "Feedback" })}</span>
           </button>
         )}
+        <NavLink to="/settings" className={item}><Settings className="size-4" />{t({ ja: "設定", en: "Settings" })}</NavLink>
       </div>
       <FeedbackDialog open={feedback} onOpenChange={setFeedback} />
     </header>
