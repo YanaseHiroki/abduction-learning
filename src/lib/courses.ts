@@ -102,3 +102,19 @@ export function languageName(code: string, inLang: string) {
 }
 
 export const languageOptions = ["ja", "en", "zh", "ko", "fr", "de", "es", "it", "pt", "ru", "vi", "th", "id"];
+
+/**
+ * Keep the two study languages apart. Learning the language you already speak makes no sense: the prompt
+ * would read "studies English … native language is English" and the translation test would have nothing to
+ * test. So when a choice collides with the other side, that side moves out of the way — it takes the language
+ * just given up, which is what a learner switching direction means anyway (ja→en becomes en→ja). A pair that
+ * was already stored as the same language has nothing to swap back, so the other side falls back to the first
+ * different language on offer.
+ */
+export function chooseLanguage(side: "l1" | "l2", code: string, pair: { l1: string; l2: string }): { l1: string; l2: string } {
+  const other = side === "l1" ? pair.l2 : pair.l1;
+  if (other !== code) return side === "l1" ? { l1: code, l2: pair.l2 } : { l1: pair.l1, l2: code };
+  const given = side === "l1" ? pair.l1 : pair.l2;
+  const moved = given !== code ? given : (languageOptions.find((c) => c !== code) ?? code);
+  return side === "l1" ? { l1: code, l2: moved } : { l1: moved, l2: code };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtDate, markersIn, segment, sentenceKey } from "./text";
+import { fmtDate, markersIn, segment, sentenceKey, translationSampleIn } from "./text";
 
 const texts = (segs: { text: string }[]) => segs.map((s) => s.text);
 const typed = (segs: { text: string; type: string | null }[], type: string) => segs.filter((s) => s.type === type).map((s) => s.text);
@@ -78,5 +78,22 @@ describe("fmtDate", () => {
     const ts = Date.UTC(2026, 8, 1, 3, 0);
     expect(fmtDate(ts, "ja")).toMatch(/2026/);
     expect(fmtDate(ts, "en")).toMatch(/2026/);
+  });
+});
+
+describe("translationSampleIn", () => {
+  it("gives the example in the native language, not the screen language", () => {
+    expect(translationSampleIn("ja")).toContain("聞く");
+    expect(translationSampleIn("en")).toContain("listen");
+  });
+
+  it("marks where the compared words come out, so the example teaches ①②", () => {
+    for (const l1 of ["ja", "en"]) {
+      expect(markersIn(translationSampleIn(l1)!)).toEqual([1, 2]);
+    }
+  });
+
+  it("has nothing to offer for a language with no example, rather than one in the wrong language", () => {
+    expect(translationSampleIn("fr")).toBeNull();
   });
 });

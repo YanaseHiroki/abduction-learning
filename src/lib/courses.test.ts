@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courses, defaultExampleSettings, genres, languageName, languageOptions, levels } from "./courses";
+import { chooseLanguage, courses, defaultExampleSettings, genres, languageName, languageOptions, levels } from "./courses";
 
 const english = courses.find((c) => c.l2 === "en")!;
 
@@ -87,5 +87,38 @@ describe("languageName", () => {
     for (const code of languageOptions) {
       expect(languageName(code, "en")).not.toBe("");
     }
+  });
+});
+
+describe("chooseLanguage", () => {
+  it("leaves the other side alone when the two do not collide", () => {
+    expect(chooseLanguage("l2", "fr", { l1: "ja", l2: "en" })).toEqual({ l1: "ja", l2: "fr" });
+    expect(chooseLanguage("l1", "ko", { l1: "ja", l2: "en" })).toEqual({ l1: "ko", l2: "en" });
+  });
+
+  it("never leaves the learner studying the language they speak", () => {
+    for (const code of languageOptions) {
+      for (const pair of [{ l1: "ja", l2: "en" }, { l1: "en", l2: "en" }, { l1: code, l2: code }]) {
+        expect(chooseLanguage("l1", code, pair).l1).not.toBe(chooseLanguage("l1", code, pair).l2);
+        expect(chooseLanguage("l2", code, pair).l1).not.toBe(chooseLanguage("l2", code, pair).l2);
+      }
+    }
+  });
+
+  it("turns the pair around when the native language becomes the one being learned", () => {
+    expect(chooseLanguage("l1", "en", { l1: "ja", l2: "en" })).toEqual({ l1: "en", l2: "ja" });
+    expect(chooseLanguage("l2", "ja", { l1: "ja", l2: "en" })).toEqual({ l1: "en", l2: "ja" });
+  });
+
+  it("frees a pair that was already stored as the same language on both sides", () => {
+    expect(chooseLanguage("l1", "en", { l1: "en", l2: "en" })).toMatchObject({ l1: "en" });
+    expect(chooseLanguage("l1", "en", { l1: "en", l2: "en" }).l2).not.toBe("en");
+    expect(chooseLanguage("l2", "en", { l1: "en", l2: "en" }).l1).not.toBe("en");
+  });
+
+  it("only ever names a language the screens offer", () => {
+    const { l1, l2 } = chooseLanguage("l1", "ja", { l1: "ja", l2: "ja" });
+    expect(languageOptions).toContain(l1);
+    expect(languageOptions).toContain(l2);
   });
 });

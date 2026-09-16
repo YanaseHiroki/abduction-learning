@@ -61,3 +61,19 @@ export function fmtDate(ts: number, lang: string) {
 export function sentenceKey(targetId: string, index: number) {
   return `${targetId}:${index}`;
 }
+
+/**
+ * Example sentences for the translation test's input, keyed by L1 (see tutorialTranslationSample, which
+ * keys its ready-made sentence the same way). What goes in that field is a sentence in the learner's own
+ * language, so the screen language must not decide it: an English screen with Japanese as the native
+ * language still needs a Japanese example. ①② mark where the words being compared should come out.
+ */
+const translationSamples: Record<string, string> = {
+  ja: "例: 嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。",
+  en: "e.g. You should ①listen to harsh opinions; rumors just ②reach your ears.",
+};
+
+/** The example for this native language, or null where there is none (the card then explains ①② instead). */
+export function translationSampleIn(l1: string): string | null {
+  return translationSamples[l1] ?? null;
+}
