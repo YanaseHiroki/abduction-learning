@@ -146,8 +146,8 @@ export function HelpPage() {
       {last && (
         <p className="pt-4 text-center text-sm whitespace-pre-line text-muted-foreground">
           {t({
-            ja: "ソースコードは公開リポジトリにあります。\n一緒に開発したい方、続きを開発したい方は大歓迎です。",
-            en: "The source code is in a public repository.\nAnyone who wants to develop it with us, or carry it on, is very welcome.",
+            ja: "ソースコードは公開リポジトリにあります。\n一緒に開発したい方、続きを開発したい方は大歓迎です（非営利に限ります）。",
+            en: "The source code is in a public repository.\nAnyone who wants to develop it with us, or carry it on, is very welcome (non-commercial use only).",
           })}
           <br />
           <a className="underline" href="https://github.com/YanaseHiroki/abduction-learning" target="_blank" rel="noreferrer">
