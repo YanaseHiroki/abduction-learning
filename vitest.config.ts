@@ -14,7 +14,8 @@ export default defineConfig({
           environment: "jsdom",
           include: ["src/**/*.test.ts"],
           setupFiles: ["src/test/setup.ts"],
-          env: { VITE_PROXY_URL: "https://proxy.test" },
+          // Only one support link is set, so the code that hides an unset one is exercised too.
+          env: { VITE_PROXY_URL: "https://proxy.test", VITE_SUPPORT_GITHUB: "https://github.com/sponsors/test" },
         },
       },
       {

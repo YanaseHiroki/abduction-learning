@@ -6,6 +6,7 @@ import { ButtonRow } from "@/components/ui/button-row";
 import { StepDots } from "@/components/ui/step-dots";
 import shotsJson from "@/assets/help/shots.json";
 import { useT, type Localized } from "@/lib/i18n";
+import { hasSupportLinks } from "@/lib/support";
 import { PROXY_URL } from "@/lib/llm/client";
 import { useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
@@ -140,6 +141,12 @@ export function HelpPage() {
           {t({ ja: "分かりにくい所や、うまく動かない所はありませんでしたか？", en: "Anything unclear, or not working as it should?" })}
           <br />
           <Button variant="link" className="h-auto px-0 py-1" onClick={() => setFeedback(true)}>{t({ ja: "✉️ ご意見・不具合を伝える", en: "✉️ Tell us about it" })}</Button>
+        </p>
+      )}
+      {/* Someone who read the whole guide is invested enough to be told what keeps the free tier running. */}
+      {last && hasSupportLinks() && (
+        <p className="pt-4 text-center text-sm text-muted-foreground">
+          <Link className="underline" to="/support">{t({ ja: "💛 無料枠を支える", en: "💛 Support the free tier" })}</Link>
         </p>
       )}
       <FeedbackDialog open={feedback} onOpenChange={setFeedback} />

@@ -215,6 +215,45 @@ describe("the settings screen", () => {
   });
 });
 
+describe("the support screen", () => {
+  it("explains what the free tier costs and where the ceiling comes from", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/support");
+
+    const main = await screenText(app.page);
+    expect(main).toContain("💛 無料枠を支える");
+    expect(main).toContain("運営者が自分で払っているAPIキー");
+  });
+
+  it("says a donation raises the shared ceiling, not the giver's own allowance", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/support");
+
+    expect(await screenText(app.page)).toContain("あなた自身が1日に始められる探究の数は増えません");
+    const github = app.page.locator("a", { hasText: "GitHub Sponsors" });
+    expect(await shown(github)).toBe(true);
+    expect(await github.getAttribute("href")).toBe("https://github.com/sponsors/test");
+    // Ko-fi is unset in this build, so its button must not be there at all.
+    expect(await screenText(app.page)).not.toContain("Ko-fi");
+  });
+
+  it("offers using your own key as the other way to help, and declines donated keys", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/support");
+
+    expect(await screenText(app.page)).toContain("🔑 お金を使わずに支える");
+    await app.page.getByText("APIキーの提供をお受けしていない理由").click();
+    expect(await screenText(app.page)).toContain("お受けしていません");
+  });
+
+  it("is reachable from the end of the help, where a reader has seen the whole method", async () => {
+    app = await openApp({ seed: true });
+    await app.go(`/help?s=9`);
+
+    expect(await shown(app.page.getByRole("link", { name: /無料枠を支える/ }))).toBe(true);
+  });
+});
+
 describe("across themes and sizes", () => {
   it("paints the dark theme on the page, not just on the cards", async () => {
     app = await openApp({ seed: true, colorScheme: "dark" });
@@ -229,7 +268,7 @@ describe("across themes and sizes", () => {
   it("fits a phone screen without sideways scrolling, on every screen", async () => {
     app = await openApp({ seed: true, viewport: { width: 390, height: 680 } });
 
-    for (const route of ["/", "/inquiry/demo", "/notes", "/help", "/settings"]) {
+    for (const route of ["/", "/inquiry/demo", "/notes", "/help", "/settings", "/support"]) {
       await app.go(route);
       const overflow = await app.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect({ route, overflow }).toEqual({ route, overflow: 0 });
@@ -239,7 +278,7 @@ describe("across themes and sizes", () => {
   it("keeps the header and its links on every screen", async () => {
     app = await openApp({ seed: true });
 
-    for (const route of ["/", "/inquiry/demo", "/notes", "/help", "/settings"]) {
+    for (const route of ["/", "/inquiry/demo", "/notes", "/help", "/settings", "/support"]) {
       await app.go(route);
       expect({ route, header: await shown(app.page.getByRole("link", { name: "Abduction Learning" })) }).toEqual({ route, header: true });
       expect(await shown(app.page.getByRole("link", { name: /ヘルプ/ }))).toBe(true);
