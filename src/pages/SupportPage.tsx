@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
@@ -6,24 +6,28 @@ import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
 import { Disclosure } from "@/components/ui/disclosure";
 import { useT } from "@/lib/i18n";
-import { fetchQuota, PROXY_URL, type Quota } from "@/lib/llm/client";
+import { PROXY_URL, type Quota } from "@/lib/llm/client";
+import { useSharedFreeTier } from "@/lib/llm/useQuota";
 import { COST_PER_INQUIRY_USD, dailyBudget, SUPPORT_GITHUB, SUPPORT_KOFI } from "@/lib/support";
 
 /** What the day's ceiling costs the owner — the point of the page in one line. */
-function Budget() {
+function Budget({ q }: { q: Quota | null | undefined }) {
   const t = useT();
-  const [q, setQ] = useState<Quota | null | undefined>(undefined);
-  useEffect(() => {
-    fetchQuota().then(setQ);
-  }, []);
   if (!q) return null;
   const { usd, capped } = dailyBudget(q);
+  const donated = q.rules.donatedUsd ?? 0;
   return (
     <div className="rounded-lg border p-3 text-sm">
       {capped && (
         <div className="flex justify-between">
           <span>{t({ ja: "1日のAIの費用の上限", en: "Daily AI spending cap" })}</span>
           <span className="tabular-nums">${usd}</span>
+        </div>
+      )}
+      {donated > 0 && (
+        <div className="flex justify-between">
+          <span>{t({ ja: "　うち支援で広がった分（残り）", en: "  of which donations add (unspent)" })}</span>
+          <span className="tabular-nums">${donated.toFixed(2)}</span>
         </div>
       )}
       <div className="flex justify-between">
@@ -56,13 +60,18 @@ The ceiling is exactly what the owner can pay, and it rises with the funding beh
 
 /**
  * Asks for help with the free tier's running costs. Donations happen entirely on GitHub Sponsors
- * or Ko-fi: this page only links out, so no payment details ever reach the app or the proxy.
+ * or Ko-fi: this page only links out, so no payment details ever reach the app. The services tell
+ * the proxy about each payment, which adds it to the shared budget on its own (docs/funding.md).
  * Nothing here is sold — a donation raises the shared ceiling for everyone and buys the donor
  * no extra inquiries of their own, which the copy has to keep saying plainly.
+ *
+ * The buttons to give appear only while the shared free tier is full: that is the one moment a
+ * donation changes anything anyone can see, and they vanish as soon as one has extended it.
  */
 export function SupportPage() {
   const t = useT();
   const [feedback, setFeedback] = useState(false);
+  const { quota: q, full, extended } = useSharedFreeTier(!!PROXY_URL);
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-6">
       <h1 className="text-xl font-semibold">{t({ ja: "💛 無料枠を支える", en: "💛 Support the free tier" })}</h1>
@@ -75,16 +84,22 @@ export function SupportPage() {
             en: "The free tier runs on an API key the site owner pays for.\nThe number of inquiries that can be started each day is worked back from what the owner can afford.",
           })}
         </p>
-        {PROXY_URL && <Budget />}
+        {PROXY_URL && <Budget q={q} />}
       </section>
 
-      {(SUPPORT_GITHUB || SUPPORT_KOFI) && (
+      {(SUPPORT_GITHUB || SUPPORT_KOFI) && extended && (
+        <section className="rounded-xl border border-primary bg-card p-4 text-sm whitespace-pre-line">
+          {t({ ja: "🌱 支援が届き、今日の無料枠が広がりました。\n探究に戻って続けられます。ありがとうございました。", en: "🌱 A donation came in and today's free tier has been extended.\nYou can go back to your inquiry. Thank you." })}
+        </section>
+      )}
+
+      {(SUPPORT_GITHUB || SUPPORT_KOFI) && full && (
         <section className="space-y-3 rounded-xl border bg-card p-4">
           <h2 className="font-semibold">{t({ ja: "💳 お金で支える", en: "💳 Chip in" })}</h2>
           <p className="text-sm whitespace-pre-line">
             {t({
-              ja: "少額の単発で十分です。集まった分だけ、全体の1日の上限を引き上げます。",
-              en: "A one-off, however small, is plenty. Whatever comes in goes into raising the shared daily ceiling.",
+              ja: "今日の無料枠は、利用者全体で使い切りました。\n少額の単発で十分です。支払いが済むと、手数料を除いた額が自動で無料枠に加わり、数十秒ほどでまた始められるようになります。\n今日使われなかった分は、次に無料枠が尽きた日に回ります。",
+              en: "Today's free tier has been used up by everyone together.\nA one-off, however small, is plenty. Once the payment goes through, what is left after fees is added to the free tier automatically, and inquiries can start again within a minute or so.\nWhatever today does not use is kept for the next day the free tier runs out.",
             })}
           </p>
           <ButtonRow>

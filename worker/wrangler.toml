@@ -53,11 +53,20 @@ MAX_USER_CHARS = "8000"
 FEEDBACK_LIMIT_IP = "5"
 FEEDBACK_LIMIT_GLOBAL = "50"
 FEEDBACK_MAX_CHARS = "4000"
+# Donations extend the free tier automatically (docs/funding.md). Ko-fi and GitHub Sponsors report each
+# payment to /donation/kofi and /donation/github; its net amount goes into a pool that is added on top of
+# DAILY_BUDGET_USD and ADMIT_BUDGET_USD (and, in proportion, LIMIT_GLOBAL) and is only drawn on once the
+# base budget of a day is spent. DONATION_SHARE is what is left after the services' payment fees.
+DONATION_SHARE = "0.9"
+# USD per unit of each currency a donation may arrive in. A payment in any other currency is not credited.
+DONATION_USD_RATES = "USD=1,JPY=0.0067,EUR=1.08"
 
 # Secrets (set with `wrangler secret put <NAME>` or via the GitHub Action):
 # PROVIDER_API_KEY
 # RESEND_API_KEY  — feedback mail via Resend; without it (or FEEDBACK_TO) /feedback answers 503
 # FEEDBACK_TO     — where feedback goes; must be the address the Resend account was registered with
+# KOFI_VERIFICATION_TOKEN        — Ko-fi's webhook token; without it /donation/kofi answers 503
+# GITHUB_SPONSORS_WEBHOOK_SECRET — the Sponsors webhook's secret; without it /donation/github answers 503
 
 [durable_objects]
 bindings = [{ name = "QUOTA", class_name = "QuotaCounter" }]

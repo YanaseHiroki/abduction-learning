@@ -120,6 +120,7 @@ describe("GET /quota", () => {
       perInquiry: Number(env.CALLS_PER_INQUIRY),
       ttlDays: Number(env.INQUIRY_TTL_DAYS),
       dailyBudgetUsd: Number(env.DAILY_BUDGET_USD),
+      donatedUsd: 0,
     });
     expect(body.model).toBe(env.MODEL);
     expect(body.budget).toEqual({ admitting: true, open: true });
@@ -391,6 +392,120 @@ describe("POST /feedback", () => {
 
     expect(res.status).toBe(429);
     expect(await res.json()).toMatchObject({ error: "quota" });
+  });
+});
+
+describe("donations extend the free tier", () => {
+  const budget = () => Math.floor(Number(env.DAILY_BUDGET_USD) * 1e6);
+  const share = () => Number(env.DONATION_SHARE);
+  let before = 0;
+  beforeEach(async () => {
+    before = await spent();
+  });
+  afterEach(async () => {
+    await setSpent(before);
+    // The counter is shared by every test, so a donation left in the pool would lift everyone's limits.
+    await runInDurableObject(globalCounter(), (_o: QuotaCounter, state) => {
+      state.storage.sql.exec("DELETE FROM pool");
+      state.storage.sql.exec("DELETE FROM donations");
+    });
+  });
+
+  const kofi = (data: Record<string, unknown>) => {
+    const form = new FormData();
+    form.set("data", JSON.stringify({ verification_token: "test-kofi-token", type: "Donation", kofi_transaction_id: `tx-${device}`, amount: "5.00", currency: "USD", from_name: "Someone", message: "がんばって", ...data }));
+    return SELF.fetch("https://proxy.test/donation/kofi", { method: "POST", body: form });
+  };
+  async function github(body: Record<string, unknown>, opts: { event?: string; secret?: string } = {}) {
+    const raw = JSON.stringify(body);
+    const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(opts.secret ?? "test-github-secret"), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)));
+    const signature = `sha256=${[...mac].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+    return SELF.fetch("https://proxy.test/donation/github", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-github-event": opts.event ?? "sponsorship", "x-github-delivery": `delivery-${device}`, "x-hub-signature-256": signature },
+      body: raw,
+    });
+  }
+  const quota = async (d = `donation-${device}`) => (await (await SELF.fetch("https://proxy.test/quota", { headers: { "x-device-id": d } })).json()) as Record<string, any>;
+
+  it("lets new inquiries start again right after a donation arrives on a day whose money was gone", async () => {
+    await setSpent(budget());
+    expect((await quota()).budget).toEqual({ admitting: false, open: false });
+    expect((await generate()).status).toBe(429);
+
+    const res = await kofi({});
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, creditedUsd: 5 * share() });
+    const q = await quota();
+    expect(q.budget).toEqual({ admitting: true, open: true });
+    expect(q.rules.dailyBudgetUsd).toBeCloseTo(Number(env.DAILY_BUDGET_USD) + 5 * share());
+    expect(q.rules.donatedUsd).toBeCloseTo(5 * share());
+    expect((await generate()).status).toBe(200);
+  });
+
+  it("raises the global count in proportion, since that backstop is sized to the base budget", async () => {
+    await kofi({ amount: "3" });
+    const q = await quota();
+    expect(q.global.limit).toBe(Number(env.LIMIT_GLOBAL) + Math.floor((3 * share() * 1e6 * Number(env.LIMIT_GLOBAL)) / budget()));
+  });
+
+  it("credits a payment once however many times the webhook is delivered", async () => {
+    await kofi({});
+    const again = await kofi({});
+    expect(await again.json()).toEqual({ ok: true, creditedUsd: 0 });
+    expect((await quota()).rules.donatedUsd).toBeCloseTo(5 * share());
+  });
+
+  it("numbers donations in the order they arrived, without keeping who gave them", async () => {
+    await kofi({ kofi_transaction_id: "first" });
+    await kofi({ kofi_transaction_id: "second", from_name: "Named Person", email: "someone@example.com" });
+    const rows = await runInDurableObject(globalCounter(), (_o: QuotaCounter, state) => state.storage.sql.exec("SELECT * FROM donations ORDER BY no").toArray());
+    expect(rows.map((r) => r.no)).toEqual([1, 2]);
+    expect(JSON.stringify(rows)).not.toMatch(/Named Person|someone@example.com|がんばって/);
+  });
+
+  it("converts other currencies, and credits nothing in one it has no rate for", async () => {
+    await kofi({ amount: "1000", currency: "JPY", kofi_transaction_id: "jpy" });
+    expect((await quota()).rules.donatedUsd).toBeCloseTo(1000 * 0.0067 * share());
+    expect(await (await kofi({ amount: "10", currency: "XYZ", kofi_transaction_id: "xyz" })).json()).toEqual({ ok: true, creditedUsd: 0 });
+  });
+
+  it("does not count shop orders, which are sales rather than gifts", async () => {
+    expect(await (await kofi({ type: "Shop Order" })).json()).toEqual({ ok: true, creditedUsd: 0 });
+  });
+
+  it("refuses a Ko-fi call without the verification token, so nobody can mint free-tier money", async () => {
+    expect((await kofi({ verification_token: "guess" })).status).toBe(403);
+    expect((await SELF.fetch("https://proxy.test/donation/kofi", { method: "POST", body: "data=nonsense", headers: { "content-type": "application/x-www-form-urlencoded" } })).status).toBe(403);
+    expect((await quota()).rules.donatedUsd).toBe(0);
+  });
+
+  it("credits a new GitHub sponsorship signed with the webhook secret, and nothing else", async () => {
+    const sponsorship = { action: "created", sponsorship: { node_id: `S_${device}`, tier: { monthly_price_in_cents: 500, is_one_time: true } } };
+    expect((await github(sponsorship, { secret: "wrong" })).status).toBe(403);
+    expect(await (await github({ zen: "hi" }, { event: "ping" })).json()).toEqual({ ok: true, creditedUsd: 0 });
+    expect(await (await github({ ...sponsorship, action: "cancelled" })).json()).toEqual({ ok: true, creditedUsd: 0 });
+
+    expect(await (await github(sponsorship)).json()).toEqual({ ok: true, creditedUsd: 5 * share() });
+  });
+
+  it("keeps a donation for later days when today's base budget was enough, drawing only what a day spent beyond it", async () => {
+    await kofi({ amount: "10" });
+    const pooled = 10 * share() * 1e6;
+    // Yesterday went $1 past the base budget; the day before that stayed within it.
+    await runInDurableObject(globalCounter(), (_o: QuotaCounter, state) => {
+      state.storage.sql.exec("UPDATE pool SET folded_day = ?", today() - 3);
+      state.storage.sql.exec("INSERT INTO spend (day, micros) VALUES (?, ?), (?, ?) ON CONFLICT (day) DO UPDATE SET micros = excluded.micros", today() - 1, budget() + 1_000_000, today() - 2, 1_000);
+    });
+
+    expect((await quota()).rules.donatedUsd).toBeCloseTo((pooled - 1_000_000) / 1e6);
+    // Closing a day happens once: asking again does not draw yesterday's overrun twice.
+    expect((await quota()).rules.donatedUsd).toBeCloseTo((pooled - 1_000_000) / 1e6);
+    await runInDurableObject(globalCounter(), (_o: QuotaCounter, state) => {
+      state.storage.sql.exec("DELETE FROM spend WHERE day < ?", today());
+    });
   });
 });
 

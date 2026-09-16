@@ -6,7 +6,7 @@ const options = {
   wrangler: { configPath: "./wrangler.toml" },
   miniflare: {
     // secrets live outside wrangler.toml; no test ever lets a real request out
-    bindings: { PROVIDER_API_KEY: "test-key", RESEND_API_KEY: "test-resend-key", FEEDBACK_TO: "owner@example.com" },
+    bindings: { PROVIDER_API_KEY: "test-key", RESEND_API_KEY: "test-resend-key", FEEDBACK_TO: "owner@example.com", KOFI_VERIFICATION_TOKEN: "test-kofi-token", GITHUB_SPONSORS_WEBHOOK_SECRET: "test-github-secret" },
   },
 };
 

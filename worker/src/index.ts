@@ -39,6 +39,14 @@ export interface Env {
   RESEND_API_KEY?: string;
   /** where feedback is delivered; must be the address the Resend account was registered with */
   FEEDBACK_TO?: string;
+  /** Part of a donation that reaches the owner after payment fees; only that much is added to the pool */
+  DONATION_SHARE: string;
+  /** USD per unit of each currency donations may arrive in, e.g. "USD=1,JPY=0.0067"; others are not credited */
+  DONATION_USD_RATES: string;
+  /** Ko-fi's webhook verification token; /donation/kofi answers 503 until it is set */
+  KOFI_VERIFICATION_TOKEN?: string;
+  /** secret of the GitHub Sponsors webhook; /donation/github answers 503 until it is set */
+  GITHUB_SPONSORS_WEBHOOK_SECRET?: string;
   QUOTA: DurableObjectNamespace<QuotaCounter>;
 }
 
@@ -92,6 +100,49 @@ export class QuotaCounter extends DurableObject<Env> {
     // micro-USD per day: settled cost of finished calls plus reservations of calls still in flight
     sql.exec("CREATE TABLE IF NOT EXISTS spend (day INTEGER PRIMARY KEY, micros INTEGER NOT NULL)");
     sql.exec("CREATE TABLE IF NOT EXISTS devices (id TEXT PRIMARY KEY, first_day INTEGER NOT NULL, last_day INTEGER NOT NULL)");
+    // Donations extend the free tier. `credited` is every donation's net amount, `drawn` what days up
+    // to `folded_day` spent beyond the base budget; the difference is on top of today's budget.
+    // Kept apart from `spend`, which is pruned after two days, so the pool is never forgotten.
+    sql.exec("CREATE TABLE IF NOT EXISTS pool (id INTEGER PRIMARY KEY CHECK (id = 1), credited INTEGER NOT NULL, drawn INTEGER NOT NULL, folded_day INTEGER NOT NULL)");
+    // Only the payment service's own id, so a retried webhook is not credited twice. No name, message or address.
+    // `no` numbers donations in the order they arrived and never changes, so one can be referred to without saying who gave it.
+    sql.exec("CREATE TABLE IF NOT EXISTS donations (id TEXT PRIMARY KEY, no INTEGER NOT NULL UNIQUE, micros INTEGER NOT NULL, at INTEGER NOT NULL)");
+  }
+
+  /**
+   * Donated money not yet spent, in micro-USD, as of the start of `day`. Closes the books on every
+   * earlier day first: whatever a day spent past the base budget came out of the pool. A call that
+   * settles after midnight lowers a day already closed, so the pool can come out a little short, never over.
+   */
+  private pooled(day: number, limits: Limits): number {
+    const sql = this.ctx.storage.sql;
+    const row = sql.exec("SELECT credited, drawn, folded_day FROM pool WHERE id = 1").toArray()[0] as { credited: number; drawn: number; folded_day: number } | undefined;
+    if (!row) return 0;
+    if (row.folded_day < day - 1) {
+      const over = sql.exec("SELECT COALESCE(SUM(MAX(micros - ?, 0)), 0) AS over FROM spend WHERE day > ? AND day < ?", limits.budget, row.folded_day, day).toArray()[0] as { over: number };
+      row.drawn = Math.min(row.drawn + over.over, row.credited);
+      sql.exec("UPDATE pool SET drawn = ?, folded_day = ? WHERE id = 1", row.drawn, day - 1);
+    }
+    return row.credited - row.drawn;
+  }
+
+  /** Today's limits with the pool added: the money on top of both budgets, and the inquiries it pays for on top of the global count. */
+  private extended(day: number, limits: Limits): { limits: Limits; pooledMicros: number } {
+    const pooled = this.pooled(day, limits);
+    if (!pooled || !(limits.budget > 0)) return { limits, pooledMicros: pooled };
+    // The global count is sized to the base budget, so it grows in the same proportion.
+    const extra = Math.floor((pooled * limits.global) / limits.budget);
+    return { limits: { ...limits, budget: limits.budget + pooled, admitBudget: limits.admitBudget + pooled, global: limits.global + extra }, pooledMicros: pooled };
+  }
+
+  /** Add a donation to the pool once, however many times its webhook is delivered. Returns whether it was new. */
+  async credit(id: string, micros: number, day: number): Promise<boolean> {
+    const sql = this.ctx.storage.sql;
+    if (sql.exec("SELECT 1 FROM donations WHERE id = ?", id).toArray().length) return false;
+    sql.exec("INSERT INTO donations (id, no, micros, at) VALUES (?, (SELECT COALESCE(MAX(no), 0) + 1 FROM donations), ?, ?)", id, micros, Date.now());
+    // A new pool starts closed through yesterday, so days before any donation never draw on it.
+    sql.exec("INSERT INTO pool (id, credited, drawn, folded_day) VALUES (1, ?, 0, ?) ON CONFLICT (id) DO UPDATE SET credited = credited + excluded.credited", micros, day - 1);
+    return true;
   }
 
   private admitted(day: number, scope: Scope, key: string): number {
@@ -116,13 +167,20 @@ export class QuotaCounter extends DurableObject<Env> {
   }
 
   async status(day: number, device: string, ip: string, limits: Limits): Promise<Status> {
-    return this.statusNow(day, device, ip, limits);
+    return this.statusNow(day, device, ip, this.extended(day, limits).limits);
   }
 
   /** Whether today's budget still lets new inquiries start, and still lets calls through at all. */
-  async budgetStatus(day: number, limits: Limits): Promise<{ admitting: boolean; open: boolean }> {
+  async budgetStatus(day: number, base: Limits): Promise<{ admitting: boolean; open: boolean }> {
+    const { limits } = this.extended(day, base);
     const spent = this.spent(day);
     return { admitting: spent < limits.admitBudget, open: spent < limits.budget };
+  }
+
+  /** Everything /quota reports, read in one go: the tallies and budget with donations folded into the limits they raise. */
+  async quota(day: number, device: string, ip: string, base: Limits): Promise<{ status: Status; budget: { admitting: boolean; open: boolean }; limits: Limits; pooledMicros: number }> {
+    const { limits, pooledMicros } = this.extended(day, base);
+    return { status: this.statusNow(day, device, ip, limits), budget: await this.budgetStatus(day, base), limits, pooledMicros };
   }
 
   /**
@@ -131,8 +189,9 @@ export class QuotaCounter extends DurableObject<Env> {
    * with the billed cost. Runs without awaiting, so parallel calls cannot overdraw the budget or
    * both admit the same inquiry.
    */
-  async charge(day: number, device: string, ip: string, inquiryKey: string, limits: Limits, reserve: number): Promise<Charge> {
+  async charge(day: number, device: string, ip: string, inquiryKey: string, base: Limits, reserve: number): Promise<Charge> {
     const sql = this.ctx.storage.sql;
+    const { limits } = this.extended(day, base);
     let row = sql.exec("SELECT day, used FROM inquiries WHERE key = ?", inquiryKey).toArray()[0] as { day: number; used: number } | undefined;
     if (row && day - row.day >= limits.ttlDays) row = undefined;
     const spent = this.spent(day);
@@ -237,6 +296,84 @@ function feedbackMail(env: Env, body: Record<string, unknown>, ip: string): Reco
   };
 }
 
+/** A payment reported by a webhook, or null for an event that is not money coming in (a ping, a shop order, a cancellation). */
+export type Donation = { id: string; amount: number; currency: string } | null;
+
+/**
+ * Ko-fi posts form data whose `data` field is JSON carrying the token shown on the account's webhook
+ * page. Donations and subscription payments count; shop orders and commissions are sales, not gifts.
+ */
+async function kofiDonation(request: Request, token: string): Promise<Donation | "forbidden"> {
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(String((await request.formData()).get("data") ?? ""));
+  } catch {
+    return "forbidden";
+  }
+  if (typeof data.verification_token !== "string" || !(await sameSecret(data.verification_token, token))) return "forbidden";
+  if (data.type !== "Donation" && data.type !== "Subscription") return null;
+  if (typeof data.kofi_transaction_id !== "string" || !data.kofi_transaction_id) return null;
+  return { id: `kofi:${data.kofi_transaction_id}`, amount: Number(data.amount), currency: String(data.currency ?? "").toUpperCase() };
+}
+
+/**
+ * GitHub signs the raw body with the webhook secret (X-Hub-Signature-256). Only a new sponsorship is
+ * credited, one-time or the first month of a monthly one: GitHub sends no event for later monthly charges.
+ */
+async function githubDonation(request: Request, secret: string): Promise<Donation | "forbidden"> {
+  const raw = await request.text();
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(raw)));
+  const expected = `sha256=${[...mac].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  if (!(await sameSecret(request.headers.get("x-hub-signature-256") ?? "", expected))) return "forbidden";
+  if (request.headers.get("x-github-event") !== "sponsorship") return null;
+  let body: { action?: unknown; sponsorship?: { node_id?: unknown; tier?: { monthly_price_in_cents?: unknown } } };
+  try {
+    body = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const cents = Number(body.sponsorship?.tier?.monthly_price_in_cents);
+  const id = body.sponsorship?.node_id ?? request.headers.get("x-github-delivery");
+  if (body.action !== "created" || !(cents > 0) || typeof id !== "string") return null;
+  return { id: `github:${id}`, amount: cents / 100, currency: "USD" };
+}
+
+/** Compare secrets in constant time by comparing their digests, which are always the same length. */
+async function sameSecret(a: string, b: string): Promise<boolean> {
+  const digest = async (s: string) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+  const [x, y] = await Promise.all([digest(a), digest(b)]);
+  return crypto.subtle.timingSafeEqual(x, y);
+}
+
+/**
+ * Turn a verified donation into free-tier money. Every answer is 200 once the sender is verified, even
+ * when nothing is credited (an unknown currency, a ping): the services retry anything else, and a
+ * retry would not change the outcome.
+ */
+async function creditDonation(env: Env, counter: DurableObjectStub<QuotaCounter>, day: number, donation: Donation): Promise<{ ok: true; creditedUsd: number }> {
+  if (!donation || !(donation.amount > 0)) return { ok: true, creditedUsd: 0 };
+  const rate = usdRates(env.DONATION_USD_RATES)[donation.currency];
+  const share = Number(env.DONATION_SHARE);
+  if (!(rate > 0) || !(share > 0 && share <= 1)) {
+    console.warn(`donation ${donation.id} not credited: no rate for ${donation.currency} or DONATION_SHARE unset`);
+    return { ok: true, creditedUsd: 0 };
+  }
+  const micros = Math.floor(donation.amount * rate * share * 1e6);
+  const fresh = await counter.credit(donation.id, micros, day);
+  return { ok: true, creditedUsd: fresh ? micros / 1e6 : 0 };
+}
+
+/** "USD=1,JPY=0.0067" → { USD: 1, JPY: 0.0067 } */
+export function usdRates(spec: string): Record<string, number> {
+  const rates: Record<string, number> = {};
+  for (const part of (spec ?? "").split(",")) {
+    const [code, rate] = part.split("=").map((x) => x.trim());
+    if (code && Number(rate) > 0) rates[code.toUpperCase()] = Number(rate);
+  }
+  return rates;
+}
+
 function dayInfo(env: Env) {
   const offset = Number(env.RESET_TZ_OFFSET_HOURS || 0) * 3600_000;
   const day = Math.floor((Date.now() + offset) / 86_400_000);
@@ -287,13 +424,13 @@ export default {
     const counter = env.QUOTA.get(env.QUOTA.idFromName("global"));
 
     if (url.pathname === "/quota" && request.method === "GET") {
-      const s = await counter.status(day, device, ip, limits);
-      const budget = await counter.budgetStatus(day, limits);
+      const { status, budget, limits: today, pooledMicros } = await counter.quota(day, device, ip, limits);
       return json(
         {
-          ...s,
+          ...status,
           budget,
-          rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays, dailyBudgetUsd: limits.budget / 1e6 },
+          // dailyBudgetUsd includes what donations add today; donatedUsd is that part, so the app can say where it came from.
+          rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays, dailyBudgetUsd: today.budget / 1e6, donatedUsd: pooledMicros / 1e6 },
           model: env.MODEL,
           resetAt,
         },
@@ -376,6 +513,20 @@ export default {
         return json({ error: `resend ${res.status}: ${(await res.text()).slice(0, 200)}` }, 502, cors);
       }
       return json({ ok: true }, 200, cors);
+    }
+
+    if (url.pathname === "/donation/kofi" && request.method === "POST") {
+      if (!env.KOFI_VERIFICATION_TOKEN) return json({ error: "donations not configured" }, 503, cors);
+      const donation = await kofiDonation(request, env.KOFI_VERIFICATION_TOKEN);
+      if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
+      return json(await creditDonation(env, counter, day, donation), 200, cors);
+    }
+
+    if (url.pathname === "/donation/github" && request.method === "POST") {
+      if (!env.GITHUB_SPONSORS_WEBHOOK_SECRET) return json({ error: "donations not configured" }, 503, cors);
+      const donation = await githubDonation(request, env.GITHUB_SPONSORS_WEBHOOK_SECRET);
+      if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
+      return json(await creditDonation(env, counter, day, donation), 200, cors);
     }
 
     return json({ error: "not found" }, 404, cors);

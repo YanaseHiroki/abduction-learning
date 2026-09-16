@@ -82,11 +82,12 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 ## 無料枠を支える
 
 無料枠の上限（全体で1日に始められる探究の数）は、運営者が出せる額から決めています。
-原資が増えれば上限を上げられるので、GitHub Sponsors と Ko-fi で支援を受け付けています（アプリの `#/support`）。
+無料枠が利用者全体で尽きたときだけ、GitHub Sponsors と Ko-fi での支援を案内します（アプリの `#/support`）。
+支払いは Webhook で Worker に届き、手数料を除いた額が自動で全体の上限に上乗せされ、案内はその場で消えます。
 見返りはなく、支援しても本人の1日の回数は増えません。増えるのは全体の上限です。
 デポジット済みのAPIキーの提供はお受けしていません。自分のキーで使うことも、原資を使わない支援になります。
 
-方針と理由、運営者の設定手順（Variables の `SUPPORT_GITHUB` / `SUPPORT_KOFI`）は docs/funding.md にあります。
+方針と理由、運営者の設定手順（Variables の `SUPPORT_GITHUB` / `SUPPORT_KOFI`、Secrets の `KOFI_VERIFICATION_TOKEN` / `GITHUB_SPONSORS_WEBHOOK_SECRET`）は docs/funding.md にあります。
 
 ## 開発
 

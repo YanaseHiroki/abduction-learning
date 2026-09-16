@@ -13,10 +13,16 @@ let server: ViteDevServer | undefined;
 let browser: Browser | undefined;
 let base = "";
 
-export async function startApp() {
+/** Where a build started with `{ proxy: true }` sends its free-tier requests; openApp's `proxy` answers them. */
+export const FAKE_PROXY = "https://proxy.test";
+
+export async function startApp(opts: { proxy?: boolean } = {}) {
   // A dev build has no proxy, but the support links are plain build-time settings: set one (and
   // leave Ko-fi unset) so the screens that offer the support page can be walked here.
   process.env.VITE_SUPPORT_GITHUB = "https://github.com/sponsors/test";
+  // A file that needs the free tier points the build at a proxy nobody can reach and answers it in the page.
+  if (opts.proxy) process.env.VITE_PROXY_URL = FAKE_PROXY;
+  else delete process.env.VITE_PROXY_URL;
   server = await createServer({ root, logLevel: "error", server: { port: 0, strictPort: false, open: false } });
   await server.listen();
   base = server.resolvedUrls!.local[0];
@@ -43,6 +49,8 @@ export interface OpenOptions {
   seed?: boolean;
   viewport?: { width: number; height: number };
   colorScheme?: "light" | "dark";
+  /** answers the fake proxy's requests by path (e.g. "/quota"); only for an app started with `{ proxy: true }` */
+  proxy?: (path: string) => { status: number; body: unknown };
 }
 
 export interface AppPage {
@@ -69,6 +77,10 @@ export async function openApp(opts: OpenOptions = {}): Promise<AppPage> {
   await context.route("**/*", (route) => {
     const url = route.request().url();
     if (url.startsWith(origin) || url.startsWith("data:") || url.startsWith("blob:")) return route.continue();
+    if (opts.proxy && url.startsWith(FAKE_PROXY)) {
+      const { status, body } = opts.proxy(new URL(url).pathname);
+      return route.fulfill({ status, contentType: "application/json", headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*" }, body: JSON.stringify(body) });
+    }
     blocked.push(url);
     return route.abort();
   });

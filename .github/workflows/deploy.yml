@@ -139,6 +139,8 @@ jobs:
             PROVIDER_API_KEY
             RESEND_API_KEY
             FEEDBACK_TO
+            KOFI_VERIFICATION_TOKEN
+            GITHUB_SPONSORS_WEBHOOK_SECRET
           vars: |
             PROVIDER
             MODEL
@@ -146,5 +148,7 @@ jobs:
           PROVIDER_API_KEY: ${{ secrets.PROVIDER_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           FEEDBACK_TO: ${{ secrets.FEEDBACK_TO }}
+          KOFI_VERIFICATION_TOKEN: ${{ secrets.KOFI_VERIFICATION_TOKEN }}
+          GITHUB_SPONSORS_WEBHOOK_SECRET: ${{ secrets.GITHUB_SPONSORS_WEBHOOK_SECRET }}
           PROVIDER: ${{ vars.PROVIDER || 'openai' }}
           MODEL: ${{ vars.MODEL || 'gpt-5.6-luna' }}

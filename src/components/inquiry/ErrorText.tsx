@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useT, type Localized } from "@/lib/i18n";
-import { hasSupportLinks } from "@/lib/support";
+import { SupportOffer } from "@/components/SupportOffer";
 import { cn } from "@/lib/utils";
 
 /**
@@ -50,12 +50,8 @@ export function ErrorText({ code, className = "mt-2 text-sm text-destructive" }:
     body = (
       <>
         {t({ ja: "今日ぶんの無料枠が、利用者全体で尽きました。\n明日また新しい探究を始められます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "Today's free inquiries have been used up by everyone together.\nYou can start a new one tomorrow, or switch to your own key in Settings." })}
-        {hasSupportLinks() && (
-          <>
-            <br />
-            <Link className="underline text-muted-foreground" to="/support">{t({ ja: "全体の上限は運営者が出せる額で決まっています ▶", en: "What sets the shared ceiling, and how to help raise it ▶" })}</Link>
-          </>
-        )}
+        {/* Checks the proxy again rather than trusting this error, so it is gone once a donation extends the free tier. */}
+        <SupportOffer className="block underline text-muted-foreground" />
       </>
     );
   } else if (code === "quota-inquiry") {
@@ -65,12 +61,8 @@ export function ErrorText({ code, className = "mt-2 text-sm text-destructive" }:
     body = (
       <>
         {t({ ja: "今日ぶんの無料枠が、利用者全体で尽きました。\n明日また続けられます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "Today's free tier has been used up by everyone together.\nYou can continue tomorrow, or switch to your own key in Settings." })}
-        {hasSupportLinks() && (
-          <>
-            <br />
-            <Link className="underline text-muted-foreground" to="/support">{t({ ja: "全体の上限は運営者が出せる額で決まっています ▶", en: "What sets the shared ceiling, and how to help raise it ▶" })}</Link>
-          </>
-        )}
+        {/* Checks the proxy again rather than trusting this error, so it is gone once a donation extends the free tier. */}
+        <SupportOffer className="block underline text-muted-foreground" />
       </>
     );
   } else if (code.startsWith("parse-failed")) {
