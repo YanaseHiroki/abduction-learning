@@ -31,7 +31,7 @@ describe("the home screen", () => {
     await app.go("/");
     const main = app.page.locator("main");
 
-    expect(await textOf(main)).toContain("基本動詞コース");
+    expect(await textOf(main)).toContain("基本コース");
     expect(await textOf(main)).toContain("listen · hear");
     expect(await textOf(main)).toContain("say · tell · speak · talk");
     expect(await textOf(main)).toContain("探究を再開する");
@@ -42,22 +42,33 @@ describe("the home screen", () => {
     app = await openApp({ seed: true });
     await app.go("/");
 
-    const recommended = app.page.locator("section", { hasText: "基本動詞コース" }).getByText("おすすめ").first();
+    const recommended = app.page.locator("section", { hasText: "基本コース" }).getByText("おすすめ").first();
     expect(await shown(recommended)).toBe(true);
     // the demo finished "listen / hear", so that card offers to reopen it instead
     expect(await textOf(app.page.getByRole("button", { name: /listen · hear/ }))).toContain("探究を再開する");
   });
 
-  it("shows the prepositions course after the verbs, without taking the recommendation from them", async () => {
+  it("puts every course's groups in one basic-course row, prepositions after the verbs, without taking the recommendation", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
 
-    const section = app.page.locator("section", { hasText: "前置詞コース" });
-    expect(await textOf(section)).toContain("〜に・〜で");
+    const section = app.page.locator("section", { hasText: "基本コース" });
+    const labels = await section.locator(".snap-start").allTextContents();
+    expect(labels.findIndex((x) => x.includes("〜に・〜で"))).toBeGreaterThan(labels.findIndex((x) => x.includes("話す")));
+    expect(labels.some((x) => x.includes("自由に探究する"))).toBe(false);
     expect(await textOf(section)).toContain("at · in · on");
-    expect(await section.getByText("おすすめ").count()).toBe(0);
-    const headings = await app.page.locator("main h2").allTextContents();
-    expect(headings.findIndex((x) => x.includes("基本動詞コース"))).toBeLessThan(headings.findIndex((x) => x.includes("前置詞コース")));
+    expect(await app.page.getByRole("button", { name: /at · in · on/ }).getByText("おすすめ").count()).toBe(0);
+    expect(await app.page.locator("main h2").allTextContents()).not.toContainEqual(expect.stringContaining("前置詞コース"));
+  });
+
+  it("sets free inquiry apart under its own heading, in the same section as the basic course", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/");
+
+    const section = app.page.locator("section", { hasText: "基本コース" });
+    const headings = await section.locator("h2").allTextContents();
+    expect(headings).toEqual(["🧭 基本コース", "✏️ オリジナルのコース"]);
+    expect(await section.getByRole("button", { name: /自由に探究する/ }).count()).toBe(1);
   });
 
   it("opens the prepositions group with its hint, and with at and in chosen to compare first", async () => {
@@ -86,9 +97,9 @@ describe("the home screen", () => {
 
     const main = app.page.locator("main");
     expect(await textOf(main)).toContain("Form your own hypotheses");
-    expect(await textOf(main)).toContain("Basic verbs course");
-    expect(await textOf(main)).toContain("Prepositions course (place and time)");
-    expect(await textOf(main)).not.toContain("基本動詞コース");
+    expect(await textOf(main)).toContain("Basic course");
+    expect(await textOf(main)).toContain("Your own course");
+    expect(await textOf(main)).not.toContain("基本コース");
   });
 });
 

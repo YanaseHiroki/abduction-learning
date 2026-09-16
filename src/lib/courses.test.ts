@@ -5,10 +5,9 @@ const english = courses.find((c) => c.l2 === "en")!;
 const prepositions = courses.find((c) => c.id === "prepositions")!;
 
 describe("the courses", () => {
-  it("give every course a unique id and a heading in both screen languages", () => {
+  it("give every course a unique id", () => {
     const ids = courses.map((c) => c.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(courses.every((c) => !!c.title.ja && !!c.title.en)).toBe(true);
   });
 
   it("put the basic verbs first for English, so the tutorial and the first recommendation stay there", () => {

@@ -51,7 +51,7 @@ describe("the first run", () => {
 
     expect(main).toContain("例文から自分で仮説を立てて、確かめる。");
     expect(main).toContain("🚀 はじめる");
-    expect(main).not.toContain("基本動詞コース");
+    expect(main).not.toContain("基本コース");
   });
 
   it("offers the way to skip, and shows the menu once it is taken", async () => {
@@ -60,7 +60,7 @@ describe("the first run", () => {
 
     await app.page.getByRole("button", { name: /チュートリアルを飛ばす/ }).click();
 
-    expect(await shown(app.page.getByText("🧭 基本動詞コース"))).toBe(true);
+    expect(await shown(app.page.getByText("🧭 基本コース"))).toBe(true);
     expect(await app.page.evaluate(() => JSON.parse(localStorage.getItem("abduction-learning.settings")!).tutorial.status)).toBe("done");
   });
 
@@ -327,6 +327,6 @@ describe("working inside an inquiry", () => {
 
     await app.page.locator('main a[href="#/"]').first().click();
 
-    expect(await shown(app.page.getByText("🧭 基本動詞コース"))).toBe(true);
+    expect(await shown(app.page.getByText("🧭 基本コース"))).toBe(true);
   });
 });
