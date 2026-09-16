@@ -52,7 +52,12 @@ PR を出す前にローカルで通しておくと、CI（`.github/workflows/ci
 あれば失敗します。詳しくは [docs/testing.md](docs/testing.md)。
 
 **画面の文言を変えたら** `pnpm shots:check` が落ちます（ヘルプのスクリーンショットとの食い違いを
-CI で止めています）。出力が撮り直しのコマンドを教えてくれます。[docs/help-screenshots.md](docs/help-screenshots.md) も参照。
+CI で止めています）。直し方は2通りで、出力もどちらかを案内します。
+
+- 文言を変えて画像が古くなったなら、撮り直す: `pnpm shots --lang=<ja|en> --only=<id>`
+- 画像は正しく、記録だけ古いなら、記録を取り直す: `pnpm shots:record`
+
+詳しくは [docs/help-screenshots.md](docs/help-screenshots.md)。
 
 ## マージと本番
 
