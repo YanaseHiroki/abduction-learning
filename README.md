@@ -61,6 +61,8 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 
 `worker/wrangler.toml` の `ALLOWED_ORIGINS` は自分の Pages のURLに合わせてください。
 
+リンクを共有したときのカード（og:image など）は `https://<owner>.github.io/<repo>/` を前提に絶対URLで組み立てます。独自ドメインで公開する場合は Variables に `SITE_URL`（例 `https://example.com/`）を登録してください。画像は `scripts/og-image.svg` を直して `pnpm og-image` で `public/og-image.png` を作り直します。
+
 ## ご意見フォーム
 
 ヘッダーの「ご意見」から、使い方の質問・不具合・要望を送れます（Worker を配置した場合のみ表示）。
