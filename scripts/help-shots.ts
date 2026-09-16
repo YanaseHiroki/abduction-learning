@@ -123,7 +123,11 @@ const shots: ShotDef[] = [
   },
   {
     id: "next",
-    prepare: async (_page, go) => go("/inquiry/demo"),
+    prepare: async (page, go) => {
+      await go("/inquiry/demo");
+      // The demo's summary is unsaved, so the next-step panel is still a quiet line until "move on anyway".
+      await page.getByRole("button", { name: either("先に次へ進む", "Move on anyway") }).click();
+    },
     rings: (page) => [[page.getByText(/^(👉 )?(次の一手|Next step)$/).locator("xpath=..")]],
     scroll: true,
   },

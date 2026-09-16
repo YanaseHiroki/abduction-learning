@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { ButtonRow, NavRow } from "@/components/ui/button-row";
 import { Textarea } from "@/components/ui/textarea";
 import { saveSchemaNote } from "@/lib/actions";
-import { deleteCard, updateCardPayload } from "@/lib/db";
+import { updateCardPayload } from "@/lib/db";
+import { cardHint } from "@/lib/guide";
 import { useT } from "@/lib/i18n";
 import { describeError } from "@/lib/llm/client";
 import { writingFeedback } from "@/lib/llm/prompts";
@@ -42,7 +43,7 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
   }
 
   return (
-    <CardShell kind="summary" id={card.id} createdAt={card.createdAt} onDelete={() => deleteCard(card.id)}>
+    <CardShell card={card} hint={cardHint(card, inquiry)}>
       <h4 className="mb-1 text-sm font-semibold">{t({ ja: "🧠 スキーマ（最終仮説）", en: "🧠 Schema (final hypothesis)" })}</h4>
       <div className="space-y-1.5">
         {p.lines.map((l) => {
@@ -65,29 +66,33 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
         )}
       </NavRow>
 
-      <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "✍️ ライティング: このスキーマを使って自分の場面で書く", en: "✍️ Writing: apply the schema to your own situations" })}</h4>
-      <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "仕事や趣味など、自分が実際に使いそうな場面の文を3つ。", en: "Three sentences from situations you would actually use." })}</p>
-      <div className="space-y-2">
-        {writing.map((w, i) => (
-          <div key={i}>
-            <Textarea rows={1} lang={inquiry.l2} value={w} onChange={(e) => setWriting(writing.map((x, j) => (j === i ? e.target.value : x)))} onBlur={() => updateCardPayload(card, { writing })} placeholder={`${i + 1}.`} />
-            {p.feedback?.comments.find((c) => c.index === i) && (
-              <p className="mt-1 pl-2 text-sm text-muted-foreground">
-                <Sparkles className="mr-1 inline size-3" />
-                {p.feedback.comments.find((c) => c.index === i)!.comment}
-                <span className="ml-1 text-xs">({p.feedback.comments.find((c) => c.index === i)!.confidence})</span>
-              </p>
-            )}
+      {(p.savedNoteId || p.writing.some((x) => x.trim())) && (
+        <>
+          <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "✍️ ライティング: このスキーマを使って自分の場面で書く", en: "✍️ Writing: apply the schema to your own situations" })}</h4>
+          <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "仕事や趣味など、自分が実際に使いそうな場面の文を3つ。", en: "Three sentences from situations you would actually use." })}</p>
+          <div className="space-y-2">
+            {writing.map((w, i) => (
+              <div key={i}>
+                <Textarea rows={1} lang={inquiry.l2} value={w} onChange={(e) => setWriting(writing.map((x, j) => (j === i ? e.target.value : x)))} onBlur={() => updateCardPayload(card, { writing })} placeholder={`${i + 1}. ${inquiry.targets[i % inquiry.targets.length]?.label ?? ""} …`} />
+                {p.feedback?.comments.find((c) => c.index === i) && (
+                  <p className="mt-1 pl-2 text-sm text-muted-foreground">
+                    <Sparkles className="mr-1 inline size-3" />
+                    {p.feedback.comments.find((c) => c.index === i)!.comment}
+                    <span className="ml-1 text-xs">({p.feedback.comments.find((c) => c.index === i)!.confidence})</span>
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <ButtonRow className="mt-4">
-        <Button size="sm" variant="outline" disabled={busy || !writing.some((s) => s.trim())} onClick={feedback}>
-          {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          {t({ ja: "相棒のコメントをもらう", en: "Get partner comments" })}
-        </Button>
-        <span className="text-xs text-muted-foreground">{t({ ja: "正解・不正解ではなく、根拠と確信度を返します", en: "Evidence and confidence, not verdicts" })}</span>
-      </ButtonRow>
+          <ButtonRow className="mt-4">
+            <Button size="sm" variant="outline" disabled={busy || !writing.some((s) => s.trim())} onClick={feedback}>
+              {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
+              {t({ ja: "相棒のコメントをもらう", en: "Get partner comments" })}
+            </Button>
+            <span className="text-xs text-muted-foreground">{t({ ja: "正解・不正解ではなく、根拠と確信度を返します", en: "Evidence and confidence, not verdicts" })}</span>
+          </ButtonRow>
+        </>
+      )}
       <ErrorText code={error} />
     </CardShell>
   );

@@ -1,23 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavRow } from "@/components/ui/button-row";
 import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
-import { addCard } from "@/lib/db";
+import { cardHint } from "@/lib/guide";
 import { useT } from "@/lib/i18n";
 import { setTutorial, useSettings } from "@/lib/settings";
-import { tutorialGroup, tutorialTranslationSample } from "@/lib/tutorial";
+import { scrollToCard, translationSampleFor } from "@/lib/tutorial";
 import type { Card, CardKind, Inquiry } from "@/lib/types";
 
 type L = { ja: string; en: string };
 
-/** Bring a card's header into view below the sticky top bar. */
-function scrollToCard(id: string) {
-  const el = document.getElementById(`card-${id}`);
-  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: "smooth" });
-}
 interface GuideStep {
   title: L;
   body: L;
@@ -30,7 +25,8 @@ interface GuideStep {
 /**
  * The tutorial's coach panel on the inquiry page: one instruction and one button at a time,
  * walking through examples → observation → hypothesis → translation test → summary.
- * It only adds cards through the page's own `onPick` (or addCard); the cards themselves are unchanged.
+ * It only adds cards through the page's own `onPick`; once a card is out, its body is the card's own hint (lib/guide),
+ * which the card stops showing while this panel is open.
  */
 export function TutorialGuide({
   inquiry,
@@ -50,20 +46,11 @@ export function TutorialGuide({
   const { tutorial } = useSettings();
   const [open, setOpen] = useState(true);
   const step = tutorial.step;
-  const [a, b] = inquiry.targets.map((x) => x.label);
-  const pair = { a: a ?? "", b: b ?? "" };
 
   const latest = (k: CardKind) => cards.filter((c) => c.kind === k).at(-1);
   const hasExamples = cards.some((c) => c.kind === "examples" && (c as Card<"examples">).payload.sets.length > 0);
   const translation = latest("verify_translation") as Card<"verify_translation"> | undefined;
   const summary = latest("summary") as Card<"summary"> | undefined;
-
-  // Scroll to a card as soon as the guide (or the learner) adds one.
-  const count = useRef(cards.length);
-  useEffect(() => {
-    if (cards.length > count.current) scrollToCard(cards.at(-1)!.id);
-    count.current = cards.length;
-  }, [cards]);
 
   const add = (kind: CardKind) => () => {
     const existing = latest(kind);
@@ -71,56 +58,52 @@ export function TutorialGuide({
     else onPick(kind);
   };
 
-  // The course's pair gets a ready-made sentence for the translation test; the learner only predicts.
-  const group = tutorialGroup(inquiry.l2);
-  const sample = group && group.targets.every((x, i) => inquiry.targets[i]?.label === x.label) ? tutorialTranslationSample[inquiry.l1] : undefined;
-  const addTranslation = () => {
-    if (translation || !sample) return add("verify_translation")();
-    addCard(inquiry.id, "verify_translation", { l1Text: sample, markers: [], restrictToTargets: true, fixedGloss: "", feasibilityTargetId: null, result: null, revealed: false, history: [] });
+  // The course's pair gets a ready-made sentence for the translation test (the page fills it in); the learner only predicts.
+  const sample = translationSampleFor(inquiry);
+
+  const hint = (k: CardKind) => {
+    const c = latest(k);
+    return c ? cardHint(c, inquiry) : null;
   };
+  const withTail = (l: L, tail: L | null): L => (tail ? { ja: `${l.ja}\n${tail.ja}`, en: `${l.en}\n${tail.en}` } : l);
 
   const failed = !busy && (!!error || (!hasExamples && cards.some((c) => c.kind === "examples")));
   const steps: GuideStep[] = [
-    busy || (!hasExamples && !failed)
+    busy
       ? { title: { ja: "📘 例文を作っています", en: "📘 Making examples" }, body: { ja: "AIが例文を作っています。\n1分ほどかかることがあります。", en: "The AI is writing examples.\nThis can take a minute." }, canNext: false }
       : failed && !hasExamples
         ? { title: { ja: "📘 例文を出せませんでした", en: "📘 No examples yet" }, body: { ja: "上のメッセージを確かめてから、もう一度出してみてください。", en: "Check the message above, then try again." }, action: { label: { ja: "🔁 もう一度出す", en: "🔁 Try again" }, run: () => onPick("examples") }, canNext: false }
-        : {
+        : // Nothing running and nothing to read: the learner closed the example dialog, so offer it again.
+          !hasExamples
+          ? { title: { ja: "📘 まず例文を出す", en: "📘 Start with examples" }, body: { ja: "比べる2語の例文を出すところから始めます。", en: "Start by generating examples of the two words you are comparing." }, action: { label: { ja: "📝 例文を出す", en: "📝 Generate examples" }, run: () => onPick("examples") }, canNext: false }
+          : {
             title: { ja: "📘 例文を眺める", en: "📘 Look over the examples" },
-            body: { ja: `${pair.a} と ${pair.b} の例文が並びました。\nこの表記には訳もついていますが、単語の使い分けの解説はあえていたしません。\nどんな文で使われているか、ざっと眺めてください。`, en: `Examples of ${pair.a} and ${pair.b} are ready.\nTranslations are included, but how the words differ is deliberately not explained.\nSkim how each word is used.` },
+            body: hint("examples")!,
             canNext: true,
           },
     {
       title: { ja: "👀 観察する", en: "👀 Observe" },
-      body: latest("observation")
-        ? { ja: `訳文の中で、${pair.a} と ${pair.b} がそれぞれどう訳されているかを集めます。\n気になった訳語をなぞって選び、例文の上に出る「追加」を押すと、下の比較表の ${pair.a}・${pair.b} の欄に入ります。\n2〜3個集めて進むと、集めた訳語を手がかりに2語の違いを仮説にまとめます。`, en: `Collect how ${pair.a} and ${pair.b} are each translated.\nSelect a translation that catches your eye and press "Add" above the examples; it goes into the ${pair.a} / ${pair.b} column of the comparison table below.\nCollect two or three, then move on to turn them into a hypothesis about how the two differ.` }
-        : { ja: "次は、違いの手がかりを集めます。", en: "Next, collect clues to the difference." },
+      body: hint("observation") ?? { ja: "次は、違いの手がかりを集めます。", en: "Next, collect clues to the difference." },
       action: latest("observation") ? undefined : { label: { ja: "👀 観察カードを出す", en: "👀 Add an observation card" }, run: add("observation") },
       canNext: true,
     },
     {
       title: { ja: "✍️ 仮説を書く", en: "✍️ Write a hypothesis" },
-      body: latest("hypothesis")
-        ? { ja: `${pair.a} と ${pair.b} の違いを、それぞれ1行で書きます。\n自信がなければ「？」を付けます。\n間違っていて構いません。`, en: `Write one line each on how ${pair.a} and ${pair.b} differ.\nMark "?" if unsure.\nIt is fine to be wrong.` }
-        : { ja: "集めた手がかりから、自分の考えを言葉にします。", en: "Put what you noticed into words." },
+      body: hint("hypothesis") ?? { ja: "集めた手がかりから、自分の考えを言葉にします。", en: "Put what you noticed into words." },
       action: latest("hypothesis") ? undefined : { label: { ja: "✍️ 仮説カードを出す", en: "✍️ Add a hypothesis card" }, run: add("hypothesis") },
       canNext: true,
     },
     {
       title: { ja: "🧪 翻訳テストで確かめる", en: "🧪 Test by translation" },
       body: translation
-        ? translation.payload.result
-          ? { ja: "予想と実際を比べてみましょう。\n合わなかったところが、仮説を直す手がかりです。", en: "Compare your predictions with the result.\nMismatches are clues for revising the hypothesis." }
-          : { ja: `①②に入るのが ${pair.a} か ${pair.b} かを予想して選びます。\n「翻訳させる」を押すと、AIの訳と答え合わせできます。${sample ? "\n文は書き換えても構いません。" : ""}`, en: `Predict whether ${pair.a} or ${pair.b} goes in each ①②.\nPress "Translate" to check against the AI's translation.${sample ? "\nFeel free to rewrite the sentence." : ""}` }
+        ? withTail(hint("verify_translation")!, !translation.payload.result && sample ? { ja: "文は書き換えても構いません。", en: "Feel free to rewrite the sentence." } : null)
         : { ja: "仮説が正しいかを、翻訳で確かめます。", en: "Check the hypothesis with a translation." },
-      action: translation ? undefined : { label: { ja: "🧪 翻訳テストを出す", en: "🧪 Add a translation test" }, run: addTranslation },
+      action: translation ? undefined : { label: { ja: "🧪 翻訳テストを出す", en: "🧪 Add a translation test" }, run: add("verify_translation") },
       canNext: !!translation?.payload.result,
     },
     {
       title: { ja: "📝 まとめる", en: "📝 Wrap up" },
-      body: summary
-        ? { ja: "結果を踏まえて、仮説の言葉を直します。\n「気づきノートに保存」を押すと、このまとめが残ります。", en: "Revise the wording with what you found.\nPress \"Save to notes\" to keep it." }
-        : { ja: "わかったことを、まとめとして残します。", en: "Keep what you found as a summary." },
+      body: hint("summary") ?? { ja: "わかったことを、まとめとして残します。", en: "Keep what you found as a summary." },
       action: summary ? undefined : { label: { ja: "📝 まとめカードを出す", en: "📝 Add a summary card" }, run: add("summary") },
       canNext: !!summary?.payload.savedNoteId,
     },

@@ -7,12 +7,13 @@ import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { deleteCard, updateCardPayload } from "@/lib/db";
+import { updateCardPayload } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { describeError } from "@/lib/llm/client";
 import { regenerateSentence } from "@/lib/llm/prompts";
 import { useSettings } from "@/lib/settings";
 import { genres, levels } from "@/lib/courses";
+import { cardHint } from "@/lib/guide";
 import type { ExamplesProgress, TargetProgress } from "@/lib/actions";
 import type { Card, Inquiry } from "@/lib/types";
 
@@ -78,11 +79,9 @@ export function ExamplesCard({ card, inquiry, progress }: { card: Card<"examples
 
   return (
     <CardShell
-      kind="examples"
-      id={card.id}
+      card={card}
       title={title}
-      createdAt={card.createdAt}
-      onDelete={() => deleteCard(card.id)}
+      hint={p.sets.length > 0 && !progress ? cardHint(card, inquiry) : undefined}
       actions={
         <div className="flex items-center gap-3 text-xs">
           <label className="flex items-center gap-1.5">

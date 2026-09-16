@@ -152,6 +152,19 @@ export async function fetchQuota(): Promise<Quota | null> {
   }
 }
 
+export type FeedbackKind = "usage" | "bug" | "request" | "other";
+
+/** Mail the owner through the proxy. Resolves to "ok", "quota" (too many today) or "error". */
+export async function sendFeedback(input: { kind: FeedbackKind; message: string; email: string; website: string; context: Record<string, string> }): Promise<"ok" | "quota" | "error"> {
+  if (!PROXY_URL) return "error";
+  try {
+    const res = await fetch(`${PROXY_URL}/feedback`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(input) });
+    return res.ok ? "ok" : res.status === 429 ? "quota" : "error";
+  } catch {
+    return "error";
+  }
+}
+
 export function hasCredential() {
   const s = getSettings();
   if (s.provider === "shared") return !!PROXY_URL;

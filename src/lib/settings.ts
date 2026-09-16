@@ -89,17 +89,21 @@ export function getSettings() {
 
 const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-/** index.html runs the same check before first paint, so a dark page doesn't flash white. */
-function applyTheme() {
+/**
+ * index.html runs the same dark check before first paint, so a dark page doesn't flash white.
+ * `lang` follows the screen language so screen readers and hyphenation get the page right.
+ */
+function applyDisplay() {
   const dark = current.theme === "dark" || (current.theme === "system" && darkQuery.matches);
   document.documentElement.classList.toggle("dark", dark);
+  document.documentElement.lang = current.uiLang;
 }
-applyTheme();
-darkQuery.addEventListener("change", applyTheme);
+applyDisplay();
+darkQuery.addEventListener("change", applyDisplay);
 
 export function setSettings(patch: Partial<Settings>) {
   current = { ...current, ...patch };
-  if (patch.theme) applyTheme();
+  if (patch.theme || patch.uiLang) applyDisplay();
   try {
     localStorage.setItem(KEY, JSON.stringify(current));
   } catch {

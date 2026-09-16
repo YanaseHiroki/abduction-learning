@@ -4,14 +4,16 @@ import { CardShell } from "@/components/inquiry/CardShell";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
-import { ButtonRow } from "@/components/ui/button-row";
+import { ButtonRow, NavRow } from "@/components/ui/button-row";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Disclosure } from "@/components/ui/disclosure";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { deleteCard, updateCardPayload } from "@/lib/db";
+import { updateCardPayload } from "@/lib/db";
+import { cardHint } from "@/lib/guide";
 import { useT } from "@/lib/i18n";
 import { describeError } from "@/lib/llm/client";
 import { translateTest } from "@/lib/llm/prompts";
@@ -92,48 +94,48 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
   }
 
   return (
-    <CardShell kind="verify_translation" id={card.id} createdAt={card.createdAt} onDelete={() => deleteCard(card.id)}>
-      <ol className="mb-3 list-decimal space-y-0.5 pl-5 text-sm text-muted-foreground">
-        <li>{t({ ja: "仮説を試す母語の文を書く（会話形式や、1文に複数回でもOK）", en: "Write a sentence in your language that tests the hypothesis" })}</li>
-        <li>{t({ ja: "対象になる語の直前に ①②③ を入れ、どの語が出るかを予想する", en: "Insert ①②③ before each target expression and predict the word" })}</li>
-        <li>{t({ ja: "翻訳させて、予想と比べる", en: "Translate and compare" })}</li>
-      </ol>
-      <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
-        <div>
-          <Textarea
-            ref={ta}
-            rows={4}
-            lang={inquiry.l1}
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onBlur={() => dirty && updateCardPayload(card, { l1Text: text })}
-            placeholder={t({ ja: "例: 嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。", en: "e.g. You should ①listen to harsh opinions; rumors just ②reach your ears." })}
-          />
-          <ButtonRow className="mt-3">
-            <Button size="xs" variant="outline" onClick={insertMarker}>{t({ ja: `${circled[markers.length] ?? "①"} を挿入`, en: `Insert ${circled[markers.length] ?? "①"}` })}</Button>
-            <span className="text-xs text-muted-foreground">{t({ ja: "カーソル位置に番号を入れます", en: "Inserts at the cursor" })}</span>
-          </ButtonRow>
-          {markers.length > 0 && (
-            <div className="mt-3 space-y-1.5">
-              {markers.map((i) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
-                  <span className="w-6 text-lg leading-none">{circled[i - 1]}</span>
-                  <span className="text-muted-foreground">{t({ ja: "予想:", en: "predict:" })}</span>
-                  <Select items={[{ value: NONE, label: "—" }, ...inquiry.targets.map((x) => ({ value: x.id, label: x.label }))]} value={predictions.get(i) ?? NONE} onValueChange={(v) => setPrediction(i, v === NONE ? null : v)}>
-                    <SelectTrigger size="sm" className="w-44"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={NONE}>—</SelectItem>
-                      {inquiry.targets.map((x) => <SelectItem key={x.id} value={x.id}>{x.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ))}
+    <CardShell card={card} hint={cardHint({ ...card, payload: { ...p, l1Text: text } }, inquiry)}>
+      <Textarea
+        ref={ta}
+        rows={3}
+        lang={inquiry.l1}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => dirty && updateCardPayload(card, { l1Text: text })}
+        placeholder={t({ ja: "例: 嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。", en: "e.g. You should ①listen to harsh opinions; rumors just ②reach your ears." })}
+      />
+      <ButtonRow className="mt-3">
+        <Button size="xs" variant="outline" onClick={insertMarker}>{t({ ja: `${circled[markers.length] ?? "①"} を挿入`, en: `Insert ${circled[markers.length] ?? "①"}` })}</Button>
+        <span className="text-xs text-muted-foreground">{t({ ja: "カーソル位置に番号を入れます", en: "Inserts at the cursor" })}</span>
+      </ButtonRow>
+      {markers.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          {markers.map((i) => (
+            <div key={i} className="flex items-center gap-2 text-sm">
+              <span className="w-6 text-lg leading-none">{circled[i - 1]}</span>
+              <span className="text-muted-foreground">{t({ ja: "予想:", en: "predict:" })}</span>
+              <Select items={[{ value: NONE, label: "—" }, ...inquiry.targets.map((x) => ({ value: x.id, label: x.label }))]} value={predictions.get(i) ?? NONE} onValueChange={(v) => setPrediction(i, v === NONE ? null : v)}>
+                <SelectTrigger size="sm" className="w-44"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>—</SelectItem>
+                  {inquiry.targets.map((x) => <SelectItem key={x.id} value={x.id}>{x.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+          ))}
         </div>
-        <div className="space-y-3 rounded-lg border bg-background p-3 text-sm">
+      )}
+      <NavRow className="mt-4">
+        {!ready && <span className="text-xs text-muted-foreground">{t({ ja: "番号を入れて、すべてに予想を付けると実行できます。", en: "Add markers and predict each one to run." })}</span>}
+        <Button disabled={busy || !ready} onClick={run}>
+          {busy ? <Loader2 className="animate-spin" /> : <Play />}
+          {p.result ? t({ ja: "もう一度翻訳させる", en: "Translate again" }) : t({ ja: "翻訳させる", en: "Translate" })}
+        </Button>
+      </NavRow>
+      {ready && (
+        <Disclosure className="mt-4" label={t({ ja: "⚙️ 翻訳の条件を変える", en: "⚙️ Change the translation conditions" })} contentClassName="space-y-3 text-sm">
           <label className="flex items-center justify-between gap-2">
-            <span>{t({ ja: "候補語を限定する", en: "Restrict to candidates" })}</span>
+            <span>{t({ ja: "候補語を限定する（おすすめ: オン）", en: "Restrict to candidates (recommended: on)" })}</span>
             <Switch size="sm" checked={p.restrictToTargets} onCheckedChange={(v) => updateCardPayload(card, { restrictToTargets: v })} />
           </label>
           <div className="grid gap-1">
@@ -150,15 +152,8 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
               </SelectContent>
             </Select>
           </div>
-          <ButtonRow className="pt-3">
-            <Button className="w-full" disabled={busy || !ready} onClick={run}>
-              {busy ? <Loader2 className="animate-spin" /> : <Play />}
-              {p.result ? t({ ja: "もう一度翻訳させる", en: "Translate again" }) : t({ ja: "翻訳させる", en: "Translate" })}
-            </Button>
-          </ButtonRow>
-          {!ready && <p className="text-xs text-muted-foreground">{t({ ja: "番号を入れて、すべてに予想を付けると実行できます。", en: "Add markers and predict each one to run." })}</p>}
-        </div>
-      </div>
+        </Disclosure>
+      )}
       <ErrorText code={error} />
       {p.result && (
         <div className="mt-4 rounded-lg border bg-background p-3">
