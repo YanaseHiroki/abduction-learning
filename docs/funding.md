@@ -67,10 +67,12 @@
 支援のページには、手で更新する「残高」は出しません。更新を忘れた数字は、出さないより悪いからです。
 代わりに、設定からそのまま出せる事実だけを出します。
 
-- 今日の全体の上限と残り（Worker の `/quota` の `global`）
-- 探究1つの平均費用と、そこから計算した1日の額（`SupportPage.tsx` の `COST_PER_INQUIRY_USD` × 上限）
+- 1日の費用の上限（Worker の `/quota` の `rules.dailyBudgetUsd`。`DAILY_BUDGET_USD` の値で、Worker は実際にこの額で呼び出しを止める）
+- 今日の全体の上限と残り（`/quota` の `global`）
+- 探究1つの平均費用（`src/lib/support.ts` の `COST_PER_INQUIRY_USD`）。上限額が何探究分かの目安として添える
 
-`COST_PER_INQUIRY_USD` は `LIMIT_GLOBAL` を決めたのと同じ数字です。モデルや価格を変えて `LIMIT_GLOBAL` を決め直したときは、ここも一緒に直してください。
+`rules.dailyBudgetUsd` を返さない古い Worker のときだけ、`COST_PER_INQUIRY_USD` × 全体の上限で1日の額を見積もり、「およそ」と書きます。
+`COST_PER_INQUIRY_USD` は `LIMIT_GLOBAL` を決めたのと同じ数字です。モデルや価格を変えて決め直したときは、ここも一緒に直してください。
 
 ## 運営者の設定手順
 

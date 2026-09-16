@@ -25,8 +25,8 @@ LIMIT_IP = "10"
 # Everyone together, counted in inquiries. A backstop only: the money is capped by DAILY_BUDGET_USD below.
 # 330 ≈ $3 at the 2026-09 average of $0.009 per inquiry (docs/model-bench-2026-09.md), so on an ordinary
 # day ADMIT_BUDGET_USD stops admissions first. LIMIT_IP still applies, so 330 takes at least 33 distinct IPs.
-# The support page shows the daily budget from the per-inquiry cost: change COST_PER_INQUIRY_USD in
-# src/pages/SupportPage.tsx together with it (docs/funding.md).
+# The support page states DAILY_BUDGET_USD (via /quota) and explains it with COST_PER_INQUIRY_USD in
+# src/lib/support.ts: change that together with the per-inquiry average above (docs/funding.md).
 LIMIT_GLOBAL = "330"
 # AI calls an admitted inquiry may use (one inquiry typically needs 15–30), and how many days it stays open.
 CALLS_PER_INQUIRY = "60"
