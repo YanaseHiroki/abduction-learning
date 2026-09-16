@@ -8,7 +8,7 @@ import { Disclosure } from "@/components/ui/disclosure";
 import { useT } from "@/lib/i18n";
 import { PROXY_URL, type Quota } from "@/lib/llm/client";
 import { useSharedFreeTier } from "@/lib/llm/useQuota";
-import { COST_PER_INQUIRY_USD, dailyBudget, SUPPORT_GITHUB, SUPPORT_KOFI } from "@/lib/support";
+import { COST_PER_INQUIRY_USD, dailyBudget, donationLabel, inquiriesFunded, SUPPORT_GITHUB, SUPPORT_KOFI } from "@/lib/support";
 
 /** What the day's ceiling costs the owner — the point of the page in one line. */
 function Budget({ q }: { q: Quota | null | undefined }) {
@@ -59,6 +59,44 @@ The ceiling is exactly what the owner can pay, and it rises with the funding beh
 }
 
 /**
+ * Every donation so far, in public, so everyone can see what the free tier runs on and a donor can
+ * see their own gift land. Nobody is named: each is "Donation #n" with a date, and only the total
+ * carries an amount. It has no way to give in it, so it may stay up while the free tier has room.
+ */
+function Donations({ q }: { q: Quota | null | undefined }) {
+  const t = useT();
+  const d = q?.donations;
+  if (!d || d.count === 0) return null;
+  const total = d.totalUsd.toFixed(2);
+  const inquiries = inquiriesFunded(d.totalUsd);
+  return (
+    <section className="space-y-3 rounded-xl border bg-card p-4">
+      <h2 className="font-semibold">{t({ ja: "🌱 これまでの支援", en: "🌱 Donations so far" })}</h2>
+      <p className="text-sm whitespace-pre-line">
+        {t({
+          ja: `これまで ${d.count} 件、合計 $${total}（手数料を除く）の支援が届きました。\n探究にしておよそ ${inquiries} 回分を、無料枠に足しています。`,
+          en: `${d.count} ${d.count === 1 ? "donation has" : "donations have"} come in, $${total} in all after fees.\nThat adds roughly ${inquiries} inquiries to the free tier.`,
+        })}
+      </p>
+      <ul className="divide-y rounded-lg border text-sm">
+        {d.recent.map((r) => (
+          <li key={r.no} className="flex justify-between px-3 py-1.5">
+            <span>{t(donationLabel(r.no))}</span>
+            <span className="tabular-nums text-muted-foreground">{r.date}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs whitespace-pre-line text-muted-foreground">
+        {t({
+          ja: "お名前は載せず、届いた順の番号と日付だけを出しています。1件ごとの金額も出しません。",
+          en: "No names are shown — only the order each donation arrived in and its date. Single amounts are not shown either.",
+        })}
+      </p>
+    </section>
+  );
+}
+
+/**
  * Asks for help with the free tier's running costs. Donations happen entirely on GitHub Sponsors
  * or Ko-fi: this page only links out, so no payment details ever reach the app. The services tell
  * the proxy about each payment, which adds it to the shared budget on its own (docs/funding.md).
@@ -90,6 +128,13 @@ export function SupportPage() {
       {(SUPPORT_GITHUB || SUPPORT_KOFI) && extended && (
         <section className="rounded-xl border border-primary bg-card p-4 text-sm whitespace-pre-line">
           {t({ ja: "🌱 支援が届き、今日の無料枠が広がりました。\n探究に戻って続けられます。ありがとうございました。", en: "🌱 A donation came in and today's free tier has been extended.\nYou can go back to your inquiry. Thank you." })}
+          {/* The giver cannot be told apart from anyone else here, so point at the newest number and let them recognise it. */}
+          {q?.donations?.recent[0] && (
+            <>
+              {"\n"}
+              {t({ ja: `いちばん新しい支援は「${donationLabel(q.donations.recent[0].no).ja}」として下の一覧に載っています。`, en: `The newest one is listed below as "${donationLabel(q.donations.recent[0].no).en}".` })}
+            </>
+          )}
         </section>
       )}
 
@@ -117,12 +162,14 @@ export function SupportPage() {
           {/* Saying this before they give, not after: a donation that quietly bought nothing would feel like a trick. */}
           <p className="text-sm whitespace-pre-line text-muted-foreground">
             {t({
-              ja: "支援しても、あなた自身が1日に始められる探究の数は増えません。増えるのは全体の上限です。\n見返りやお礼の品はありません。決済はすべて各サービス側で行われ、このアプリはカード情報も支援者の記録も受け取りません。",
-              en: "Giving does not raise your own daily allowance — it raises the ceiling everyone shares.\nThere are no rewards or perks. Payment happens entirely on those services; this app never sees card details or any record of who gave.",
+              ja: "支援しても、あなた自身が1日に始められる探究の数は増えません。増えるのは全体の上限です。\n見返りやお礼の品はありません。決済はすべて各サービス側で行われ、このアプリはカード情報もお名前も受け取りません。\n届いた支援は「支援 #番号」と日付だけで、このページの一覧に載ります。",
+              en: "Giving does not raise your own daily allowance — it raises the ceiling everyone shares.\nThere are no rewards or perks. Payment happens entirely on those services; this app never sees card details or your name.\nEach donation is listed on this page as \"Donation #number\" with its date, and nothing else.",
             })}
           </p>
         </section>
       )}
+
+      {PROXY_URL && <Donations q={q} />}
 
       <section className="space-y-3 rounded-xl border bg-card p-4">
         <h2 className="font-semibold">{t({ ja: "🔑 お金を使わずに支える", en: "🔑 Helping without money" })}</h2>

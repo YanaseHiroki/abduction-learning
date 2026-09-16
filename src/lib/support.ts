@@ -35,3 +35,17 @@ export function dailyBudget(q: { global: { limit: number }; rules: { dailyBudget
   if (typeof cap === "number" && cap > 0) return { usd: cap.toFixed(2), capped: true };
   return { usd: (q.global.limit * COST_PER_INQUIRY_USD).toFixed(2), capped: false };
 }
+
+/**
+ * How a donation is named in public: its arrival number with the same noun, never a name the donor
+ * could choose, so nothing free-form is published and nobody's real name can end up on the page.
+ * It numbers donations rather than people, since one person may give more than once.
+ */
+export function donationLabel(no: number): { ja: string; en: string } {
+  return { ja: `支援 #${no}`, en: `Donation #${no}` };
+}
+
+/** Roughly how many inquiries a sum of donations pays for, at the average cost above. */
+export function inquiriesFunded(usd: number): number {
+  return Math.floor(usd / COST_PER_INQUIRY_USD);
+}

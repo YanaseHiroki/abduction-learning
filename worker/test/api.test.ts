@@ -466,6 +466,19 @@ describe("donations extend the free tier", () => {
     expect(JSON.stringify(rows)).not.toMatch(/Named Person|someone@example.com|がんばって/);
   });
 
+  it("lists donations on /quota by number and date, with the total but no single amount", async () => {
+    expect((await quota()).donations).toEqual({ count: 0, totalUsd: 0, recent: [] });
+    await kofi({ kofi_transaction_id: "first", amount: "3" });
+    await kofi({ kofi_transaction_id: "second", amount: "7", from_name: "Named Person" });
+
+    const { donations } = await quota();
+    expect(donations.count).toBe(2);
+    expect(donations.totalUsd).toBeCloseTo(10 * share());
+    expect(donations.recent.map((d: { no: number }) => d.no)).toEqual([2, 1]);
+    expect(donations.recent[0]).toEqual({ no: 2, date: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    expect(JSON.stringify(donations)).not.toMatch(/Named Person|first|second/);
+  });
+
   it("converts other currencies, and credits nothing in one it has no rate for", async () => {
     await kofi({ amount: "1000", currency: "JPY", kofi_transaction_id: "jpy" });
     expect((await quota()).rules.donatedUsd).toBeCloseTo(1000 * 0.0067 * share());

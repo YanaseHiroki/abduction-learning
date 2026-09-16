@@ -29,7 +29,7 @@ const rules = { device: 3, deviceFirstDay: 5, perInquiry: 60, ttlDays: 3, dailyB
 const withRoom = { device: room, ip: room, global: { used: 10, limit: 330 }, budget: { admitting: true, open: true }, rules, model: "m", resetAt: Date.now() + 3600_000 };
 const sharedFull = { ...withRoom, budget: { admitting: false, open: true } };
 const deviceFull = { ...withRoom, device: { used: 5, limit: 5 } };
-const extended = { ...withRoom, rules: { ...rules, dailyBudgetUsd: 7.5, donatedUsd: 4.5 } };
+const extended = { ...withRoom, rules: { ...rules, dailyBudgetUsd: 7.5, donatedUsd: 4.5 }, donations: { count: 3, totalUsd: 9, recent: [{ no: 3, date: "2026-09-16" }, { no: 2, date: "2026-09-10" }, { no: 1, date: "2026-09-02" }] } };
 
 /** A proxy whose /quota answer the test can change, the way a donation changes the real one. */
 function proxy(initial: object) {
@@ -73,6 +73,28 @@ describe("the support screen", () => {
     expect(await shown(app.page.getByText("支援が届き、今日の無料枠が広がりました"))).toBe(true);
     expect(await app.page.locator("a", { hasText: "GitHub Sponsors" }).count()).toBe(0);
     expect(await screenText(app.page)).toContain("うち支援で広がった分");
+    // The giver finds their own donation by the newest number, in the list that appeared with it.
+    expect(await screenText(app.page)).toContain("いちばん新しい支援は「支援 #3」");
+  });
+
+  it("lists donations by number and date even while the free tier has room, with only the total's amount", async () => {
+    app = await openApp({ seed: true, proxy: proxy({ ...extended, rules }).answer });
+    await app.go("/support");
+
+    const text = await screenText(app.page);
+    expect(text).toContain("これまで 3 件、合計 $9.00");
+    expect(text).toContain("およそ 1000 回分");
+    expect(text).toContain("支援 #1");
+    expect(text).toContain("2026-09-16");
+    expect(text).not.toContain("支援者");
+    // Room left, so the list is there without any way to give.
+    expect(await app.page.locator("a", { hasText: "GitHub Sponsors" }).count()).toBe(0);
+  });
+
+  it("shows no list before the first donation", async () => {
+    app = await openApp({ seed: true, proxy: proxy({ ...withRoom, donations: { count: 0, totalUsd: 0, recent: [] } }).answer });
+    await app.go("/support");
+    expect(await screenText(app.page)).not.toContain("これまでの支援");
   });
 
   it("offers using your own key as the other way to help, and declines donated keys", async () => {

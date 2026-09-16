@@ -178,9 +178,21 @@ export class QuotaCounter extends DurableObject<Env> {
   }
 
   /** Everything /quota reports, read in one go: the tallies and budget with donations folded into the limits they raise. */
-  async quota(day: number, device: string, ip: string, base: Limits): Promise<{ status: Status; budget: { admitting: boolean; open: boolean }; limits: Limits; pooledMicros: number }> {
+  async quota(day: number, device: string, ip: string, base: Limits): Promise<{ status: Status; budget: { admitting: boolean; open: boolean }; limits: Limits; pooledMicros: number; donors: Donors }> {
     const { limits, pooledMicros } = this.extended(day, base);
-    return { status: this.statusNow(day, device, ip, limits), budget: await this.budgetStatus(day, base), limits, pooledMicros };
+    return { status: this.statusNow(day, device, ip, limits), budget: await this.budgetStatus(day, base), limits, pooledMicros, donors: this.donors() };
+  }
+
+  /**
+   * The public record of donations: how many, how much in all, and the latest few by number and time.
+   * Never a single donation's amount — the list names nobody, but an amount next to a number would
+   * still rank the people behind them.
+   */
+  private donors(): Donors {
+    const sql = this.ctx.storage.sql;
+    const all = sql.exec("SELECT COUNT(*) AS count, COALESCE(SUM(micros), 0) AS micros FROM donations").toArray()[0] as { count: number; micros: number };
+    const recent = sql.exec("SELECT no, at FROM donations ORDER BY no DESC LIMIT ?", RECENT_DONORS).toArray() as { no: number; at: number }[];
+    return { count: all.count, micros: all.micros, recent };
   }
 
   /**
@@ -296,6 +308,11 @@ function feedbackMail(env: Env, body: Record<string, unknown>, ip: string): Reco
   };
 }
 
+/** How many donations /quota lists by number; the rest are only in the count and the total. */
+const RECENT_DONORS = 10;
+
+export type Donors = { count: number; micros: number; recent: { no: number; at: number }[] };
+
 /** A payment reported by a webhook, or null for an event that is not money coming in (a ping, a shop order, a cancellation). */
 export type Donation = { id: string; amount: number; currency: string } | null;
 
@@ -374,6 +391,11 @@ export function usdRates(spec: string): Record<string, number> {
   return rates;
 }
 
+/** "2026-09-16" for a timestamp, in the time zone the daily reset follows. */
+function localDate(at: number, env: Env): string {
+  return new Date(at + Number(env.RESET_TZ_OFFSET_HOURS || 0) * 3600_000).toISOString().slice(0, 10);
+}
+
 function dayInfo(env: Env) {
   const offset = Number(env.RESET_TZ_OFFSET_HOURS || 0) * 3600_000;
   const day = Math.floor((Date.now() + offset) / 86_400_000);
@@ -424,13 +446,17 @@ export default {
     const counter = env.QUOTA.get(env.QUOTA.idFromName("global"));
 
     if (url.pathname === "/quota" && request.method === "GET") {
-      const { status, budget, limits: today, pooledMicros } = await counter.quota(day, device, ip, limits);
+      const { status, budget, limits: today, pooledMicros, donors } = await counter.quota(day, device, ip, limits);
       return json(
         {
           ...status,
           budget,
           // dailyBudgetUsd includes what donations add today; donatedUsd is that part, so the app can say where it came from.
           rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays, dailyBudgetUsd: today.budget / 1e6, donatedUsd: pooledMicros / 1e6 },
+          // Here rather than on a route of its own: the support page already re-reads /quota the moment a
+          // donation may have landed, so the giver sees their number appear together with the wider free tier.
+          // Dates only, in the reset time zone: a minute-exact time could be matched against the payment services' own public feeds.
+          donations: { count: donors.count, totalUsd: donors.micros / 1e6, recent: donors.recent.map((d) => ({ no: d.no, date: localDate(d.at, env) })) },
           model: env.MODEL,
           resetAt,
         },
