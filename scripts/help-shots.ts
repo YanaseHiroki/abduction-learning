@@ -41,7 +41,8 @@ interface ShotDef {
 }
 
 // The demo inquiry finishes "聞く" (which then reopens it), so the course slides use "話す", the recommended next group.
-const courseCard = (page: Page) => page.getByRole("button", { name: /say · tell · speak · talk/ });
+// The words read "say · tell · speak · talk" under the Japanese name and "say / tell / speak / talk" as the English name itself.
+const courseCard = (page: Page) => page.getByRole("button", { name: /say [·/] tell [·/] speak [·/] talk/ });
 const dialog = (page: Page) => page.getByRole("dialog");
 const card = (page: Page, id: string) => page.locator(`#card-demo-${id}`);
 

@@ -11,7 +11,7 @@ import { Recommended, RecommendedBadge } from "@/components/ui/recommended";
 import { Carousel } from "@/components/ui/carousel";
 import { LanguageFields } from "@/components/LanguageFields";
 import { Welcome } from "@/components/tutorial/Welcome";
-import { courses, languageName, type CourseGroup } from "@/lib/courses";
+import { courses, languageName, showsTargetList, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
 import type { Inquiry } from "@/lib/types";
 import { useT } from "@/lib/i18n";
@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
  * tutorial), recognized by their group label; "done" once they have covered every word of the group between them.
  */
 function groupProgress(g: CourseGroup, inquiries: Inquiry[], l1: string, l2: string) {
+  // The l1 label, because that is what was saved as groupLabel; the card above shows the uiLang one.
   const label = g.label[l1] ?? g.label.en;
   const own = inquiries.filter((inq) => inq.l1 === l1 && inq.l2 === l2 && inq.groupLabel === label);
   const covered = new Set(own.flatMap((inq) => inq.targets.map((x) => x.label)));
@@ -136,8 +137,8 @@ export function Home() {
                   )}
                 >
                   {recommended && <RecommendedBadge />}
-                  <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[defaultL1] ?? g.label.en}</div>
-                  <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>
+                  <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[uiLang] ?? g.label.en}</div>
+                  {showsTargetList(g, uiLang) && <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>}
                   {latest ? (
                     <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 続きから", en: "▶ Continue" })}</div>
                   ) : started && (

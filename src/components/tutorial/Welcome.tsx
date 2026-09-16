@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import { importAll } from "@/lib/backup";
+import { showsTargetList } from "@/lib/courses";
 import { useT } from "@/lib/i18n";
 import { setTutorial, useSettings } from "@/lib/settings";
 import { startTutorial, tutorialGroup } from "@/lib/tutorial";
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils";
  */
 export function Welcome() {
   const t = useT();
-  const { defaultL1, defaultL2, provider } = useSettings();
+  const { uiLang, defaultL1, defaultL2, provider } = useSettings();
   const nav = useNavigate();
   const [mode, setMode] = useState<"tour" | "import">("tour");
   const [step, setStep] = useState(0);
@@ -108,8 +109,8 @@ export function Welcome() {
           <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "🎯 最初の課題", en: "🎯 Your first task" })}</h1>
           {group ? (
             <div className="mt-6 rounded-xl border border-blue-600/40 bg-blue-50 p-4 shadow-xs dark:bg-blue-950/30">
-              <div className="text-lg font-semibold"><span className="mr-2">{group.emoji}</span>{group.label[defaultL1] ?? group.label.en}</div>
-              <div className="mt-1 text-sm text-muted-foreground">{group.targets.map((x) => x.label).join(" · ")}</div>
+              <div className="text-lg font-semibold"><span className="mr-2">{group.emoji}</span>{group.label[uiLang] ?? group.label.en}</div>
+              {showsTargetList(group, uiLang) && <div className="mt-1 text-sm text-muted-foreground">{group.targets.map((x) => x.label).join(" · ")}</div>}
             </div>
           ) : (
             <div className="mt-6 grid gap-3">
