@@ -17,6 +17,7 @@ import type { ExamplesParams, Target, TargetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ExampleSettingsFields, GenreTiles } from "./ExampleOptions";
 import { FreeTierFullNote } from "./FreeTierFullNote";
+import { NoCredentialNote } from "./NoCredentialNote";
 import { targetColor } from "./TargetBadge";
 
 /** Router state handed to the inquiry page so it generates the first example set right away. */
@@ -57,6 +58,8 @@ export function NewInquiryDialog({
   const [settings, setSettings] = useState<ExampleSettings>(() => defaultExampleSettings());
 
   const chosen = group ? targets.filter((x) => enabled.has(x.id)) : targets;
+  // Every screen after this one compares one expression against another, so one alone is not a start.
+  const enoughTargets = chosen.length >= 2;
 
   function addTarget() {
     if (!label.trim()) return;
@@ -163,16 +166,20 @@ export function NewInquiryDialog({
         )}
 
         <FreeTierFullNote active={open} />
+        {step === 1 && <NoCredentialNote />}
         <DialogFooter>
           {step === 0 ? (
-            <Recommended>
-              <Button variant="recommended" disabled={chosen.length === 0} onClick={() => setStep(1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
-            </Recommended>
+            <>
+              {!enoughTargets && <span className="text-xs text-muted-foreground sm:mr-auto">{t({ ja: "比べる語を2つ以上選んでください。", en: "Pick at least two expressions to compare." })}</span>}
+              <Recommended>
+                <Button variant="recommended" disabled={!enoughTargets} onClick={() => setStep(1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
+              </Recommended>
+            </>
           ) : (
             <>
               <Button variant="outline" className="sm:mr-auto" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
               <Recommended>
-                <Button variant="recommended" disabled={chosen.length === 0} onClick={create}>{t({ ja: "🚀 探究を始める", en: "🚀 Start" })}</Button>
+                <Button variant="recommended" disabled={!enoughTargets} onClick={create}>{t({ ja: "🚀 探究を始める", en: "🚀 Start" })}</Button>
               </Recommended>
             </>
           )}

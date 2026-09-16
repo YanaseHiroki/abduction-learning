@@ -56,10 +56,14 @@ export function Home() {
   if (!welcomed && empty && tutorial.status !== "done") setWelcomed(true);
   const showWelcome = welcomed && tutorial.status !== "done";
 
-  // Learners who already have data (from before the tutorial existed) never need it.
+  // Learners who already have data (from before the tutorial existed) never need it. A tutorial whose
+  // inquiry was deleted is over too, or its state would stay "running" with nothing left to guide.
   useEffect(() => {
-    if (loaded && !empty && !welcomed && tutorial.status === "new") setTutorial({ status: "done" });
-  }, [loaded, empty, welcomed, tutorial.status]);
+    if (!loaded) return;
+    if (!empty && !welcomed && tutorial.status === "new") setTutorial({ status: "done" });
+    if (tutorial.status === "running" && !inquiries.some((x) => x.id === tutorial.inquiryId)) setTutorial({ status: "done" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, empty, welcomed, tutorial.status, tutorial.inquiryId, inquiries]);
 
   if (!loaded) return null;
   if (showWelcome) return <Welcome />;

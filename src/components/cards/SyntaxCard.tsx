@@ -10,10 +10,11 @@ import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
 import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Recommended } from "@/components/ui/recommended";
 import { Textarea } from "@/components/ui/textarea";
 import { useSelectionIn } from "@/hooks/useInquiry";
-import { deleteCard, updateCardPayload } from "@/lib/db";
+import { updateCardPayload } from "@/lib/db";
+import { cardHint, suggestRole, taggedTargets } from "@/lib/guide";
 import { useT } from "@/lib/i18n";
 import { getLangPack } from "@/lib/langpacks";
 import { describeError } from "@/lib/llm/client";
@@ -30,12 +31,30 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
   const ref = useRef<HTMLDivElement>(null);
   const readSel = useSelectionIn(ref);
   const [sel, setSel] = useState<Selection | null>(null);
-  const [role, setRole] = useState(roles[0].id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const examples = cards.find((c): c is Card<"examples"> => c.kind === "examples" && c.id === p.examplesCardId);
+  const manySets = cards.filter((c) => c.kind === "examples").length > 1;
 
-  function addElement() {
+  // Stages: pick words → the pattern summary appears → once every target has a pattern, notes and the AI's analysis.
+  const tagged = taggedTargets(p);
+  const comparable = tagged.size >= inquiry.targets.length;
+
+  // The role the selection most likely plays, from the object / phrase spans the examples already carry.
+  const suggested = useMemo(() => {
+    if (!sel || !examples) return null;
+    const i = Number(sel.sentenceKey.slice(sel.sentenceKey.lastIndexOf(":") + 1));
+    const s = examples.payload.sets.find((x) => x.targetId === sel.targetId)?.sentences[i];
+    return s ? suggestRole(s, sel.text, roles.map((r) => r.id)) : null;
+  }, [sel, examples, roles]);
+
+  const roleLabel = (r: (typeof roles)[number]) => {
+    const name = uiLang === "ja" ? r.ja : r.en;
+    // "S 主語" already carries its abbreviation; "主語" or "that節" gets the id the pattern summary uses.
+    return /^\S{1,3} /.test(name) ? name : `${r.id} ${name}`;
+  };
+
+  function addElement(role: string) {
     if (!sel) return;
     const list = p.analyses[sel.sentenceKey] ?? [];
     updateCardPayload(card, { analyses: { ...p.analyses, [sel.sentenceKey]: [...list, { id: nanoid(6), role, text: sel.text }] } });
@@ -84,26 +103,27 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
     }
   }
 
-  const taggedCount = Object.values(p.analyses).filter((l) => l.length).length;
-
   return (
-    <CardShell kind="syntax" id={card.id} createdAt={card.createdAt} onDelete={() => deleteCard(card.id)}>
-      <div className="mb-3">
-        <ExamplesPicker cards={cards} inquiry={inquiry} value={p.examplesCardId} onChange={(id) => updateCardPayload(card, { examplesCardId: id })} />
-      </div>
+    <CardShell card={card} hint={examples ? cardHint(card, inquiry) : undefined}>
+      {manySets && (
+        <div className="mb-3">
+          <ExamplesPicker cards={cards} inquiry={inquiry} value={p.examplesCardId} onChange={(id) => updateCardPayload(card, { examplesCardId: id })} />
+        </div>
+      )}
       {examples ? (
-        <div ref={ref} onMouseUp={() => setSel(readSel())} onTouchEnd={() => setSel(readSel())}>
-          <SelectionBar
-            sel={sel}
-            onAdd={addElement}
-            extra={
-              <ToggleGroup size="sm" value={[role]} onValueChange={(v) => v[0] && setRole(v[0])} className="flex-wrap">
-                {roles.map((r) => (
-                  <ToggleGroupItem key={r.id} value={r.id} className="px-2 text-xs">{r.id}</ToggleGroupItem>
-                ))}
-              </ToggleGroup>
-            }
-          />
+        <div ref={ref} onMouseUp={() => setSel(readSel())} onTouchEnd={() => setSel(readSel())} onKeyUp={() => setSel(readSel())}>
+          <SelectionBar sel={sel} hint={{ ja: "例文の中の語句（動詞の後ろの部分など）をなぞって選ぶと、ここに役割のボタンが出ます。", en: "Select words in a sentence (e.g. what follows the verb) to get role buttons here." }}>
+            <span className="text-muted-foreground">{t({ ja: "役割は？", en: "Role?" })}</span>
+            <div className="flex flex-wrap gap-x-3 gap-y-3 pt-1">
+              {[...roles].sort((x, y) => Number(y.id === suggested) - Number(x.id === suggested)).map((r) =>
+                r.id === suggested ? (
+                  <Recommended key={r.id} className="mr-3"><Button size="xs" variant="recommended" onClick={() => addElement(r.id)}>{roleLabel(r)}</Button></Recommended>
+                ) : (
+                  <Button key={r.id} size="xs" variant="outline" onClick={() => addElement(r.id)}>{roleLabel(r)}</Button>
+                ),
+              )}
+            </div>
+          </SelectionBar>
           <div className="grid gap-4 md:grid-cols-2">
             {examples.payload.sets.map((set) => {
               const target = inquiry.targets.find((x) => x.id === set.targetId);
@@ -116,6 +136,7 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
                       const key = sentenceKey(set.targetId, i);
                       const els = p.analyses[key] ?? [];
                       const ai = p.aiRevealed ? p.aiAnalysis?.[key] : null;
+                      const auto = els.map((e) => e.role).join(" ");
                       return (
                         <div key={i}>
                           <SentenceView s={s} index={i} l1={inquiry.l1} l2={inquiry.l2} targetId={set.targetId} showGuides={false} showTranslation={false} />
@@ -131,7 +152,8 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
                                 {els.length > 0 && (
                                   <Input
                                     className="h-6 w-40 font-mono text-xs"
-                                    placeholder={t({ ja: "パターン名", en: "pattern" })}
+                                    title={t({ ja: "型の名前。空欄なら役割の並びを使います", en: "Pattern name. Empty uses the role order" })}
+                                    placeholder={auto}
                                     defaultValue={p.patterns[key] ?? ""}
                                     onBlur={(e) => e.target.value !== (p.patterns[key] ?? "") && updateCardPayload(card, { patterns: { ...p.patterns, [key]: e.target.value } })}
                                   />
@@ -154,35 +176,41 @@ export function SyntaxCard({ card, inquiry, cards }: { card: Card<"syntax">; inq
               );
             })}
           </div>
-          <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "📐 構造パターン集計", en: "📐 Pattern summary" })}</h4>
-          <div className="grid gap-3 md:grid-cols-2">
-            {inquiry.targets.map((tg, ti) => (
-              <div key={tg.id} className="rounded-lg border bg-background p-2 text-sm">
-                <TargetBadge target={tg} index={ti} className="mb-1" />
-                <ul>
-                  {[...(summary.get(tg.id) ?? new Map()).entries()].map(([pat, n]) => (
-                    <li key={pat} className="flex justify-between"><span className="font-mono">{pat}</span><span className="tabular-nums text-muted-foreground">×{n}</span></li>
-                  ))}
-                </ul>
+          {tagged.size > 0 && (
+            <>
+              <h4 className="mt-4 mb-1 text-sm font-semibold">{t({ ja: "📐 構造パターン集計", en: "📐 Pattern summary" })}</h4>
+              <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "役割の並びがそのまま型になります。名前を付けたいときは、各文の横の欄に書きます。", en: "The role order is the pattern. To name it, type in the box next to each sentence." })}</p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {inquiry.targets.map((tg, ti) => (
+                  <div key={tg.id} className="rounded-lg border bg-background p-2 text-sm">
+                    <TargetBadge target={tg} index={ti} className="mb-1" />
+                    <ul>
+                      {[...(summary.get(tg.id) ?? new Map()).entries()].map(([pat, n]) => (
+                        <li key={pat} className="flex justify-between"><span className="font-mono">{pat}</span><span className="tabular-nums text-muted-foreground">×{n}</span></li>
+                      ))}
+                      {!summary.get(tg.id)?.size && <li className="text-xs text-muted-foreground">—</li>}
+                    </ul>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
         </div>
       ) : (
         <p className="text-sm text-muted-foreground">{t({ ja: "先に例文セットを出力してください。", en: "Generate an example set first." })}</p>
       )}
-      <Textarea className="mt-3" placeholder={t({ ja: "構造について気づいたこと（目的語をとる／とらない、that節、前置詞…）", en: "Notes on structure (takes an object or not, that-clause, prepositions…)" })} defaultValue={p.notes} onBlur={(e) => e.target.value !== p.notes && updateCardPayload(card, { notes: e.target.value })} />
-      {examples && !p.aiRevealed && (
+      {(comparable || p.notes) && (
+        <Textarea className="mt-3" placeholder={t({ ja: "構造について気づいたこと（目的語をとる／とらない、that節、前置詞…）", en: "Notes on structure (takes an object or not, that-clause, prepositions…)" })} defaultValue={p.notes} onBlur={(e) => e.target.value !== p.notes && updateCardPayload(card, { notes: e.target.value })} />
+      )}
+      {examples && comparable && !p.aiRevealed && (
         <ButtonRow className="mt-4">
-          <Button size="sm" variant="outline" disabled={busy || taggedCount === 0} onClick={askAi}>
+          <Button size="sm" variant="outline" disabled={busy} onClick={askAi}>
             {busy ? <Loader2 className="animate-spin" /> : <Sparkles />}
-            {t({ ja: "AIの分析を見る", en: "Show the AI's analysis" })}
+            {t({ ja: "AIの分析を見て比べる", en: "Compare with the AI's analysis" })}
           </Button>
-          {taggedCount === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "まず自分でタグ付けしてから", en: "Tag at least one sentence first" })}</span>}
         </ButtonRow>
       )}
       <ErrorText code={error} />
-      <p className="mt-2 text-xs text-muted-foreground">{uiLang === "ja" ? "役割: " : "Roles: "}{roles.map((r) => `${r.id}=${uiLang === "ja" ? r.ja : r.en}`).join("、 ")}</p>
     </CardShell>
   );
 }

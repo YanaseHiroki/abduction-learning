@@ -1,5 +1,5 @@
 /**
- * Shared-key proxy for Abduction Lab.
+ * Shared-key proxy for Abduction Learning.
  *
  * The static site cannot keep a secret, so the owner's API key lives here as a Worker
  * secret. The free tier is counted in inquiries, not calls: a device may start a few

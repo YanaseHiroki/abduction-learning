@@ -2,7 +2,7 @@ import { nanoid } from "nanoid";
 import { courses, defaultExampleSettings } from "./courses";
 import { createInquiry } from "./db";
 import { setTutorial, useSettings } from "./settings";
-import type { ExamplesParams, Target } from "./types";
+import type { ExamplesParams, Inquiry, Target } from "./types";
 
 /** The tutorial's example set: short everyday scenes, fewer sentences than usual so the first read is light. */
 export const tutorialExampleSettings = { ...defaultExampleSettings("daily", "beginner"), count: 6 };
@@ -20,6 +20,19 @@ export const tutorialTranslationSample: Record<string, string> = {
   ja: "嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。",
   en: "You should ①listen to harsh opinions, and rumors just ②reach your ears anyway.",
 };
+
+/** The ready-made translation-test sentence, when the inquiry compares the tutorial group's words in that order. */
+export function translationSampleFor(inquiry: Inquiry) {
+  const group = tutorialGroup(inquiry.l2);
+  const matches = !!group && group.targets.every((x, i) => inquiry.targets[i]?.label === x.label);
+  return matches ? (tutorialTranslationSample[inquiry.l1] ?? "") : "";
+}
+
+/** Bring a card's header into view below the sticky top bar. */
+export function scrollToCard(id: string) {
+  const el = document.getElementById(`card-${id}`);
+  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 64, behavior: "smooth" });
+}
 
 /**
  * Create the tutorial's inquiry (the learner's first real one; on the free tier it counts as one of

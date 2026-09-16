@@ -149,7 +149,24 @@ export function SettingsPage() {
         <ButtonRow className="pt-3">
           <Button variant="outline" onClick={exportAll}>{t({ ja: "📤 JSONに書き出す", en: "📤 Export JSON" })}</Button>
           <Button variant="outline" onClick={() => document.getElementById("import-file")?.click()}>{t({ ja: "📥 JSONを読み込む", en: "📥 Import JSON" })}</Button>
-          <input id="import-file" type="file" accept="application/json" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { const n = await importAll(f); alert(t({ ja: `${n} 件の探究を読み込みました`, en: `Imported ${n} inquiries` })); } e.target.value = ""; }} />
+          {/* A wrong file used to fail in silence: say so, rather than leaving the learner to guess. */}
+          <input
+            id="import-file"
+            type="file"
+            accept="application/json"
+            className="hidden"
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (!f) return;
+              try {
+                const n = await importAll(f);
+                alert(t({ ja: `${n} 件の探究を読み込みました`, en: `Imported ${n} inquiries` }));
+              } catch {
+                alert(t({ ja: "このファイルは読み込めませんでした。\nこのアプリが書き出したJSONファイルを選んでください。", en: "Could not read this file.\nPick a backup JSON file exported by this app." }));
+              }
+            }}
+          />
         </ButtonRow>
         <ButtonRow className="pt-3">
           <Button variant="destructive" onClick={async () => { if (confirm(t({ ja: "すべての探究・ノートを削除しますか？\nチュートリアルも最初からになります。", en: "Delete all inquiries and notes?\nThe tutorial starts over too." }))) { await db.delete(); setTutorial(defaultSettings.tutorial); location.reload(); } }}>

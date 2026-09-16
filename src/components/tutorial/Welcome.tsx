@@ -1,6 +1,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { FreeTierFullNote } from "@/components/inquiry/FreeTierFullNote";
+import { NoCredentialNote } from "@/components/inquiry/NoCredentialNote";
 import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { targetColor } from "@/components/inquiry/TargetBadge";
 import { LanguageFields } from "@/components/LanguageFields";
@@ -131,7 +132,7 @@ export function Welcome() {
               {t({ ja: "無料枠では、今日始められる探究の1つ分を使います。\nこの探究はそのまま最初の探究として残ります。", en: "On the free tier, this uses one of today's inquiries.\nIt stays as your first inquiry." })}
             </p>
           )}
-          <div className="mt-4"><FreeTierFullNote /></div>
+          <div className="mt-4 grid gap-3"><NoCredentialNote /><FreeTierFullNote /></div>
           <NavRow className="pt-6" back={<Button variant="outline" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}>
             <Recommended>
               <Button variant="recommended" size="lg" disabled={starting || (!group && !customReady)} onClick={start}>{t({ ja: "🚀 例文を出す", en: "🚀 Show examples" })}</Button>

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Loader2, PanelRight } from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2, PanelRight } from "lucide-react";
 import { ExamplesCard } from "@/components/cards/ExamplesCard";
 import { HypothesisCard } from "@/components/cards/HypothesisCard";
 import { ObservationCard } from "@/components/cards/ObservationCard";
@@ -8,7 +8,7 @@ import { SummaryCard } from "@/components/cards/SummaryCard";
 import { SyntaxCard } from "@/components/cards/SyntaxCard";
 import { VerifyFrameCard } from "@/components/cards/VerifyFrameCard";
 import { VerifyTranslationCard } from "@/components/cards/VerifyTranslationCard";
-import { AddCardMenu } from "@/components/inquiry/AddCardMenu";
+import { HintedCardContext } from "@/components/inquiry/hintedCard";
 import { ExamplesDialog } from "@/components/inquiry/ExamplesDialog";
 import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { HypothesisPanel } from "@/components/inquiry/HypothesisPanel";
@@ -17,68 +17,62 @@ import { TutorialGuide } from "@/components/tutorial/TutorialGuide";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Recommended } from "@/components/ui/recommended";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { latestHypothesis, useCards, useInquiry } from "@/hooks/useInquiry";
 import { createExamplesCard, type ExamplesProgress } from "@/lib/actions";
 import { genres } from "@/lib/courses";
 import { addCard } from "@/lib/db";
+import { cardReady, nextSteps } from "@/lib/guide";
 import { useT } from "@/lib/i18n";
 import { describeError, hasCredential, setActiveInquiry } from "@/lib/llm/client";
 import { ErrorText } from "@/components/inquiry/ErrorText";
 import { getLangPack } from "@/lib/langpacks";
 import { useSettings } from "@/lib/settings";
-import { useGuidedInquiry } from "@/lib/tutorial";
-import type { Card, CardKind, ExamplesParams } from "@/lib/types";
+import { scrollToCard, translationSampleFor, useGuidedInquiry } from "@/lib/tutorial";
+import type { Card, CardKind, ExamplesParams, Inquiry } from "@/lib/types";
 
-function NextSteps({ cards, hasHypothesis, onPick }: { cards: Card[]; hasHypothesis: boolean; onPick: (k: CardKind) => void }) {
+/**
+ * What to do after the last card: one recommended step, stated with why, and the rest folded away.
+ * While the last card is still unfinished it stays a quiet line, so the card itself holds the attention.
+ */
+function NextSteps({ inquiry, cards, hasHypothesis, onPick }: { inquiry: Inquiry; cards: Card[]; hasHypothesis: boolean; onPick: (k: CardKind) => void }) {
   const t = useT();
   const last = cards[cards.length - 1];
-  const suggestions: { kind: CardKind; label: { ja: string; en: string } }[] = [];
-  switch (last.kind) {
-    case "examples":
-      suggestions.push({ kind: "observation", label: { ja: "着眼点を決めて比べる", en: "Pick a perspective and compare" } });
-      suggestions.push({ kind: "hypothesis", label: { ja: "仮説を書いてみる", en: "Write a hypothesis" } });
-      suggestions.push({ kind: "examples", label: { ja: "ジャンルを変えてもう一度出す", en: "Generate with another genre" } });
-      break;
-    case "observation":
-    case "syntax":
-      suggestions.push({ kind: "hypothesis", label: { ja: hasHypothesis ? "仮説を次の版に進める" : "仮説を書いてみる", en: hasHypothesis ? "Advance the hypothesis" : "Write a hypothesis" } });
-      suggestions.push({ kind: "observation", label: { ja: "別の着眼点でも比べる", en: "Compare from another perspective" } });
-      suggestions.push({ kind: "syntax", label: { ja: "構文を分析する", en: "Analyze syntax" } });
-      break;
-    case "hypothesis":
-      suggestions.push({ kind: "verify_translation", label: { ja: "翻訳テストで確かめる", en: "Verify by translation test" } });
-      suggestions.push({ kind: "verify_frame", label: { ja: "フレームテストで確かめる", en: "Verify by frame test" } });
-      suggestions.push({ kind: "observation", label: { ja: "もう少し観察する", en: "Observe more" } });
-      break;
-    case "verify_translation":
-    case "verify_frame":
-      suggestions.push({ kind: "hypothesis", label: { ja: "結果を踏まえて仮説を修正する", en: "Revise the hypothesis" } });
-      suggestions.push({ kind: "verify_translation", label: { ja: "別の文でもう一度試す", en: "Try another sentence" } });
-      suggestions.push({ kind: "examples", label: { ja: "ジャンルを変えて再出力して確かめる", en: "Re-generate in another genre" } });
-      suggestions.push({ kind: "summary", label: { ja: "まとめて書いてみる", en: "Summarize and write" } });
-      break;
-    case "summary":
-      suggestions.push({ kind: "examples", label: { ja: "同じ語で別ジャンルを見る", en: "Same words, another genre" } });
-      break;
+  const [primary, ...others] = nextSteps(last, hasHypothesis);
+  const [early, setEarly] = useState(false);
+
+  if (!cardReady(last, inquiry) && !early) {
+    return (
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-dashed px-5 py-3 text-sm text-muted-foreground">
+        <span>{t({ ja: "上のカードを進めると、ここに次の一手が出ます。", en: "Work on the card above and the next step appears here." })}</span>
+        <Button variant="link" size="sm" className="h-auto px-0 text-muted-foreground" onClick={() => setEarly(true)}>{t({ ja: "先に次へ進む ▸", en: "Move on anyway ▸" })}</Button>
+      </div>
+    );
   }
   return (
-    <div className="rounded-xl border border-dashed border-foreground/20 bg-card p-8">
-      <div className="mb-4 text-xs font-semibold text-muted-foreground">{t({ ja: "👉 次の一手", en: "👉 Next step" })}</div>
-      <ButtonRow>
-        {suggestions.map((s, i) =>
-          i === 0 ? (
-            <Recommended key={i}>
-              <Button size="sm" variant="recommended" onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
-            </Recommended>
-          ) : (
-            <Button key={i} size="sm" variant="outline" onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
-          ),
-        )}
+    <section className="rounded-xl border-2 border-blue-500/60 bg-card px-5 py-5 shadow-sm sm:px-6" aria-live="polite">
+      <div className="text-sm font-semibold">{t({ ja: "👉 次の一手", en: "👉 Next step" })}</div>
+      <p className="mt-1 text-sm text-muted-foreground">{t(primary.why)}</p>
+      <ButtonRow className="mt-4">
+        <Recommended>
+          <Button variant="recommended" onClick={() => onPick(primary.kind)}>{t(primary.label)}</Button>
+        </Recommended>
       </ButtonRow>
-      <p className="mt-4 text-xs whitespace-pre-line text-muted-foreground">{t({ ja: "順番は自由です。\n画面下の「カードを追加」からはどの種類でも追加できます。", en: "Any order is fine.\nThe button at the bottom adds any kind of card." })}</p>
-    </div>
+      <Collapsible className="mt-4">
+        <CollapsibleTrigger className="group flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          {t({ ja: "ほかの一手", en: "Other steps" })}<ChevronDown className="size-3.5 transition-transform group-data-panel-open:rotate-180" />
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <ButtonRow className="mt-3">
+            {others.map((s) => (
+              <Button key={s.kind + t(s.label)} size="sm" variant="outline" onClick={() => onPick(s.kind)}>{t(s.label)}</Button>
+            ))}
+          </ButtonRow>
+        </CollapsibleContent>
+      </Collapsible>
+    </section>
   );
 }
 
@@ -103,6 +97,14 @@ export function InquiryPage() {
     return () => setActiveInquiry(null);
   }, [id]);
 
+  // Bring a newly added card into view (the next-step panel adds it just above itself).
+  const count = useRef<number | null>(null);
+  useEffect(() => {
+    if (!cards) return;
+    if (count.current !== null && cards.length > count.current) scrollToCard(cards.at(-1)!.id);
+    count.current = cards.length;
+  }, [cards]);
+
   // A fresh inquiry always starts with STEP 1 (once per inquiry): generate right away when the
   // new-inquiry dialog already chose the settings, otherwise open the example dialog.
   useEffect(() => {
@@ -123,8 +125,7 @@ export function InquiryPage() {
   if (!inquiry || !cards) return <div className="p-8 text-muted-foreground">…</div>;
 
   const latest = latestHypothesis(cards);
-  const examples = cards.filter((c) => c.kind === "examples");
-  const lastExamples = examples.at(-1);
+  const lastExamples = cards.filter((c) => c.kind === "examples").at(-1);
   const genre = genres.find((g) => g.id === inquiry.genre);
 
   async function generate(params: ExamplesParams) {
@@ -149,9 +150,14 @@ export function InquiryPage() {
       case "examples":
         setDialog(true);
         return;
-      case "observation":
-        await addCard(inquiry.id, "observation", { perspective: getLangPack(inquiry.l2).perspectives[0].id, examplesCardId: lastExamples?.id ?? "", marks: [], notes: "", aiExtraction: null, aiRevealed: false });
+      case "observation": {
+        // Suggest the first perspective this inquiry has not looked from yet.
+        const used = new Set(cards!.filter((c) => c.kind === "observation").map((c) => (c as Card<"observation">).payload.perspective));
+        const perspectives = getLangPack(inquiry.l2).perspectives.filter((x) => x.usesExamples && x.id !== "free");
+        const perspective = (perspectives.find((x) => !used.has(x.id)) ?? perspectives[0]).id;
+        await addCard(inquiry.id, "observation", { perspective, examplesCardId: lastExamples?.id ?? "", marks: [], notes: "", aiExtraction: null, aiRevealed: false });
         return;
+      }
       case "syntax":
         await addCard(inquiry.id, "syntax", { examplesCardId: lastExamples?.id ?? "", analyses: {}, patterns: {}, aiAnalysis: null, aiRevealed: false, notes: "" });
         return;
@@ -159,7 +165,7 @@ export function InquiryPage() {
         await addCard(inquiry.id, "hypothesis", { version: (latest?.payload.version ?? 0) + 1, lines: latest ? structuredClone(latest.payload.lines) : inquiry.targets.map((x) => blank(x.id)), notes: "", basedOn: latest ? [latest.id] : [] });
         return;
       case "verify_translation":
-        await addCard(inquiry.id, "verify_translation", { l1Text: "", markers: [], restrictToTargets: true, fixedGloss: "", feasibilityTargetId: null, result: null, revealed: false, history: [] });
+        await addCard(inquiry.id, "verify_translation", { l1Text: cards!.some((c) => c.kind === "verify_translation") ? "" : translationSampleFor(inquiry), markers: [], restrictToTargets: true, fixedGloss: "", feasibilityTargetId: null, result: null, revealed: false, history: [] });
         return;
       case "verify_frame":
         await addCard(inquiry.id, "verify_frame", { frames: [], result: null, revealed: false });
@@ -183,54 +189,50 @@ export function InquiryPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-56">
-      <div className="flex flex-wrap items-center gap-6 py-4">
-        <Button render={<Link to="/" />} nativeButton={false} variant="ghost" size="sm"><ArrowLeft />{t({ ja: "ホーム", en: "Home" })}</Button>
-        {inquiry.groupLabel && <span className="text-sm text-muted-foreground">{inquiry.groupLabel}</span>}
-        <div className="flex flex-wrap gap-1.5">
-          {inquiry.targets.map((x, i) => <TargetBadge key={x.id} target={x} index={i} className="text-base" />)}
+    <HintedCardContext.Provider value={guided ? null : (cards.at(-1)?.id ?? null)}>
+      <div className={guided ? "mx-auto max-w-6xl px-4 pb-56" : "mx-auto max-w-6xl px-4 pb-24"}>
+        <div className="flex flex-wrap items-center gap-6 py-4">
+          <Button render={<Link to="/" />} nativeButton={false} variant="ghost" size="sm"><ArrowLeft />{t({ ja: "ホーム", en: "Home" })}</Button>
+          {inquiry.groupLabel && <span className="text-sm text-muted-foreground">{inquiry.groupLabel}</span>}
+          <div className="flex flex-wrap gap-1.5">
+            {inquiry.targets.map((x, i) => <TargetBadge key={x.id} target={x} index={i} className="text-base" />)}
+          </div>
+          <span className="text-xs text-muted-foreground">{inquiry.l1} → {inquiry.l2} · {genre ? (uiLang === "ja" ? genre.ja : genre.en) : inquiry.genre}</span>
+          <div className="ml-auto lg:hidden">
+            <Sheet>
+              <SheetTrigger render={<Button variant="outline" size="sm" />}><PanelRight />{t({ ja: "仮説", en: "Hypothesis" })}</SheetTrigger>
+              <SheetContent><SheetTitle className="sr-only">hypothesis</SheetTitle><div className="mt-6"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></SheetContent>
+            </Sheet>
+          </div>
         </div>
-        <span className="text-xs text-muted-foreground">{inquiry.l1} → {inquiry.l2} · {genre ? (uiLang === "ja" ? genre.ja : genre.en) : inquiry.genre}</span>
-        <div className="ml-auto lg:hidden">
-          <Sheet>
-            <SheetTrigger render={<Button variant="outline" size="sm" />}><PanelRight />{t({ ja: "仮説", en: "Hypothesis" })}</SheetTrigger>
-            <SheetContent><SheetTitle className="sr-only">hypothesis</SheetTitle><div className="mt-6"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></SheetContent>
-          </Sheet>
+        {inquiry.question && <p className="mb-4 rounded-lg border border-dashed px-3 py-2 text-sm"><span className="mr-2 text-muted-foreground">{t({ ja: "問い", en: "Question" })}</span>{inquiry.question}</p>}
+        {!hasCredential() && (
+          <Alert className="mb-4">
+            <AlertTitle>{t({ ja: "AIの接続先が未設定です", en: "No AI connection configured" })}</AlertTitle>
+            <AlertDescription>{t({ ja: "例文の生成や翻訳テストには、無料枠か自分のAPIキー（Anthropic / OpenAI / Gemini）が必要です。", en: "Generating examples and running tests needs the free tier or your own key (Anthropic / OpenAI / Gemini)." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
+          </Alert>
+        )}
+        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+          <div className="min-w-0 space-y-4">
+            {cards.length === 0 && (
+              <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
+                {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳もついていますが、単語の使い分けの解説はあえていたしません。", en: "Start with STEP 1: generate an example set.\nTranslations are included, but how the words differ is deliberately not explained." })}
+              </div>
+            )}
+            {cards.map(render)}
+            {cards.length > 0 && !busy && !guided && (
+              <NextSteps key={cards.at(-1)!.id} inquiry={inquiry} cards={cards} hasHypothesis={!!latest} onPick={pick} />
+            )}
+            {busy && !generating && (
+              <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文の生成を始めています…", en: "Starting generation…" })}</div>
+            )}
+            <ErrorText code={error} className="text-sm text-destructive" />
+          </div>
+          <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
         </div>
+        {guided && <TutorialGuide inquiry={inquiry} cards={cards} busy={busy} error={error} onPick={pick} />}
+        {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}
       </div>
-      {inquiry.question && <p className="mb-4 rounded-lg border border-dashed px-3 py-2 text-sm"><span className="mr-2 text-muted-foreground">{t({ ja: "問い", en: "Question" })}</span>{inquiry.question}</p>}
-      {!hasCredential() && (
-        <Alert className="mb-4">
-          <AlertTitle>{t({ ja: "AIの接続先が未設定です", en: "No AI connection configured" })}</AlertTitle>
-          <AlertDescription>{t({ ja: "例文の生成や翻訳テストには、無料枠か自分のAPIキー（Anthropic / OpenAI / Gemini）が必要です。", en: "Generating examples and running tests needs the free tier or your own key (Anthropic / OpenAI / Gemini)." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
-        </Alert>
-      )}
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-        <div className="min-w-0 space-y-4">
-          {cards.length === 0 && (
-            <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
-              {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳もついていますが、単語の使い分けの解説はあえていたしません。", en: "Start with STEP 1: generate an example set.\nTranslations are included, but how the words differ is deliberately not explained." })}
-            </div>
-          )}
-          {cards.map(render)}
-          {cards.length > 0 && !busy && !guided && (
-            <NextSteps cards={cards} hasHypothesis={!!latest} onPick={pick} />
-          )}
-          {busy && !generating && (
-            <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文の生成を始めています…", en: "Starting generation…" })}</div>
-          )}
-          <ErrorText code={error} className="text-sm text-destructive" />
-        </div>
-        <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
-      </div>
-      {guided ? (
-        <TutorialGuide inquiry={inquiry} cards={cards} busy={busy} error={error} onPick={pick} />
-      ) : (
-        <div className="fixed bottom-12 left-1/2 z-20 -translate-x-1/2">
-          <AddCardMenu hasExamples={examples.length > 0} hasHypothesis={!!latest} onPick={pick} />
-        </div>
-      )}
-      {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}
-    </div>
+    </HintedCardContext.Provider>
   );
 }
