@@ -87,6 +87,10 @@ describe("the first run", () => {
     const stored = await app.page.evaluate(() => JSON.parse(localStorage.getItem("abduction-learning.settings")!));
     expect(stored.tutorial.status).toBe("running");
     expect(stored.tutorial.inquiryId).toBeTruthy();
+    // The URL changes before the inquiry is read back from IndexedDB, and until then the page is
+    // only a "…" placeholder. The missing-connection notice renders with the loaded inquiry, so wait
+    // for it rather than reading the screen once.
+    expect(await shown(app.page.getByText("AIの接続先が未設定です"))).toBe(true);
     const main = await screenText(app.page);
     expect(main).toContain("listen");
     expect(main).toContain("hear");
