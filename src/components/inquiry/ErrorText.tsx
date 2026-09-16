@@ -60,6 +60,19 @@ export function ErrorText({ code, className = "mt-2 text-sm text-destructive" }:
     );
   } else if (code === "quota-inquiry") {
     body = t({ ja: "この探究で無料で使える回数を使い切りました。\n続けるには設定で自分のAPIキーに切り替えてください。", en: "This inquiry has used up its free AI calls.\nSwitch to your own key in Settings to continue." });
+  } else if (code === "quota-budget") {
+    // The day's money ran out, so even an inquiry under way stops; like quota-global, it is the owner's budget.
+    body = (
+      <>
+        {t({ ja: "今日ぶんの無料枠が、利用者全体で尽きました。\n明日また続けられます。\n急ぐ場合は設定で自分のAPIキーに切り替えてください。", en: "Today's free tier has been used up by everyone together.\nYou can continue tomorrow, or switch to your own key in Settings." })}
+        {hasSupportLinks() && (
+          <>
+            <br />
+            <Link className="underline text-muted-foreground" to="/support">{t({ ja: "全体の上限は運営者が出せる額で決まっています ▶", en: "What sets the shared ceiling, and how to help raise it ▶" })}</Link>
+          </>
+        )}
+      </>
+    );
   } else if (code.startsWith("parse-failed")) {
     body = t({ ja: "AIの応答を読み取れませんでした。\nもう一度試してください。", en: "Could not read the AI response.\nPlease try again." }) + ` (${code})`;
   } else {

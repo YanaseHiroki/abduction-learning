@@ -1,6 +1,6 @@
 import { env, runInDurableObject } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { QuotaCounter } from "../src/index";
+import { costMicros, reserveMicros, type QuotaCounter } from "../src/index";
 
 /**
  * The free tier is counted in inquiries: a device is admitted a few per day, and an admitted
@@ -8,7 +8,9 @@ import type { QuotaCounter } from "../src/index";
  * These drive the Durable Object directly so the limits and the day number can be chosen.
  */
 
-const limits = { device: 3, deviceFirstDay: 5, ip: 10, global: 50, perInquiry: 60, ttlDays: 3 };
+// Budgets in micro-USD: $3 in all, new inquiries until $2.50. Calls reserve 1,000 (a tenth of a cent) unless a test says otherwise.
+const limits = { device: 3, deviceFirstDay: 5, ip: 10, global: 50, perInquiry: 60, ttlDays: 3, budget: 3_000_000, admitBudget: 2_500_000 };
+const RESERVE = 1_000;
 const DAY = 20_000;
 
 /** A counter of its own per test: the worker keeps one global object, so tests must not share its tallies. */
@@ -16,11 +18,15 @@ let n = 0;
 function counter() {
   const stub = env.QUOTA.get(env.QUOTA.idFromName(`test-${n++}`));
   return {
-    charge: (day: number, device: string, ip: string, inquiry: string, over: Partial<typeof limits> = {}) =>
-      runInDurableObject(stub, (o: QuotaCounter) => o.charge(day, device, ip, inquiry, { ...limits, ...over })),
+    charge: (day: number, device: string, ip: string, inquiry: string, over: Partial<typeof limits> = {}, reserve = RESERVE) =>
+      runInDurableObject(stub, (o: QuotaCounter) => o.charge(day, device, ip, inquiry, { ...limits, ...over }, reserve)),
     status: (day: number, device: string, ip: string, over: Partial<typeof limits> = {}) =>
       runInDurableObject(stub, (o: QuotaCounter) => o.status(day, device, ip, { ...limits, ...over })),
-    refund: (inquiry: string) => runInDurableObject(stub, (o: QuotaCounter) => o.refund(inquiry)),
+    refund: (inquiry: string, day = DAY, reserve = RESERVE) => runInDurableObject(stub, (o: QuotaCounter) => o.refund(inquiry, day, reserve)),
+    settle: (day: number, reserve: number, cost: number) => runInDurableObject(stub, (o: QuotaCounter) => o.settle(day, reserve, cost)),
+    budget: (day: number, over: Partial<typeof limits> = {}) => runInDurableObject(stub, (o: QuotaCounter) => o.budgetStatus(day, { ...limits, ...over })),
+    spent: (day: number) =>
+      runInDurableObject(stub, (_o: QuotaCounter, state) => (state.storage.sql.exec("SELECT micros FROM spend WHERE day = ?", day).toArray()[0]?.micros as number | undefined) ?? 0),
     admitFeedback: (day: number, ip: string, perIp: number, global: number) =>
       runInDurableObject(stub, (o: QuotaCounter) => o.admitFeedback(day, ip, perIp, global)),
     refundFeedback: (day: number, ip: string) => runInDurableObject(stub, (o: QuotaCounter) => o.refundFeedback(day, ip)),
@@ -195,6 +201,102 @@ describe("refunds", () => {
 
   it("ignores a refund for an inquiry it has never seen", async () => {
     await expect(q.refund("nobody:nothing")).resolves.toBeUndefined();
+  });
+});
+
+describe("the daily budget", () => {
+  it("adds each call's reservation to the day's spend, and replaces it with the billed cost once the call is done", async () => {
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", {}, 5_000);
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", {}, 5_000);
+    expect(await q.spent(DAY)).toBe(10_000);
+
+    await q.settle(DAY, 5_000, 300);
+    expect(await q.spent(DAY)).toBe(5_300);
+  });
+
+  it("sends no call whose reservation would take the day past the budget, even inside an inquiry under way", async () => {
+    const small = { budget: 10_000, admitBudget: 5_000 };
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 4_000)).toMatchObject({ ok: true });
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 4_000)).toMatchObject({ ok: true });
+
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 4_000)).toEqual({ ok: false, scope: "budget" });
+    // A smaller call still fits under what is left.
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 2_000)).toMatchObject({ ok: true });
+    expect(await q.spent(DAY)).toBe(10_000);
+  });
+
+  it("counts calls in flight, so parallel calls cannot overdraw the budget together", async () => {
+    const small = { budget: 10_000, admitBudget: 10_000 };
+    const results = await Promise.all(Array.from({ length: 5 }, () => q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 3_000)));
+    expect(results.filter((r) => r.ok)).toHaveLength(3);
+    expect(await q.spent(DAY)).toBeLessThanOrEqual(10_000);
+  });
+
+  it("uses neither a call nor an admission when it refuses for the budget", async () => {
+    const small = { budget: 10_000, admitBudget: 10_000, perInquiry: 1 };
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 20_000)).toEqual({ ok: false, scope: "budget" });
+    expect((await q.status(DAY, "d1", "1.1.1.1")).device.used).toBe(0);
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 1_000)).toEqual({ ok: true, remaining: 0 });
+  });
+
+  it("stops admitting new inquiries at the admission budget, but lets the ones under way go on to the full budget", async () => {
+    const small = { budget: 10_000, admitBudget: 5_000 };
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:mine", small, 5_000);
+
+    expect(await q.charge(DAY, "d2", "2.2.2.2", "d2:new", small, 1_000)).toEqual({ ok: false, scope: "global" });
+    expect(await q.budget(DAY, small)).toEqual({ admitting: false, open: true });
+    expect(await q.charge(DAY, "d1", "1.1.1.1", "d1:mine", small, 1_000)).toMatchObject({ ok: true });
+  });
+
+  it("reports the budget closed once the day's spend reaches it", async () => {
+    const small = { budget: 10_000, admitBudget: 5_000 };
+    expect(await q.budget(DAY, small)).toEqual({ admitting: true, open: true });
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 10_000);
+    expect(await q.budget(DAY, small)).toEqual({ admitting: false, open: false });
+  });
+
+  it("gives the reservation back with the call when the provider refused it", async () => {
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", {}, 7_000);
+    await q.refund("d1:inq", DAY, 7_000);
+    expect(await q.spent(DAY)).toBe(0);
+  });
+
+  it("settles a call on the day it was charged to, even when it finishes after midnight", async () => {
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", {}, 7_000);
+    await q.charge(DAY + 1, "d1", "1.1.1.1", "d1:inq", {}, 7_000);
+    await q.settle(DAY, 7_000, 100);
+    expect(await q.spent(DAY)).toBe(100);
+    expect(await q.spent(DAY + 1)).toBe(7_000);
+  });
+
+  it("starts each day with nothing spent", async () => {
+    const small = { budget: 10_000, admitBudget: 5_000 };
+    await q.charge(DAY, "d1", "1.1.1.1", "d1:inq", small, 10_000);
+    expect(await q.charge(DAY + 1, "d1", "1.1.1.1", "d1:inq", small, 10_000)).toMatchObject({ ok: true });
+  });
+});
+
+describe("estimating a call's cost", () => {
+  const prices = { input: 0.2, output: 1.2 }; // USD per 1M tokens = micro-USD per token
+
+  it("reserves every UTF-8 byte of the prompt as an input token, plus the whole output allowance", () => {
+    // "あ" is 3 bytes: 3 + 1 + 64 framing = 68 bytes -> 13.6; 4,000 output tokens -> 4,800.
+    expect(reserveMicros(["あ", "x"], 4000, prices)).toBe(Math.ceil(68 * 0.2 + 4000 * 1.2));
+  });
+
+  it("never reserves less than the billed cost of a call that stayed within its limits", () => {
+    const system = "You are a data source. ".repeat(200);
+    const user = "嫌な意見も聞くべきだし、噂は自然と聞こえてくる。".repeat(50);
+    const reserve = reserveMicros([system, user], 4000, prices);
+    // The most tokens a byte-level tokenizer can make of that text, and a reply that used every output token.
+    const worst = costMicros({ input: new TextEncoder().encode(system + user).length, output: 4000 }, prices);
+    expect(reserve).toBeGreaterThanOrEqual(worst);
+  });
+
+  it("keeps the 2026-09 worst case for gpt-5.6-luna around a cent, so the $0.50 left after admissions covers dozens of calls", () => {
+    // MAX_USER_CHARS of Japanese plus a generous system prompt and schema, at MAX_TOKENS_CAP.
+    const reserve = reserveMicros(["s".repeat(10_000), "あ".repeat(8000), "{}".repeat(1000)], 4000, prices);
+    expect(reserve).toBeLessThan(13_000);
   });
 });
 

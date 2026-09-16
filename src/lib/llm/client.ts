@@ -136,9 +136,17 @@ export interface Quota {
   device: { used: number; limit: number };
   ip: { used: number; limit: number };
   global: { used: number; limit: number };
-  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number };
+  /** whether today's money still allows new inquiries, and calls at all (absent from proxies older than 2026-09-16) */
+  budget?: { admitting: boolean; open: boolean };
+  /** dailyBudgetUsd: the most the free tier may cost the owner in a day (absent from proxies older than 2026-09-16) */
+  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number; dailyBudgetUsd?: number };
   model: string;
   resetAt: number;
+}
+
+/** Whether the free tier will refuse to start another inquiry today: a count is used up, or the day's money for new ones is. */
+export function noNewInquiries(q: Quota): boolean {
+  return [q.device, q.ip, q.global].some((v) => v.used >= v.limit) || q.budget?.admitting === false;
 }
 
 export async function fetchQuota(): Promise<Quota | null> {
@@ -173,8 +181,8 @@ export function hasCredential() {
 
 export function describeError(e: unknown): string {
   if (e instanceof MissingApiKeyError) return "missing-api-key";
-  // The scope decides what can be said: only the global one is about the money behind the free tier.
-  if (e instanceof QuotaError) return e.scope === "inquiry" ? "quota-inquiry" : e.scope === "global" ? "quota-global" : "quota";
+  // The scope decides what can be said: only global and budget are about the money behind the free tier.
+  if (e instanceof QuotaError) return e.scope === "inquiry" ? "quota-inquiry" : e.scope === "global" ? "quota-global" : e.scope === "budget" ? "quota-budget" : "quota";
   if (e instanceof ProviderError) return `${e.provider} ${e.status}: ${e.message}`;
   if (e instanceof Error) return e.message;
   return String(e);

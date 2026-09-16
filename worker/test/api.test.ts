@@ -1,6 +1,7 @@
-import { SELF, env } from "cloudflare:test";
+import { SELF, env, runInDurableObject } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_SIGNATURE } from "../../src/lib/llm/providers";
+import worker, { reserveMicros, type Env, type QuotaCounter } from "../src/index";
 
 /**
  * End-to-end through the Worker's fetch handler. The main worker shares this isolate, so
@@ -70,6 +71,17 @@ function callTo(host: string) {
 }
 const sentTo = (host: string) => callTo(host).body;
 
+/** Today's spend on the worker's own counter, in micro-USD; `set` overwrites it (tests put it back afterwards). */
+const today = () => Math.floor((Date.now() + Number(env.RESET_TZ_OFFSET_HOURS) * 3600_000) / 86_400_000);
+const globalCounter = () => env.QUOTA.get(env.QUOTA.idFromName("global"));
+const spent = () =>
+  runInDurableObject(globalCounter(), (_o: QuotaCounter, state) => (state.storage.sql.exec("SELECT micros FROM spend WHERE day = ?", today()).toArray()[0]?.micros as number | undefined) ?? 0);
+const setSpent = (micros: number) =>
+  runInDurableObject(globalCounter(), (_o: QuotaCounter, state) => {
+    state.storage.sql.exec("INSERT INTO spend (day, micros) VALUES (?, ?) ON CONFLICT (day) DO UPDATE SET micros = excluded.micros", today(), micros);
+  });
+const prices = () => ({ input: Number(env.PRICE_INPUT_PER_M), output: Number(env.PRICE_OUTPUT_PER_M) });
+
 describe("CORS and origins", () => {
   it("answers a preflight with the allowed origin and the headers the app sends", async () => {
     const res = await SELF.fetch("https://proxy.test/generate", { method: "OPTIONS", headers: { origin: ORIGIN } });
@@ -107,8 +119,10 @@ describe("GET /quota", () => {
       deviceFirstDay: Number(env.LIMIT_DEVICE_FIRST_DAY),
       perInquiry: Number(env.CALLS_PER_INQUIRY),
       ttlDays: Number(env.INQUIRY_TTL_DAYS),
+      dailyBudgetUsd: Number(env.DAILY_BUDGET_USD),
     });
     expect(body.model).toBe(env.MODEL);
+    expect(body.budget).toEqual({ admitting: true, open: true });
     expect(body.resetAt).toBeGreaterThan(Date.now());
   });
 
@@ -216,6 +230,76 @@ describe("POST /generate", () => {
 
   it("does not answer GET", async () => {
     expect((await SELF.fetch("https://proxy.test/generate")).status).toBe(404);
+  });
+});
+
+describe("the daily budget on /generate", () => {
+  const budget = () => Math.floor(Number(env.DAILY_BUDGET_USD) * 1e6);
+  let before = 0;
+  beforeEach(async () => {
+    before = await spent();
+  });
+  afterEach(async () => {
+    await setSpent(before);
+  });
+
+  it("charges the day what the provider billed, from the usage it reports", async () => {
+    upstream.reply = () => ({ status: 200, body: { model: env.MODEL, choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 1000, completion_tokens: 2000 } } });
+
+    expect((await generate()).status).toBe(200);
+
+    // 1,000 × $0.2/M + 2,000 × $1.2/M = $0.0026, the benchmark's cost of one example set
+    expect((await spent()) - before).toBe(Math.ceil(1000 * prices().input + 2000 * prices().output));
+  });
+
+  it("keeps the whole reservation when the provider reports no usage, since the bill is then unknown", async () => {
+    await generate();
+    const reserve = reserveMicros([`${SYSTEM_SIGNATURE} English through abductive reasoning.`, "Target: listen", JSON.stringify({ type: "object" })], 1000, prices());
+    expect((await spent()) - before).toBe(reserve);
+  });
+
+  it("charges nothing for a call the provider turned away", async () => {
+    upstream.reply = () => ({ status: 429, body: { error: { message: "rate limited" } } });
+    expect((await generate()).status).toBe(502);
+    expect(await spent()).toBe(before);
+  });
+
+  it("sends nothing upstream once the day's money is gone, even for an inquiry under way", async () => {
+    const d = { "x-device-id": `spender-${device}`, "x-inquiry-id": "mine" };
+    expect((await generate({}, { headers: d })).status).toBe(200);
+    upstream.calls = [];
+    await setSpent(budget() - 1);
+
+    const res = await generate({}, { headers: d });
+
+    expect(res.status).toBe(429);
+    expect(await res.json()).toMatchObject({ error: "quota", scope: "budget" });
+    expect(upstream.calls).toHaveLength(0);
+    const quota = (await (await SELF.fetch("https://proxy.test/quota")).json()) as Record<string, any>;
+    expect(quota.budget).toEqual({ admitting: false, open: true });
+  });
+
+  it("refuses a call whose own worst case does not fit, while a smaller one still goes through", async () => {
+    const d = { "x-device-id": `spender-${device}`, "x-inquiry-id": "mine" };
+    expect((await generate({}, { headers: d })).status).toBe(200);
+    await setSpent(budget() - reserveMicros([system, "Target: listen", "{}"], 1000, prices()) - 100);
+
+    const big = await generate({ maxTokens: 4000 }, { headers: d });
+    expect(big.status).toBe(429);
+    expect(await big.json()).toMatchObject({ scope: "budget" });
+    expect((await generate({ maxTokens: 1000, schema: {} }, { headers: d })).status).toBe(200);
+  });
+
+  it("refuses to spend at all when the prices are not configured", async () => {
+    const request = new Request("https://proxy.test/generate", {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ system, user: "Target: listen", schema: { type: "object" } }),
+    });
+    const res = await worker.fetch(request, { ...(env as unknown as Env), PRICE_INPUT_PER_M: "" });
+
+    expect(res.status).toBe(503);
+    expect(upstream.calls).toHaveLength(0);
   });
 });
 

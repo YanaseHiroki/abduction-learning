@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as z from "zod/v4";
 import { callProvider, ProviderError } from "./providers";
-import { describeError, fetchQuota, hasCredential, MissingApiKeyError, QuotaError, sendFeedback, setActiveInquiry, structured, toJsonSchema } from "./client";
+import { describeError, fetchQuota, hasCredential, MissingApiKeyError, noNewInquiries, QuotaError, sendFeedback, setActiveInquiry, structured, toJsonSchema } from "./client";
 import { defaultSettings, setProviderSettings, setSettings } from "../settings";
 
 vi.mock("./providers", async (orig) => {
@@ -177,6 +177,24 @@ describe("hasCredential", () => {
   });
 });
 
+describe("noNewInquiries", () => {
+  const room = { used: 0, limit: 5 };
+  const quota = { device: room, ip: room, global: room, rules: { device: 3, deviceFirstDay: 5, perInquiry: 60, ttlDays: 3 }, model: "m", resetAt: 1 };
+
+  it("is false while every count has room and the budget still admits", () => {
+    expect(noNewInquiries(quota)).toBe(false);
+    expect(noNewInquiries({ ...quota, budget: { admitting: true, open: true } })).toBe(false);
+  });
+
+  it("is true once any count is used up", () => {
+    expect(noNewInquiries({ ...quota, global: { used: 5, limit: 5 } })).toBe(true);
+  });
+
+  it("is true once the day's money stops admissions, even with counts to spare", () => {
+    expect(noNewInquiries({ ...quota, budget: { admitting: false, open: true } })).toBe(true);
+  });
+});
+
 describe("fetchQuota", () => {
   it("returns what the proxy reports", async () => {
     const quota = { device: { used: 1, limit: 5 }, ip: { used: 1, limit: 10 }, global: { used: 3, limit: 50 }, rules: { device: 3, deviceFirstDay: 5, perInquiry: 60, ttlDays: 3 }, model: "gpt-5.6-luna", resetAt: 1 };
@@ -227,6 +245,7 @@ describe("describeError", () => {
     expect(describeError(new QuotaError("inquiry", 0))).toBe("quota-inquiry");
     // The global scope is the owner's daily budget, not this learner's share, and is said differently.
     expect(describeError(new QuotaError("global", 0))).toBe("quota-global");
+    expect(describeError(new QuotaError("budget", 0))).toBe("quota-budget");
   });
 
   it("keeps the provider, status and message of a provider failure", () => {
