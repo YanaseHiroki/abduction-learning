@@ -143,6 +143,8 @@ export interface Quota {
    * donatedUsd: the part of it that donations add, not yet spent (absent from proxies without donations).
    */
   rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number; dailyBudgetUsd?: number; donatedUsd?: number };
+  /** Every donation so far, numbered in arrival order and never named: the total, and the latest few by number and date (absent from proxies without donations). */
+  donations?: { count: number; totalUsd: number; recent: { no: number; date: string }[] };
   model: string;
   resetAt: number;
 }
