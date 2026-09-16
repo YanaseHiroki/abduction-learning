@@ -18,7 +18,7 @@ import { useT } from "@/lib/i18n";
 import { describeError } from "@/lib/llm/client";
 import { translateTest } from "@/lib/llm/prompts";
 import { useSettings } from "@/lib/settings";
-import { circled, markersIn, translationSampleIn } from "@/lib/text";
+import { circled, markersIn, matchTargetId, translationSampleIn } from "@/lib/text";
 import { speak, hasVoiceFor } from "@/lib/tts";
 import type { Card, Inquiry } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -77,7 +77,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
       const alignments = res.alignments.map((a) => ({
         index: a.index,
         word: a.word,
-        targetId: inquiry.targets.find((x) => a.word.toLowerCase().includes(x.label.split(" ")[0].toLowerCase().replace(/e$/, "")))?.id ?? null,
+        targetId: matchTargetId(a, inquiry.targets),
       }));
       const result = { l2Text: res.l2_text, alignments, note: res.note, meta: res.meta };
       await updateCardPayload(card, {
