@@ -2,10 +2,25 @@ import type { Target } from "./types";
 
 export interface CourseGroup {
   id: string;
-  label: Record<string, string>; // L1 label keyed by l1 code, with fallback "en"
+  /**
+   * The group's name, keyed by language code with fallback "en". Shown on screen in uiLang;
+   * the copy saved on an inquiry as `groupLabel` stays in l1 (see Inquiry.groupLabel).
+   */
+  label: Record<string, string>;
   emoji: string;
   targets: Omit<Target, "id">[];
-  hint?: Record<string, string>;
+  hint?: Record<string, string>; // UI copy keyed by uiLang code, with fallback "en"
+}
+
+/**
+ * Whether the group's word list is worth showing under its name. In English the name often *is* the
+ * list ("say / tell / speak / talk"), so repeating it below adds nothing and only makes the card taller;
+ * where the two differ (「見る」/ "look / watch / see" vs the target "look at") the list still earns its place.
+ */
+export function showsTargetList(g: CourseGroup, lang: string) {
+  const name = (g.label[lang] ?? g.label.en).split("/").map((x) => x.trim().toLowerCase());
+  const targets = g.targets.map((x) => x.label.trim().toLowerCase());
+  return name.length !== targets.length || targets.some((x) => !name.includes(x));
 }
 
 export interface Course {
