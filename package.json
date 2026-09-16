@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint --max-warnings=0",
     "test": "vitest run && pnpm --filter abduction-learning-proxy test",
     "test:unit": "vitest run --project unit",
     "test:ui": "vitest run --project ui",

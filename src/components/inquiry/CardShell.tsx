@@ -10,7 +10,7 @@ import { useSettings } from "@/lib/settings";
 import type { Card, CardKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-export const kindMeta: Record<CardKind, { emoji: string; ja: string; en: string; step: string; stripe: string }> = {
+const kindMeta: Record<CardKind, { emoji: string; ja: string; en: string; step: string; stripe: string }> = {
   examples: { emoji: "📝", ja: "例文セット", en: "Example set", step: "STEP 1", stripe: "border-l-sky-500" },
   observation: { emoji: "🔍", ja: "観察", en: "Observation", step: "STEP 2", stripe: "border-l-amber-500" },
   syntax: { emoji: "🧩", ja: "構文分析", en: "Syntax", step: "STEP 2", stripe: "border-l-amber-600" },
