@@ -40,7 +40,7 @@ Re-shoot those slides, then commit the pictures with the change:
   pnpm shots --lang=ja --only=course,words,genre
 ```
 
-`src/**` を触った PR で GitHub Actions（`.github/workflows/help-shots.yml`）が自動で走ります。
+CI（`.github/workflows/ci.yml` の `ci` ジョブ）がすべての PR と本番デプロイの前に実行します。`ci` は main の必須チェックなので、食い違いがあると自動マージもデプロイも止まります。
 
 ### 比べるのが文言だけな理由
 
