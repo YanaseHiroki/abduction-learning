@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 /**
  * A row that opens to reveal secondary content (options, explanations, rarely used actions).
  * The app-wide rule: anything a first-time learner does not need is folded behind one of these,
- * labelled with a leading emoji and a verb, e.g. "🌐 言語を変更する".
+ * labelled with a leading emoji and a verb, e.g. "🌐 学習する言語を変更する".
  */
 export function Disclosure({
   label,

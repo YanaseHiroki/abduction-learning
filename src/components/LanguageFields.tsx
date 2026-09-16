@@ -3,7 +3,7 @@ import { languageName, languageOptions } from "@/lib/courses";
 import { useT } from "@/lib/i18n";
 import { setSettings, useSettings } from "@/lib/settings";
 
-/** Native language, language being learned, and screen language (the body of "🌐 言語を変更する"). */
+/** Native language, language being learned, and screen language (the body of "🌐 学習する言語を変更する"). */
 export function LanguageFields() {
   const t = useT();
   const { uiLang, defaultL1, defaultL2 } = useSettings();

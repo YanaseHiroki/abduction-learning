@@ -99,7 +99,7 @@ export function Welcome() {
               <Button variant="recommended" size="lg" onClick={() => setStep(1)}>{t({ ja: "🚀 はじめる", en: "🚀 Get started" })}</Button>
             </Recommended>
           </NavRow>
-          <Disclosure className="mt-8" label="🌐 言語を変更する / Language">
+          <Disclosure className="mt-8" label="🌐 学習する言語を変更する / Language">
             <LanguageFields />
           </Disclosure>
         </div>

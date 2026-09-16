@@ -91,7 +91,7 @@ export function Home() {
       <section className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <div className="mt-4 grid items-start gap-3 sm:grid-cols-2">
-          <Disclosure label={t({ ja: "🌐 言語を変更する", en: "🌐 Change languages" })} hint={`${languageName(defaultL1, uiLang)} → ${languageName(defaultL2, uiLang)}`}>
+          <Disclosure label={t({ ja: "🌐 学習する言語を変更する", en: "🌐 Change study languages" })} hint={`${languageName(defaultL1, uiLang)} → ${languageName(defaultL2, uiLang)}`}>
             <LanguageFields />
           </Disclosure>
           <Disclosure label={t({ ja: "📖 このアプリについて", en: "📖 About this app" })}>
