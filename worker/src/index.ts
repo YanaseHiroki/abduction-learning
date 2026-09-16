@@ -26,6 +26,13 @@ export interface Env {
   RESET_TZ_OFFSET_HOURS: string;
   MAX_TOKENS_CAP: string;
   MAX_USER_CHARS: string;
+  FEEDBACK_LIMIT_IP: string;
+  FEEDBACK_LIMIT_GLOBAL: string;
+  FEEDBACK_MAX_CHARS: string;
+  /** Resend API key; the feedback form is off until this and FEEDBACK_TO are set */
+  RESEND_API_KEY?: string;
+  /** where feedback is delivered; must be the address the Resend account was registered with */
+  FEEDBACK_TO?: string;
   QUOTA: DurableObjectNamespace<QuotaCounter>;
 }
 
@@ -107,6 +114,58 @@ export class QuotaCounter extends DurableObject<Env> {
   async refund(inquiryKey: string) {
     this.ctx.storage.sql.exec("UPDATE inquiries SET used = MAX(used - 1, 0) WHERE key = ?", inquiryKey);
   }
+
+  /** Count one feedback message per IP and globally, so the form cannot flood the owner's inbox. */
+  async admitFeedback(day: number, ip: string, perIp: number, global: number): Promise<boolean> {
+    const sql = this.ctx.storage.sql;
+    const count = (key: string) => (sql.exec("SELECT n FROM admissions WHERE day = ? AND scope = 'feedback' AND key = ?", day, key).toArray()[0] as { n: number } | undefined)?.n ?? 0;
+    if (count(ip) >= perIp || count("*") >= global) return false;
+    for (const key of [ip, "*"]) {
+      sql.exec("INSERT INTO admissions (day, scope, key, n) VALUES (?, 'feedback', ?, 1) ON CONFLICT (day, scope, key) DO UPDATE SET n = n + 1", day, key);
+    }
+    sql.exec("DELETE FROM admissions WHERE day < ?", day - 2);
+    return true;
+  }
+}
+
+const FEEDBACK_KINDS = { usage: "使い方", bug: "不具合", request: "要望", other: "その他" } as const;
+
+/**
+ * Build the Resend request for one feedback message, or return why it was rejected. The learner's
+ * address (when given) becomes Reply-To, so the owner answers from their own mailbox and nothing
+ * is stored here.
+ */
+function feedbackMail(env: Env, body: Record<string, unknown>, ip: string): Record<string, unknown> | string {
+  const kind = typeof body.kind === "string" && body.kind in FEEDBACK_KINDS ? (body.kind as keyof typeof FEEDBACK_KINDS) : "other";
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+  const email = typeof body.email === "string" ? body.email.trim() : "";
+  const context = body.context && typeof body.context === "object" ? (body.context as Record<string, unknown>) : {};
+  if (!message) return "message required";
+  if (message.length > Number(env.FEEDBACK_MAX_CHARS)) return "message too long";
+  if (email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) return "invalid email";
+
+  const lines = Object.entries(context)
+    .filter(([, v]) => typeof v === "string" || typeof v === "number" || typeof v === "boolean")
+    .map(([k, v]) => `${k.slice(0, 40)}: ${String(v).slice(0, 300)}`);
+  const text = [
+    message,
+    "",
+    "----",
+    `種類: ${FEEDBACK_KINDS[kind]}`,
+    `返信先: ${email || "（未記入）"}`,
+    ...lines,
+    `IP: ${ip}`,
+  ].join("\n");
+  const summary = message.replace(/\s+/g, " ").slice(0, 40);
+
+  return {
+    // resend.dev may only send to the Resend account's own address, which is all this needs.
+    from: "Abduction Learning <onboarding@resend.dev>",
+    to: env.FEEDBACK_TO,
+    ...(email ? { reply_to: email } : {}),
+    subject: `[Abduction Learning] ${FEEDBACK_KINDS[kind]}: ${summary}`,
+    text,
+  };
 }
 
 function dayInfo(env: Env) {
@@ -206,6 +265,30 @@ export default {
         if (e instanceof ProviderError) return json({ error: `${e.provider} ${e.status}: ${e.message}` }, 502, cors);
         return json({ error: e instanceof Error ? e.message : String(e) }, 500, cors);
       }
+    }
+
+    if (url.pathname === "/feedback" && request.method === "POST") {
+      if (!env.RESEND_API_KEY || !env.FEEDBACK_TO) return json({ error: "feedback not configured" }, 503, cors);
+      let body: Record<string, unknown>;
+      try {
+        body = await request.json();
+      } catch {
+        return json({ error: "invalid json" }, 400, cors);
+      }
+      // Hidden field only bots fill in: pretend it worked so they do not retry.
+      if (typeof body.website === "string" && body.website) return json({ ok: true }, 200, cors);
+      const mail = feedbackMail(env, body, ip);
+      if (typeof mail === "string") return json({ error: mail }, 400, cors);
+      if (!(await counter.admitFeedback(day, ip, Number(env.FEEDBACK_LIMIT_IP), Number(env.FEEDBACK_LIMIT_GLOBAL)))) {
+        return json({ error: "quota", resetAt }, 429, cors);
+      }
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+        body: JSON.stringify(mail),
+      });
+      if (!res.ok) return json({ error: `resend ${res.status}: ${(await res.text()).slice(0, 200)}` }, 502, cors);
+      return json({ ok: true }, 200, cors);
     }
 
     return json({ error: "not found" }, 404, cors);

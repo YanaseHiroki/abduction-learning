@@ -48,12 +48,28 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 
 1. Cloudflare アカウント（無料）を作り、API トークン（Workers 編集権限）とアカウントIDを控える。
 2. GitHub リポジトリの Settings → Secrets and variables → Actions に以下を登録する。
-   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROVIDER_API_KEY`（共有するAPIキー）
+   - Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `PROVIDER_API_KEY`（共有するAPIキー）, `RESEND_API_KEY`, `FEEDBACK_TO`（下記「ご意見フォーム」）
    - Variables: `PROXY_ENABLED` = `true`, `PROVIDER`（`anthropic` / `openai` / `gemini`）, `MODEL`（既定は `gpt-5.6-luna`。選定の根拠は docs/model-bench-2026-09.md）
 3. Actions の「Deploy shared-key proxy」を実行すると Worker が配置され、`https://abduction-learning-proxy.<account>.workers.dev` のURLが出る。
 4. そのURLを Variables の `PROXY_URL` に登録し、「Deploy to GitHub Pages」を再実行する。
 
 `worker/wrangler.toml` の `ALLOWED_ORIGINS` は自分の Pages のURLに合わせてください。
+
+## ご意見フォーム
+
+ヘッダーの「ご意見」から、使い方の質問・不具合・要望を送れます（Worker を配置した場合のみ表示）。
+送信内容は Worker から [Resend](https://resend.com) 経由で運営者にメールで届き、どこにも保存されません。
+送り主がメールアドレスを書いた場合はそれが Reply-To になるので、届いたメールにそのまま返信すればやり取りできます。
+いま開いている画面・UIの言語・使っているAIの種類・ブラウザも一緒に送られます（探究の内容とAPIキーは送りません。フォーム内で送り主にも見せています）。
+
+設定手順:
+
+1. 運営者の受信用メールアドレスで Resend のアカウント（無料: 1日100通・月3,000通）を作り、API キーを発行する。
+   独自ドメインは不要です。送信元の `onboarding@resend.dev` は、Resend アカウントのアドレス宛てにだけ送れる制限があり、この用途ではそれで足ります。
+2. GitHub の Secrets に `RESEND_API_KEY`（発行したキー）と `FEEDBACK_TO`（Resend アカウントのアドレス）を登録し、「Deploy shared-key proxy」を実行する。
+   アドレスはリポジトリに書かず Secret に置くので、公開リポジトリでも漏れません。
+
+迷惑な大量送信への対策（`worker/wrangler.toml` で変更可）: 1 IP につき1日 5 通、全体で1日 50 通、本文 4,000 字まで。人には見えない入力欄（ハニーポット）を埋めたボットの送信は、成功したふりをして捨てます。
 
 ## 開発
 

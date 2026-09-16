@@ -31,9 +31,15 @@ RESET_TZ_OFFSET_HOURS = "9"
 # Hard caps on a single request
 MAX_TOKENS_CAP = "4000"
 MAX_USER_CHARS = "8000"
+# Feedback form (/feedback): messages per IP and in total per day, and the longest message accepted
+FEEDBACK_LIMIT_IP = "5"
+FEEDBACK_LIMIT_GLOBAL = "50"
+FEEDBACK_MAX_CHARS = "4000"
 
-# Secret (set with `wrangler secret put PROVIDER_API_KEY` or via the GitHub Action):
+# Secrets (set with `wrangler secret put <NAME>` or via the GitHub Action):
 # PROVIDER_API_KEY
+# RESEND_API_KEY  — feedback mail via Resend; without it (or FEEDBACK_TO) /feedback answers 503
+# FEEDBACK_TO     — where feedback goes; must be the address the Resend account was registered with
 
 [durable_objects]
 bindings = [{ name = "QUOTA", class_name = "QuotaCounter" }]
