@@ -241,7 +241,10 @@ async function main() {
 
   try {
     for (const lang of langs) {
-      const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: "light", reducedMotion: "reduce", locale: lang === "ja" ? "ja-JP" : "en-US" });
+      // The demo's times are fixed instants that the screens print in local time, so without pinning the zone
+      // a screenshot says something different depending on where it was taken (and the check cries wolf on CI).
+      // Asia/Tokyo is what the committed pictures already show.
+      const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: "light", reducedMotion: "reduce", locale: lang === "ja" ? "ja-JP" : "en-US", timezoneId: "Asia/Tokyo" });
       // Only the dev server may be reached, so nothing can call an AI or the free tier by accident.
       await context.route("**/*", (route) => {
         const url = route.request().url();
