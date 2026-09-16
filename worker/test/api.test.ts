@@ -119,6 +119,7 @@ describe("GET /quota", () => {
       deviceFirstDay: Number(env.LIMIT_DEVICE_FIRST_DAY),
       perInquiry: Number(env.CALLS_PER_INQUIRY),
       ttlDays: Number(env.INQUIRY_TTL_DAYS),
+      dailyBudgetUsd: Number(env.DAILY_BUDGET_USD),
     });
     expect(body.model).toBe(env.MODEL);
     expect(body.budget).toEqual({ admitting: true, open: true });

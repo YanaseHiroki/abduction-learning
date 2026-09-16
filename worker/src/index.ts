@@ -293,7 +293,7 @@ export default {
         {
           ...s,
           budget,
-          rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays },
+          rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays, dailyBudgetUsd: limits.budget / 1e6 },
           model: env.MODEL,
           resetAt,
         },

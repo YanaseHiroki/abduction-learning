@@ -138,7 +138,8 @@ export interface Quota {
   global: { used: number; limit: number };
   /** whether today's money still allows new inquiries, and calls at all (absent from proxies older than 2026-09-16) */
   budget?: { admitting: boolean; open: boolean };
-  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number };
+  /** dailyBudgetUsd: the most the free tier may cost the owner in a day (absent from proxies older than 2026-09-16) */
+  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number; dailyBudgetUsd?: number };
   model: string;
   resetAt: number;
 }
