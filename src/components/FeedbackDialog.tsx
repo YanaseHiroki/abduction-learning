@@ -75,7 +75,7 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
           <p className="rounded-lg bg-muted/60 p-4 text-sm whitespace-pre-line">
             {email.trim()
               ? t({ ja: "送信しました。ありがとうございます！\n返信はメールでお送りします（数日かかることがあります）。", en: "Sent. Thank you!\nWe'll reply by email (it may take a few days)." })
-              : t({ ja: "送信しました。ありがとうございます！", en: "Sent. Thank you!" })}
+              : t({ ja: "送信しました。ありがとうございます！\nメールアドレスがないため返信はできませんが、内容は必ず読みます。", en: "Sent. Thank you!\nWithout an address we cannot write back, but your message will be read." })}
           </p>
         ) : (
           <div className="grid gap-4">
@@ -107,7 +107,12 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
             <div className="grid gap-1.5">
               <Label htmlFor="feedback-email">{t({ ja: "返信先メールアドレス（任意）", en: "Your email for a reply (optional)" })}</Label>
               <Input id="feedback-email" type="email" autoComplete="email" value={email} aria-invalid={!emailOk} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-              <p className="text-xs text-muted-foreground">{t({ ja: "返信が必要なときだけ入力してください。返信以外には使いません。", en: "Only if you'd like a reply. It's used for nothing else." })}</p>
+              {/* An address is the only way back to the sender: without one the message is one-way, so say so before they send. */}
+              <p className="text-xs whitespace-pre-line text-muted-foreground">
+                {email.trim()
+                  ? t({ ja: "返信以外には使いません。", en: "It's used for nothing else." })
+                  : t({ ja: "未記入のままでも送れますが、こちらから返信できません。\n返信以外には使いません。", en: "You can send without it, but then we cannot write back.\nIt's used for nothing else." })}
+              </p>
             </div>
             {/* Honeypot: hidden from people, filled in by bots. */}
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden value={website} onChange={(e) => setWebsite(e.target.value)} className="absolute -left-[9999px] size-px opacity-0" />
