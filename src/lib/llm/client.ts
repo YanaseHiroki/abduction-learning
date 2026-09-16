@@ -152,7 +152,7 @@ export async function fetchQuota(): Promise<Quota | null> {
   }
 }
 
-export type FeedbackKind = "usage" | "bug" | "request" | "other";
+export type FeedbackKind = "usage" | "bug" | "request" | "support" | "other";
 
 /** Mail the owner through the proxy. Resolves to "ok", "quota" (too many today) or "error". */
 export async function sendFeedback(input: { kind: FeedbackKind; message: string; email: string; website: string; context: Record<string, string> }): Promise<"ok" | "quota" | "error"> {
@@ -173,7 +173,8 @@ export function hasCredential() {
 
 export function describeError(e: unknown): string {
   if (e instanceof MissingApiKeyError) return "missing-api-key";
-  if (e instanceof QuotaError) return e.scope === "inquiry" ? "quota-inquiry" : "quota";
+  // The scope decides what can be said: only the global one is about the money behind the free tier.
+  if (e instanceof QuotaError) return e.scope === "inquiry" ? "quota-inquiry" : e.scope === "global" ? "quota-global" : "quota";
   if (e instanceof ProviderError) return `${e.provider} ${e.status}: ${e.message}`;
   if (e instanceof Error) return e.message;
   return String(e);

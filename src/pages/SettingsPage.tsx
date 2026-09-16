@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
@@ -14,6 +15,7 @@ import { db } from "@/lib/db";
 import { useT } from "@/lib/i18n";
 import { fetchQuota, PROXY_URL, type Quota } from "@/lib/llm/client";
 import { providerMeta, type Provider } from "@/lib/llm/providers";
+import { hasSupportLinks } from "@/lib/support";
 import { defaultSettings, setProviderSettings, setSettings, setTutorial, useSettings, type Theme } from "@/lib/settings";
 
 const providers: Provider[] = ["anthropic", "openai", "gemini"];
@@ -49,6 +51,12 @@ function QuotaView() {
           en: `You can start ${r.deviceFirstDay} on your first day, then ${r.device} per day.\nEach inquiry may call the AI up to ${r.perInquiry} times (15–30 is typical).\nA started inquiry stays open for ${r.ttlDays} days, across midnight.`,
         })}
       </p>
+      {/* The people reading these numbers are the ones who will understand where they come from. */}
+      {hasSupportLinks() && (
+        <Link className="inline-block pt-2 text-xs underline text-muted-foreground" to="/support">
+          {t({ ja: "この上限は運営者が出せる額で決まっています ▶", en: "What sets this ceiling, and how to help raise it ▶" })}
+        </Link>
+      )}
     </div>
   );
 }

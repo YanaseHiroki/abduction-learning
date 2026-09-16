@@ -28,6 +28,8 @@ LIMIT_IP = "10"
 # This is the average, not the worst case: an inquiry that burns all CALLS_PER_INQUIRY calls on the
 # expensive endpoint costs $0.156, so a pathological day could still reach $51.
 # LIMIT_IP still applies, so reaching 330 inquiries takes at least 33 distinct IPs.
+# The support page shows this budget from the same per-inquiry cost: change COST_PER_INQUIRY_USD in
+# src/pages/SupportPage.tsx together with it (docs/funding.md).
 LIMIT_GLOBAL = "330"
 # AI calls an admitted inquiry may use (one inquiry typically needs 15–30), and how many days it stays open.
 CALLS_PER_INQUIRY = "60"

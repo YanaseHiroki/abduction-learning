@@ -15,6 +15,7 @@ const kinds: { value: FeedbackKind; label: Localized }[] = [
   { value: "usage", label: { ja: "🤔 使い方が分からない", en: "🤔 How do I…?" } },
   { value: "bug", label: { ja: "🐞 うまく動かない", en: "🐞 Something's broken" } },
   { value: "request", label: { ja: "💡 こうしてほしい", en: "💡 Suggestion" } },
+  { value: "support", label: { ja: "💛 支援について", en: "💛 Supporting" } },
   { value: "other", label: { ja: "💬 その他", en: "💬 Other" } },
 ];
 
@@ -24,11 +25,12 @@ const MAX_CHARS = 4000;
  * Sends a message to the owner by email (through the proxy; nothing is stored). The screen the
  * learner was on and a few settings go along, so a report can be understood without a back-and-forth.
  */
-export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+export function FeedbackDialog({ open, onOpenChange, initialKind }: { open: boolean; onOpenChange: (o: boolean) => void; initialKind?: FeedbackKind }) {
   const t = useT();
   const s = useSettings();
   const { pathname, search } = useLocation();
-  const [kind, setKind] = useState<FeedbackKind>("usage");
+  // Only the starting choice: each caller mounts its own dialog, and a kind the sender picked is kept like the draft is.
+  const [kind, setKind] = useState<FeedbackKind>(initialKind ?? "usage");
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");
@@ -99,7 +101,9 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
                     ? t({ ja: "何をしたら、どうなったか（期待していた動きも）", en: "What you did, what happened, and what you expected" })
                     : kind === "usage"
                       ? t({ ja: "どこで、何が分からなかったか", en: "Where you got stuck, and what was unclear" })
-                      : t({ ja: "自由にお書きください", en: "Anything you'd like to tell us" })
+                      : kind === "support"
+                        ? t({ ja: "支援の方法や、無料枠の使い道について聞きたいこと", en: "What you'd like to ask about giving, or about how the free tier spends it" })
+                        : t({ ja: "自由にお書きください", en: "Anything you'd like to tell us" })
                 }
               />
             </div>

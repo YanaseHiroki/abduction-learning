@@ -8,6 +8,7 @@ import { HelpPage } from "@/pages/HelpPage";
 import { InquiryPage } from "@/pages/InquiryPage";
 import { Notes } from "@/pages/Notes";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { SupportPage } from "@/pages/SupportPage";
 import { BenchPage } from "@/pages/BenchPage";
 import { PROXY_URL } from "@/lib/llm/client";
 import { useT } from "@/lib/i18n";
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="/notes" element={<Notes />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/support" element={<SupportPage />} />
             {/* unlinked developer page: model comparison for the free tier */}
             <Route path="/bench" element={<BenchPage />} />
             {SeedPage && <Route path="/dev/seed" element={<Suspense><SeedPage /></Suspense>} />}

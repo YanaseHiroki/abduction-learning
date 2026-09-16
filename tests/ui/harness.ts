@@ -14,6 +14,9 @@ let browser: Browser | undefined;
 let base = "";
 
 export async function startApp() {
+  // A dev build has no proxy, but the support links are plain build-time settings: set one (and
+  // leave Ko-fi unset) so the screens that offer the support page can be walked here.
+  process.env.VITE_SUPPORT_GITHUB = "https://github.com/sponsors/test";
   server = await createServer({ root, logLevel: "error", server: { port: 0, strictPort: false, open: false } });
   await server.listen();
   base = server.resolvedUrls!.local[0];
