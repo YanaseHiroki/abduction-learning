@@ -45,6 +45,7 @@ export async function startTutorial(l1: string, l2: string, custom: Omit<Target,
   const inq = await createInquiry({
     l1,
     l2,
+    // Stays in l1, like NewInquiryDialog's: Home's groupProgress matches past inquiries by this exact string.
     groupLabel: !custom && group ? group.label[l1] ?? group.label.en : undefined,
     targets,
     genre: s.genre,

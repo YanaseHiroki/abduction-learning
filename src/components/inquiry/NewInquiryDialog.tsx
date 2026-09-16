@@ -46,7 +46,7 @@ export function NewInquiryDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const t = useT();
-  // The hint sits on the same line as t()-translated copy, so it follows the screen language, not l1.
+  // The title and hint sit among t()-translated copy, so they follow the screen language, not l1.
   const { uiLang } = useSettings();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
@@ -75,6 +75,7 @@ export function NewInquiryDialog({
     const inq = await createInquiry({
       l1,
       l2,
+      // Stays in l1: it is the key Home's groupProgress matches past inquiries by, so it must not follow the screen.
       groupLabel: group ? group.label[l1] ?? group.label.en : undefined,
       targets: chosen,
       question: question.trim() || undefined,
@@ -109,7 +110,7 @@ export function NewInquiryDialog({
     </form>
   );
 
-  const title = group ? `${group.emoji} ${group.label[l1] ?? group.label.en}` : t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" });
+  const title = group ? `${group.emoji} ${group.label[uiLang] ?? group.label.en}` : t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
