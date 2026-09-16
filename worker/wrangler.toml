@@ -16,13 +16,17 @@ MODEL = "gpt-5.6-luna"
 # Comma-separated origins allowed to call this proxy (the GitHub Pages site). Empty = allow any.
 ALLOWED_ORIGINS = "https://yanasehiroki.github.io"
 # The free tier is counted in inquiries. These are how many inquiries may be started per day.
-# A device may start 3 on its first day (to try the method a few times), then 1 per day.
-LIMIT_DEVICE = "1"
-LIMIT_DEVICE_FIRST_DAY = "3"
+# A device may start 5 on its first day (to try the method a few times), then 3 per day —
+# enough to keep going with a second word pair, or to retry after a run that went nowhere.
+LIMIT_DEVICE = "3"
+LIMIT_DEVICE_FIRST_DAY = "5"
 # Per IP: slows down clearing the anonymous device ID to get another first day. Must be >= the first-day limit.
-LIMIT_IP = "5"
-# Everyone together: caps the owner's daily spend at LIMIT_GLOBAL × CALLS_PER_INQUIRY calls (10 × 60 = 600).
-LIMIT_GLOBAL = "10"
+LIMIT_IP = "10"
+# Everyone together: caps the owner's daily spend at LIMIT_GLOBAL × CALLS_PER_INQUIRY calls (50 × 60 = 3,000).
+# At the 2026-09 benchmark price for gpt-5.6-luna (docs/model-bench-2026-09.md: $0.0026 per example set,
+# $0.0003 per translation test) that is at most $7.80/day — and only if all 50 inquiries burn every one of
+# their 60 calls on the expensive endpoint. A realistic saturated day (15–30 calls each) costs $0.80–1.60.
+LIMIT_GLOBAL = "50"
 # AI calls an admitted inquiry may use (one inquiry typically needs 15–30), and how many days it stays open.
 CALLS_PER_INQUIRY = "60"
 INQUIRY_TTL_DAYS = "3"
