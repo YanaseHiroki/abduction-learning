@@ -11,6 +11,7 @@ import { Recommended, RecommendedBadge } from "@/components/ui/recommended";
 import { Carousel } from "@/components/ui/carousel";
 import { LanguageFields } from "@/components/LanguageFields";
 import { Welcome } from "@/components/tutorial/Welcome";
+import { ANALYTICS_ENABLED } from "@/lib/analytics";
 import { courses, languageName, showsTargetList, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
 import type { Inquiry } from "@/lib/types";
@@ -154,6 +155,14 @@ export function Home() {
                 {t({ ja: "🛠️ GitHub で見る", en: "🛠️ View on GitHub" })}
               </a>
             </p>
+            {ANALYTICS_ENABLED && (
+              <p className="mt-3 text-sm whitespace-pre-line text-muted-foreground">
+                {t({
+                  ja: "開かれた回数だけを、Cookie を使わない Cloudflare Web Analytics で数えています。\n個人を特定する情報や、探究の内容は送られません。",
+                  en: "Only how often the app is opened is counted, with Cloudflare Web Analytics, which uses no cookies.\nNothing that identifies you, and none of your inquiries, is sent.",
+                })}
+              </p>
+            )}
           </Disclosure>
         </div>
       </section>
