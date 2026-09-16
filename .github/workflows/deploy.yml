@@ -65,6 +65,18 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Pages' address for this repository, or vars.SITE_URL when the site has a custom domain. Used for the
+      # absolute og:url / og:image; the owner is lowercased because that is how Pages spells the host.
+      - name: Site URL
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            SITE_URL="https://$(echo "$OWNER" | tr '[:upper:]' '[:lower:]').github.io/$REPO/"
+          fi
+          echo "SITE_URL=$SITE_URL" >> "$GITHUB_ENV"
       - run: pnpm build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/

@@ -61,6 +61,8 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 
 `worker/wrangler.toml` の `ALLOWED_ORIGINS` は自分の Pages のURLに合わせてください。
 
+リンクを共有したときのカード（og:image など）は `https://<owner>.github.io/<repo>/` を前提に絶対URLで組み立てます。独自ドメインで公開する場合は Variables に `SITE_URL`（例 `https://example.com/`）を登録してください。画像は `scripts/og-image.svg` を直して `pnpm og-image` で `public/og-image.png` を作り直します。
+
 ## ご意見フォーム
 
 ヘッダーの「ご意見」から、使い方の質問・不具合・要望を送れます（Worker を配置した場合のみ表示）。
@@ -72,7 +74,7 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 
 1. 運営者の受信用メールアドレスで Resend のアカウント（無料: 1日100通・月3,000通）を作り、API キーを発行する。
    独自ドメインは不要です。送信元の `onboarding@resend.dev` は、Resend アカウントのアドレス宛てにだけ送れる制限があり、この用途ではそれで足ります。
-2. GitHub の Secrets に `RESEND_API_KEY`（発行したキー）と `FEEDBACK_TO`（Resend アカウントのアドレス）を登録し、「Deploy shared-key proxy」を実行する。
+2. GitHub の Secrets に `RESEND_API_KEY`（発行したキー）と `FEEDBACK_TO`（Resend アカウントのアドレス）を登録し、Actions の「Deploy」を target `worker` で実行する。
    アドレスはリポジトリに書かず Secret に置くので、公開リポジトリでも漏れません。
 
 迷惑な大量送信への対策（`worker/wrangler.toml` で変更可）: 1 IP につき1日 5 通、全体で1日 50 通、本文 4,000 字まで。人には見えない入力欄（ハニーポット）を埋めたボットの送信は、成功したふりをして捨てます。
