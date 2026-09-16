@@ -7,15 +7,7 @@ import { ButtonRow } from "@/components/ui/button-row";
 import { Disclosure } from "@/components/ui/disclosure";
 import { useT } from "@/lib/i18n";
 import { fetchQuota, PROXY_URL, type Quota } from "@/lib/llm/client";
-import { SUPPORT_GITHUB, SUPPORT_KOFI } from "@/lib/support";
-
-/**
- * Average cost of one inquiry on the free-tier model, from the 2026-09 benchmark
- * (docs/model-bench-2026-09.md). It is the same figure LIMIT_GLOBAL in worker/wrangler.toml was
- * derived from, so the daily budget shown here follows whatever that limit is set to. Update both
- * together when the model or its price changes.
- */
-const COST_PER_INQUIRY_USD = 0.009;
+import { COST_PER_INQUIRY_USD, dailyBudget, SUPPORT_GITHUB, SUPPORT_KOFI } from "@/lib/support";
 
 /** What the day's ceiling costs the owner — the point of the page in one line. */
 function Budget() {
@@ -25,10 +17,15 @@ function Budget() {
     fetchQuota().then(setQ);
   }, []);
   if (!q) return null;
-  // Cents, not whole dollars: a small ceiling (50 inquiries is $0.45) would otherwise read as free.
-  const daily = (q.global.limit * COST_PER_INQUIRY_USD).toFixed(2);
+  const { usd, capped } = dailyBudget(q);
   return (
     <div className="rounded-lg border p-3 text-sm">
+      {capped && (
+        <div className="flex justify-between">
+          <span>{t({ ja: "1日のAIの費用の上限", en: "Daily AI spending cap" })}</span>
+          <span className="tabular-nums">${usd}</span>
+        </div>
+      )}
       <div className="flex justify-between">
         <span>{t({ ja: "全体で1日に始められる探究", en: "Inquiries everyone can start per day" })}</span>
         <span className="tabular-nums">{q.global.limit}</span>
@@ -38,10 +35,20 @@ function Budget() {
         <span className="tabular-nums">{Math.max(q.global.limit - q.global.used, 0)}</span>
       </div>
       <p className="pt-2 text-xs whitespace-pre-line text-muted-foreground">
-        {t({
-          ja: `探究1つにかかるAIの費用は平均 $${COST_PER_INQUIRY_USD}、全体で1日およそ $${daily} です。\nこの上限は運営者が出せる額そのもので、原資が増えた分だけ引き上げられます。`,
-          en: `One inquiry costs about $${COST_PER_INQUIRY_USD} in AI calls, so a full day costs roughly $${daily}.\nThe ceiling is exactly what the owner can pay, and it rises with the funding behind it.`,
-        })}
+        {capped
+          ? t({
+              ja: `無料枠のAIの費用は、全体で1日 $${usd} を超えないよう止めています。
+探究1つは平均 $${COST_PER_INQUIRY_USD} ほどです。
+この上限は運営者が出せる額そのもので、原資が増えた分だけ引き上げられます。`,
+              en: `The free tier stops before AI costs pass $${usd} a day, for everyone together.
+One inquiry costs about $${COST_PER_INQUIRY_USD} on average.
+The ceiling is exactly what the owner can pay, and it rises with the funding behind it.`,
+            })
+          : t({
+              ja: `探究1つにかかるAIの費用は平均 $${COST_PER_INQUIRY_USD}、全体で1日およそ $${usd} です。
+この上限は運営者が出せる額そのもので、原資が増えた分だけ引き上げられます。`,
+              en: `One inquiry costs about $${COST_PER_INQUIRY_USD} in AI calls, so a full day costs roughly $${usd}.\nThe ceiling is exactly what the owner can pay, and it rises with the funding behind it.`,
+            })}
       </p>
     </div>
   );
