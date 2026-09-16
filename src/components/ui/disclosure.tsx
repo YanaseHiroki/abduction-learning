@@ -28,7 +28,8 @@ export function Disclosure({
     <Collapsible defaultOpen={defaultOpen} className={cn("rounded-lg border bg-card", className)}>
       <CollapsibleTrigger className="group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium hover:bg-muted/50">
         <span className="flex-1">{label}</span>
-        {hint && <span className="truncate text-xs font-normal text-muted-foreground">{hint}</span>}
+        {/* capped so a long hint can never crowd the label into wrapping one character per line */}
+        {hint && <span className="max-w-[55%] truncate text-xs font-normal text-muted-foreground">{hint}</span>}
         <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-data-panel-open:rotate-180" />
       </CollapsibleTrigger>
       <CollapsibleContent className={cn("px-3 pt-1 pb-3", contentClassName)}>{children}</CollapsibleContent>
