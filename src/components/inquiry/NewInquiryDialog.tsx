@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { defaultExampleSettings, type CourseGroup, type ExampleSettings } from "@/lib/courses";
 import { createInquiry } from "@/lib/db";
 import { useT } from "@/lib/i18n";
+import { useSettings } from "@/lib/settings";
 import type { ExamplesParams, Target, TargetKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ExampleSettingsFields, GenreTiles } from "./ExampleOptions";
@@ -45,6 +46,8 @@ export function NewInquiryDialog({
   onOpenChange: (o: boolean) => void;
 }) {
   const t = useT();
+  // The hint sits on the same line as t()-translated copy, so it follows the screen language, not l1.
+  const { uiLang } = useSettings();
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [targets, setTargets] = useState<Target[]>(() =>
@@ -116,7 +119,7 @@ export function NewInquiryDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="whitespace-pre-line">
             {step === 0
-              ? `${t({ ja: "🔤 比べる語を選びます（2〜4個）。", en: "🔤 Pick 2–4 similar expressions." })}\n${group?.hint ? group.hint[l1] ?? group.hint.en : t({ ja: "2語ずつ比べるのがいちばん見通しがよいです。", en: "Two at a time is easiest to see." })}`
+              ? `${t({ ja: "🔤 比べる語を選びます（2〜4個）。", en: "🔤 Pick 2–4 similar expressions." })}\n${group?.hint ? group.hint[uiLang] ?? group.hint.en : t({ ja: "2語ずつ比べるのがいちばん見通しがよいです。", en: "Two at a time is easiest to see." })}`
               : t({ ja: "🎬 どんな場面の例文で比べるかを選びます。", en: "🎬 Pick the kind of scene to compare in." })}
           </DialogDescription>
         </DialogHeader>
