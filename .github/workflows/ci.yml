@@ -1,0 +1,42 @@
+name: CI
+
+# Until now only the deploy ran in CI, so a PR could go in with a type error or a failing test and
+# nothing said so. The steps are split rather than one `pnpm test` so a failure names itself.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+      - name: Types and build
+        run: pnpm build
+
+      - name: Unit tests
+        run: pnpm test:unit
+      # The screen tests drive a real browser; the runner has no Google Chrome to fall back on.
+      - name: Install the browser for the screen tests
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Screen tests
+        run: pnpm test:ui
+      - name: Worker tests
+        run: pnpm test:worker
