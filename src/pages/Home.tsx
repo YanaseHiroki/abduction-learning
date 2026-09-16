@@ -120,20 +120,14 @@ export function Home() {
           <Disclosure
             label={t({ ja: "🌐 学習する言語を変更する", en: "🌐 Change study languages" })}
             hint={
-              <span className="flex items-center gap-1 text-foreground">
+              <span className="text-foreground">
                 {uiLang === "ja" ? (
                   <>
-                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
-                    <span>で</span>
-                    <LangPill>{languageName(defaultL2, uiLang)}</LangPill>
-                    <span>を学習する</span>
+                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
                   </>
                 ) : (
                   <>
-                    <span>Learning</span>
-                    <LangPill>{languageName(defaultL2, uiLang)}</LangPill>
-                    <span>in</span>
-                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
+                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
                   </>
                 )}
               </span>
