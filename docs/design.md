@@ -169,7 +169,7 @@ e. テキスト確認
 ## 6. 技術構成
 | 層 | 選択 |
 |---|---|
-| フロント | Vite + React + TypeScript。画面の文言は `t({ ja, en })`。GitHub Actions → Pages（CI が通った後だけデプロイ）。PWA は未着手 |
+| フロント | Vite + React + TypeScript。画面の文言は `t({ ja, en })`。GitHub Actions → Pages（CI が通った後だけデプロイ）。PWA（vite-plugin-pwa。アプリ本体を service worker でキャッシュしてオフラインでも開け、新しい版は更新バナーで切り替える） |
 | 認証 | なし（ログインしない）。無料枠の回数は端末ごとの匿名ID（localStorage）とIPで数える |
 | 保存 | IndexedDB（Dexie）のみ。端末間の移動とバックアップは JSON の書き出し・読み込み |
 | LLM（無料枠） | Cloudflare Worker（`worker/`）が運営者の共有キーで呼び出す（構造化出力）。Durable Object で端末・IP・全体の探究数と1日の費用上限（`DAILY_BUDGET_USD`）を管理。モデル固定、アプリのシステムプロンプトを持つ呼び出しだけ受け付ける |
