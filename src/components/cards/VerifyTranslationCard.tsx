@@ -41,6 +41,8 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
     cursor.current = null;
   }, [text]);
   const markers = useMemo(() => markersIn(text), [text]);
+  // the sentence is the learner's own language; only the "例:" label around it follows the screen
+  const sample = translationSampleIn(inquiry.l1);
   const predictions = new Map(p.markers.map((m) => [m.index, m.predictedTargetId]));
   const ready = markers.length > 0 && markers.every((i) => predictions.get(i));
   const dirty = text !== p.l1Text;
@@ -102,7 +104,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => dirty && updateCardPayload(card, { l1Text: text })}
-        placeholder={translationSampleIn(inquiry.l1) ?? t({ ja: "母語で1文書き、比べたい語が出てきそうなところに①②を入れます。", en: "Write one sentence in your own language, with ①② where the words you are comparing should come out." })}
+        placeholder={sample ? t({ ja: `例: ${sample}`, en: `e.g. ${sample}` }) : t({ ja: "母語で1文書き、比べたい語が出てきそうなところに①②を入れます。", en: "Write one sentence in your own language, with ①② where the words you are comparing should come out." })}
       />
       <ButtonRow className="mt-3">
         <Button size="xs" variant="outline" onClick={insertMarker}>{t({ ja: `${circled[markers.length] ?? "①"} を挿入`, en: `Insert ${circled[markers.length] ?? "①"}` })}</Button>

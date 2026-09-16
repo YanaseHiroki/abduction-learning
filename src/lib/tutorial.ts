@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import { courses, defaultExampleSettings } from "./courses";
 import { createInquiry } from "./db";
 import { setTutorial, useSettings } from "./settings";
+import { translationSampleIn } from "./text";
 import type { ExamplesParams, Inquiry, Target } from "./types";
 
 /** The tutorial's example set: short everyday scenes, fewer sentences than usual so the first read is light. */
@@ -13,19 +14,15 @@ export function tutorialGroup(l2: string) {
 }
 
 /**
- * A ready-made sentence for the translation test, keyed by L1, for the tutorial group's two targets
- * (① should come out as the first target, ② as the second). Learners may rewrite it.
+ * The ready-made translation-test sentence (translationSamples, the same one the card offers as its
+ * placeholder), when the inquiry compares the tutorial group's words in that order: ① comes out as the
+ * first target, ② as the second, so any other pair or order would point them the wrong way. Learners may
+ * rewrite it.
  */
-export const tutorialTranslationSample: Record<string, string> = {
-  ja: "嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。",
-  en: "You should ①listen to harsh opinions, and rumors just ②reach your ears anyway.",
-};
-
-/** The ready-made translation-test sentence, when the inquiry compares the tutorial group's words in that order. */
 export function translationSampleFor(inquiry: Inquiry) {
   const group = tutorialGroup(inquiry.l2);
   const matches = !!group && group.targets.every((x, i) => inquiry.targets[i]?.label === x.label);
-  return matches ? (tutorialTranslationSample[inquiry.l1] ?? "") : "";
+  return matches ? (translationSampleIn(inquiry.l1) ?? "") : "";
 }
 
 /** Bring a card's header into view below the sticky top bar. */
