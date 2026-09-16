@@ -68,9 +68,7 @@ export function Welcome() {
             </p>
             {importError && <p className="mt-4 text-sm whitespace-pre-line text-destructive">{t({ ja: "このファイルは読み込めませんでした。\nバックアップのJSONファイルを選んでください。", en: "Could not read this file.\nPick a backup JSON file." })}</p>}
             <NavRow className="pt-6" back={<Button variant="outline" onClick={() => { setMode("tour"); setImportError(false); }}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}>
-              <Recommended>
-                <Button variant="recommended" size="lg" onClick={() => file.current?.click()}>{t({ ja: "📥 JSONファイルを選ぶ", en: "📥 Choose a JSON file" })}</Button>
-              </Recommended>
+              <Button size="lg" onClick={() => file.current?.click()}>{t({ ja: "📥 JSONファイルを選ぶ", en: "📥 Choose a JSON file" })}</Button>
               <input ref={file} type="file" accept="application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
             </NavRow>
           </>
@@ -78,9 +76,7 @@ export function Welcome() {
           <>
             <p className="mt-4 text-sm whitespace-pre-line">{t({ ja: `✅ ${imported} 件の探究を読み込みました。\nホームから続きを始められます。`, en: `✅ Imported ${imported} inquiries.\nPick up where you left off from Home.` })}</p>
             <NavRow className="pt-6">
-              <Recommended>
-                <Button variant="recommended" size="lg" onClick={finish}>{t({ ja: "🏠 ホームへ", en: "🏠 Go to Home" })}</Button>
-              </Recommended>
+              <Button size="lg" onClick={finish}>{t({ ja: "🏠 ホームへ", en: "🏠 Go to Home" })}</Button>
             </NavRow>
           </>
         )}
@@ -134,9 +130,7 @@ export function Welcome() {
           )}
           <div className="mt-4 grid gap-3"><NoCredentialNote /><FreeTierFullNote /></div>
           <NavRow className="pt-6" back={<Button variant="outline" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}>
-            <Recommended>
-              <Button variant="recommended" size="lg" disabled={starting || (!group && !customReady)} onClick={start}>{t({ ja: "🚀 例文を出す", en: "🚀 Show examples" })}</Button>
-            </Recommended>
+            <Button size="lg" disabled={starting || (!group && !customReady)} onClick={start}>{t({ ja: "🚀 例文を出す", en: "🚀 Show examples" })}</Button>
           </NavRow>
         </div>
       )}

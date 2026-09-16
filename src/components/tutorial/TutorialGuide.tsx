@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavRow } from "@/components/ui/button-row";
-import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import { cardHint } from "@/lib/guide";
 import { useT } from "@/lib/i18n";
@@ -146,11 +145,11 @@ export function TutorialGuide({
           </>}
         >
           {last ? (
-            <Recommended><Button variant="recommended" onClick={finish}>{t({ ja: "🏠 ホームへ", en: "🏠 Go to Home" })}</Button></Recommended>
+            <Button onClick={finish}>{t({ ja: "🏠 ホームへ", en: "🏠 Go to Home" })}</Button>
           ) : current.action ? (
-            <Recommended><Button variant="recommended" onClick={current.action.run}>{t(current.action.label)}</Button></Recommended>
+            <Button onClick={current.action.run}>{t(current.action.label)}</Button>
           ) : (
-            <Recommended><Button variant="recommended" disabled={!current.canNext} onClick={() => go(step + 1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button></Recommended>
+            <Button disabled={!current.canNext} onClick={() => go(step + 1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
           )}
         </NavRow>
       </section>

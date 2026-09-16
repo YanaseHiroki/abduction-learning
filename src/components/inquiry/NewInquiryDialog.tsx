@@ -4,7 +4,6 @@ import { Plus, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Disclosure } from "@/components/ui/disclosure";
-import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -171,16 +170,12 @@ export function NewInquiryDialog({
           {step === 0 ? (
             <>
               {!enoughTargets && <span className="text-xs text-muted-foreground sm:mr-auto">{t({ ja: "比べる語を2つ以上選んでください。", en: "Pick at least two expressions to compare." })}</span>}
-              <Recommended>
-                <Button variant="recommended" disabled={!enoughTargets} onClick={() => setStep(1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
-              </Recommended>
+              <Button disabled={!enoughTargets} onClick={() => setStep(1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
             </>
           ) : (
             <>
               <Button variant="outline" className="sm:mr-auto" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
-              <Recommended>
-                <Button variant="recommended" disabled={!enoughTargets} onClick={create}>{t({ ja: "🚀 探究を始める", en: "🚀 Start" })}</Button>
-              </Recommended>
+              <Button disabled={!enoughTargets} onClick={create}>{t({ ja: "🚀 探究を始める", en: "🚀 Start" })}</Button>
             </>
           )}
         </DialogFooter>

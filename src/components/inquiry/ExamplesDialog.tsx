@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Disclosure } from "@/components/ui/disclosure";
-import { Recommended } from "@/components/ui/recommended";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { defaultExampleSettings, type ExampleSettings } from "@/lib/courses";
@@ -69,26 +68,23 @@ export function ExamplesDialog({
           </div>
         </Disclosure>
         <DialogFooter>
-          <Recommended>
-            <Button
-              variant="recommended"
-              disabled={busy || targetIds.length === 0}
-              onClick={() =>
-                onSubmit({
-                  targetIds,
-                  count: settings.count,
-                  level: settings.level,
-                  genre: settings.genre,
-                  maxWords: settings.maxWords ? Number(settings.maxWords) : null,
-                  adverbs: settings.adverbs,
-                  contrastWith,
-                })
-              }
-            >
-              {busy && <Loader2 className="animate-spin" />}
-              {t({ ja: "🚀 出力する", en: "🚀 Generate" })}
-            </Button>
-          </Recommended>
+          <Button
+            disabled={busy || targetIds.length === 0}
+            onClick={() =>
+              onSubmit({
+                targetIds,
+                count: settings.count,
+                level: settings.level,
+                genre: settings.genre,
+                maxWords: settings.maxWords ? Number(settings.maxWords) : null,
+                adverbs: settings.adverbs,
+                contrastWith,
+              })
+            }
+          >
+            {busy && <Loader2 className="animate-spin" />}
+            {t({ ja: "🚀 出力する", en: "🚀 Generate" })}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

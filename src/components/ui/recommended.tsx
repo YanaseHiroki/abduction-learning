@@ -3,8 +3,13 @@ import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 /**
- * Yellow "recommended" tag for the standard route (course → start → STEP 1 → first next step).
+ * Yellow "recommended" tag for the standard route (welcome → course → first next step).
  * Absolutely positioned at the top-right corner of a `relative` parent, rotated 30° clockwise.
+ *
+ * Only where the main route is not already obvious: a screen crowded with choices, or one that just
+ * changed a lot. On a sparse screen, or when the same button is pressed again from the same spot
+ * (a slide show, a wizard, a dialog opened from a recommended button), the blue button is enough on
+ * its own and the badge is left off — see docs/design.md §8.
  */
 export function RecommendedBadge({ className }: { className?: string }) {
   const t = useT();

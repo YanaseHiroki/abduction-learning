@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
-import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import shotsJson from "@/assets/help/shots.json";
 import { useT, type Localized } from "@/lib/i18n";
@@ -129,13 +128,11 @@ export function HelpPage() {
       </div>
       <ButtonRow className="justify-center pt-6">
         <Button variant="outline" disabled={index === 0} onClick={() => go(index - 1)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
-        <Recommended>
-          {last ? (
-            <Button variant="recommended" render={<Link to="/" />} nativeButton={false}>{t({ ja: "🚀 さっそく始める", en: "🚀 Get started" })}</Button>
-          ) : (
-            <Button variant="recommended" onClick={() => go(index + 1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
-          )}
-        </Recommended>
+        {last ? (
+          <Button render={<Link to="/" />} nativeButton={false}>{t({ ja: "🚀 さっそく始める", en: "🚀 Get started" })}</Button>
+        ) : (
+          <Button onClick={() => go(index + 1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
+        )}
       </ButtonRow>
       {/* The end of the help is where someone who is still lost gives up, so offer the way to ask here too. */}
       {last && PROXY_URL && (

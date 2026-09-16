@@ -5,7 +5,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Disclosure } from "@/components/ui/disclosure";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Recommended } from "@/components/ui/recommended";
 import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sendFeedback, type FeedbackKind } from "@/lib/llm/client";
@@ -138,11 +137,9 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
           {state === "sent" ? (
             <Button variant="outline" onClick={() => close(false)}>{t({ ja: "閉じる", en: "Close" })}</Button>
           ) : (
-            <Recommended>
-              <Button variant="recommended" disabled={!message.trim() || !emailOk || state === "sending"} onClick={submit}>
-                {state === "sending" ? t({ ja: "送信中…", en: "Sending…" }) : t({ ja: "📨 送信する", en: "📨 Send" })}
-              </Button>
-            </Recommended>
+            <Button disabled={!message.trim() || !emailOk || state === "sending"} onClick={submit}>
+              {state === "sending" ? t({ ja: "送信中…", en: "Sending…" }) : t({ ja: "📨 送信する", en: "📨 Send" })}
+            </Button>
           )}
         </DialogFooter>
       </DialogContent>
