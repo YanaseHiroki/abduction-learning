@@ -245,6 +245,15 @@ async function main() {
       // a screenshot says something different depending on where it was taken (and the check cries wolf on CI).
       // Asia/Tokyo is what the committed pictures already show.
       const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: "light", reducedMotion: "reduce", locale: lang === "ja" ? "ja-JP" : "en-US", timezoneId: "Asia/Tokyo" });
+      // The screens hide their read-aloud buttons where the device has no voice for the language, and a
+      // headless Linux box has none at all. Answer for them, so the same buttons are there wherever this runs.
+      await context.addInitScript(() => {
+        const voices = [
+          { lang: "ja-JP", name: "shots ja", default: true, localService: true, voiceURI: "shots-ja" },
+          { lang: "en-US", name: "shots en", default: false, localService: true, voiceURI: "shots-en" },
+        ];
+        if (window.speechSynthesis) Object.defineProperty(window.speechSynthesis, "getVoices", { value: () => voices, configurable: true });
+      });
       // Only the dev server may be reached, so nothing can call an AI or the free tier by accident.
       await context.route("**/*", (route) => {
         const url = route.request().url();
