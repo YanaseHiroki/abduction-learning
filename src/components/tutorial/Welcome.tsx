@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FreeTierFullNote } from "@/components/inquiry/FreeTierFullNote";
 import { NoCredentialNote } from "@/components/inquiry/NoCredentialNote";
 import type { StartState } from "@/components/inquiry/NewInquiryDialog";
-import { targetColor } from "@/components/inquiry/TargetBadge";
+import { targetColor } from "@/components/inquiry/target-color";
 import { LanguageFields } from "@/components/LanguageFields";
 import { Button } from "@/components/ui/button";
 import { NavRow } from "@/components/ui/button-row";

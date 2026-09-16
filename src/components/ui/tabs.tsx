@@ -96,4 +96,4 @@ function TabsPanels({ className, ...props }: ComponentProps<"div">) {
   )
 }
 
-export { Tabs, TabsList, TabsTrigger, TabsContent, TabsPanels, tabsListVariants }
+export { Tabs, TabsList, TabsTrigger, TabsContent, TabsPanels }

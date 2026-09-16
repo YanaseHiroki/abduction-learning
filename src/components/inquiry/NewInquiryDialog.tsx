@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { ExampleSettingsFields, GenreTiles } from "./ExampleOptions";
 import { FreeTierFullNote } from "./FreeTierFullNote";
 import { NoCredentialNote } from "./NoCredentialNote";
-import { targetColor } from "./TargetBadge";
+import { targetColor } from "./target-color";
 
 /** Router state handed to the inquiry page so it generates the first example set right away. */
 export interface StartState {

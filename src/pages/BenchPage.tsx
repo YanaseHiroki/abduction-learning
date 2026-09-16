@@ -95,6 +95,13 @@ function add(a: { input: number; output: number } | undefined, b: { input: numbe
   return { input: (a?.input ?? 0) + (b?.input ?? 0), output: (a?.output ?? 0) + (b?.output ?? 0) };
 }
 
+/** Runs `fn` and reports how long it took, so no clock is read from inside the component. */
+async function timed<T>(fn: () => Promise<T>): Promise<[T, number]> {
+  const started = Date.now();
+  const value = await fn();
+  return [value, Date.now() - started];
+}
+
 export function BenchPage() {
   const s = useSettings();
   const available = (p: Provider) => !!s.providers[p].apiKey;
@@ -104,7 +111,8 @@ export function BenchPage() {
   const [rows, setRows] = useState<Row[]>(() => candidates.map((candidate) => ({ candidate, status: "idle" })));
   const [running, setRunning] = useState(false);
 
-  const runnable = useMemo(() => candidates.filter((c) => enabled.has(c.model) && available(c.provider)), [enabled, s]);
+  // Reads s.providers directly rather than through available(), so the dependency is the state it actually uses.
+  const runnable = useMemo(() => candidates.filter((c) => enabled.has(c.model) && !!s.providers[c.provider].apiKey), [enabled, s.providers]);
 
   function patch(model: string, p: Partial<Row>) {
     setRows((rs) => rs.map((r) => (r.candidate.model === model ? { ...r, ...p } : r)));
@@ -114,34 +122,29 @@ export function BenchPage() {
     const override = { provider: c.provider, model: c.model, apiKey: s.providers[c.provider].apiKey };
     patch(c.model, { status: "running", error: undefined });
     try {
-      const t0 = Date.now();
-      const gen = await generateExamples(
+      const [gen, genMs] = await timed(() => generateExamples(
         { l1: scenario.l1, l2: scenario.l2, targets, contrastWith: [], count: scenario.count, level: scenario.level, genre: scenario.genre, maxWords: null, adverbs: false },
         { override },
-      );
-      const genMs = Date.now() - t0;
+      ));
       let tokens = gen.results.reduce((acc, r) => add(acc, r.usage), { input: 0, output: 0 });
 
-      const t1 = Date.now();
-      let qaFlags = 0;
-      let qaTokens = { input: 0, output: 0 };
-      try {
-        const qa = await structuredQa(gen.sets, override);
-        qaFlags = qa.issues.length;
-        qaTokens = qa.usage ?? qaTokens;
-      } catch {
-        qaFlags = -1;
-      }
-      const qaMs = Date.now() - t1;
+      // A QA run that throws still counts its time; -1 flags mean it could not be run.
+      const [qa, qaMs] = await timed(async () => {
+        try {
+          return await structuredQa(gen.sets, override);
+        } catch {
+          return null;
+        }
+      });
+      const qaFlags = qa ? qa.issues.length : -1;
+      const qaTokens = qa?.usage ?? { input: 0, output: 0 };
       tokens = add(tokens, qaTokens);
       const setCost = cost(c, tokens);
 
-      const t2 = Date.now();
-      const tr = await translateTest(
+      const [tr, trMs] = await timed(() => translateTest(
         { l1: scenario.l1, l2: scenario.l2, l1Text: scenario.translation, targets, restrictToTargets: true, fixedGloss: "", feasibilityTarget: null },
         { override },
-      );
-      const trMs = Date.now() - t2;
+      ));
       const trCost = cost(c, tr.usage);
       const trHit = tr.alignments
         .map((a) => `${a.index}:${a.word}${a.word.toLowerCase().includes(scenario.expected[a.index] ?? "?") ? "✓" : "✗"}`)

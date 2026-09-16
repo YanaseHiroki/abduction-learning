@@ -9,7 +9,7 @@ import { useT } from "@/lib/i18n";
 import type { ExamplesParams, Inquiry } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ExampleSettingsFields, GenreTiles } from "./ExampleOptions";
-import { targetColor } from "./TargetBadge";
+import { targetColor } from "./target-color";
 
 export function ExamplesDialog({
   inquiry,
