@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as z from "zod/v4";
 import { callProvider, ProviderError } from "./providers";
-import { describeError, fetchQuota, hasCredential, MissingApiKeyError, noNewInquiries, QuotaError, sendFeedback, setActiveInquiry, structured, toJsonSchema } from "./client";
+import { describeError, fetchQuota, hasCredential, MissingApiKeyError, noNewInquiries, QuotaError, sendFeedback, setActiveInquiry, sharedFreeTierFull, structured, toJsonSchema } from "./client";
 import { defaultSettings, setProviderSettings, setSettings } from "../settings";
 
 vi.mock("./providers", async (orig) => {
@@ -192,6 +192,22 @@ describe("noNewInquiries", () => {
 
   it("is true once the day's money stops admissions, even with counts to spare", () => {
     expect(noNewInquiries({ ...quota, budget: { admitting: false, open: true } })).toBe(true);
+  });
+});
+
+describe("sharedFreeTierFull", () => {
+  const room = { used: 0, limit: 5 };
+  const quota = { device: room, ip: room, global: room, budget: { admitting: true, open: true }, rules: { device: 3, deviceFirstDay: 5, perInquiry: 60, ttlDays: 3 }, model: "m", resetAt: 1 };
+
+  it("is true when the global count or the day's money ran out, which a donation extends", () => {
+    expect(sharedFreeTierFull({ ...quota, global: { used: 5, limit: 5 } })).toBe(true);
+    expect(sharedFreeTierFull({ ...quota, budget: { admitting: false, open: true } })).toBe(true);
+    expect(sharedFreeTierFull({ ...quota, budget: { admitting: false, open: false } })).toBe(true);
+  });
+
+  it("is false when only this device or IP is out, since no donation would give those back", () => {
+    expect(sharedFreeTierFull(quota)).toBe(false);
+    expect(sharedFreeTierFull({ ...quota, device: { used: 5, limit: 5 }, ip: { used: 5, limit: 5 } })).toBe(false);
   });
 });
 

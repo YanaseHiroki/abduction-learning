@@ -4,6 +4,7 @@
 Worker は呼び出しの前に最悪の費用を予約し、この額を超える呼び出しは送りません。新しい探究は `ADMIT_BUDGET_USD`（$2.50）で締め切ります。
 `LIMIT_GLOBAL`（探究の数での全体の上限）は予備の歯止めで、「1日に出せる額 ÷ 探究1つの平均費用」で合わせてあります（$3 ÷ $0.009 ≒ 330。根拠は docs/model-bench-2026-09.md）。
 原資が増えればこの上限を上げられる、という構造なので、その受け口を用意しています。
+支援は Webhook で Worker に届き、**自動で無料枠に上乗せされます**（下の「支援による自動の拡張」）。
 
 このドキュメントは方針と、その理由の記録です。
 
@@ -11,11 +12,12 @@ Worker は呼び出しの前に最悪の費用を予約し、この額を超え�
 
 | 項目 | 決めたこと |
 |---|---|
-| お金 | GitHub Sponsors と Ko-fi へのリンクだけを置く。アプリと Worker には決済のコードも支援者の記録も持たない |
-| 見返り | 一切付けない。支援しても本人の1日の回数は増えない（増えるのは全体の上限） |
+| お金 | 決済は GitHub Sponsors と Ko-fi で行い、アプリはリンクを置くだけ。Worker は各サービスの Webhook で支払いの事実（取引ID・金額・通貨）だけを受け、名前・メッセージ・メールアドレスは保存しない |
+| 拡張 | 手数料を除いた額をプールに積み、その日の基本の予算を使い切ったときだけ、全体の上限に自動で上乗せする |
+| 見返り | 一切付けない。支援しても本人の1日の回数は増えない（増えるのは全体の上限。端末・IPごとの上限は変わらない） |
 | APIキーの提供 | 受け付けない。代わりに「自分のキーで使う」ことを支援の形として案内する |
 | 相談 | 既存のご意見フォーム（`/feedback`）に種類「💛 支援について」を足して受ける。新しいエンドポイントは作らない |
-| 導線 | 設定の無料枠タブ、全体の上限に達したとき（だけ）、ヘルプの最後、README |
+| 導線 | 全体の上限（回数か予算）に達している間だけ。拡張されたら即座に消す |
 
 ## 決済手段
 
@@ -36,6 +38,7 @@ Worker は呼び出しの前に最悪の費用を予約し、この額を超え�
 - **見返りのない個人からの支援は贈与**として扱われる前提で設計しています。個人からの贈与には年110万円の基礎控除があり、この規模では通常そこに収まります。
 - **見返りを付けると対価（雑所得など）になります。** 「支援すると回数が増える」「名前を載せる」「優先的に使える」などは付けないでください。消費税や特定商取引法の表記、支援額に応じて回数を渡す形なら資金決済法（前払式支払手段）の検討まで必要になりえます。
 - アプリの文言も同じ理由で「支援 → 全体の上限が上がる」だけを言い、「支援 → あなたの回数が増える」とは書きません（`src/pages/SupportPage.tsx`）。
+- **自動の拡張を入れたことで、「支援した直後に（本人を含む全員が）また始められる」ようになりました。** 増えるのは全員で共有する上限で、端末ごとの上限は変わらないため、本人への対価ではないという整理は保っていますが、支援の直後に本人が恩恵を受けうる点は、受け取りを始める前に税務署か税理士に確認してください。
 
 ## APIキーの提供を受け付けない理由
 
@@ -56,19 +59,35 @@ Worker は呼び出しの前に最悪の費用を予約し、この額を超え�
 - 提供者がいつでもキーを失効できること、失効されても運営者は責任を負わないことを、事前に文面で合意しておく。
 - Worker 側は、キーごとに `DAILY_BUDGET_USD` 相当の費用の上限を持ち、どのキーでどれだけ使ったかを提供者に報告できるようにしてから受ける。
 
+## 支援による自動の拡張
+
+1. Ko-fi（`POST /donation/kofi`）と GitHub Sponsors（`POST /donation/github`）が、支払いのたびに Worker へ通知する。
+   Ko-fi は通知に含まれる verification token を、GitHub は `X-Hub-Signature-256`（Webhook の secret による HMAC）を確かめ、合わないものは 403 で捨てる。
+   Ko-fi は Donation と Subscription だけを数え、Shop Order や Commission（売買）は数えない。GitHub は新しいスポンサーシップ（`created`）だけを数える。月額の2か月目以降は GitHub から通知が来ないので、自動では積まれない。
+2. 金額を `DONATION_USD_RATES` で USD にし、`DONATION_SHARE`（手数料を除いた割合。既定 0.9）を掛けて、Durable Object の `pool` に積む。
+   `DONATION_USD_RATES` に無い通貨は積まない（200 は返す）。同じ取引IDは二度積まない（`donations` テーブル。取引ID・通番・金額・時刻だけで、名前もメッセージも持たない）。
+3. その日の上限は「基本の予算 ＋ プールの残り」になる。`DAILY_BUDGET_USD` と `ADMIT_BUDGET_USD` の両方にプールの残りを足し、`LIMIT_GLOBAL` も同じ割合（プールの残り × `LIMIT_GLOBAL` ÷ `DAILY_BUDGET_USD`）だけ増やす。
+4. プールから引かれるのは、ある日の費用が基本の予算を超えた分だけ。日が変わったときにその分を差し引く。基本の予算で足りた日は減らないので、支援は次に無料枠が尽きた日まで残る。
+5. `/quota` は、上乗せ後の `rules.dailyBudgetUsd` と、うち支援の残り `rules.donatedUsd` を返す。
+
+プールはマイクロ USD で持ちます。支払いから反映までは、各サービスが Webhook を送るまでの時間（ふつう数秒〜数十秒）です。
+
 ## 導線の置き方
 
-- **全体の上限（global）に達したときだけ**、「全体の上限は運営者が出せる額で決まっています ▶」を出します（`FreeTierFullNote`, `ErrorText` の `quota-global`）。
+- **全体の上限（回数か1日の予算）に達している間だけ**、「💛 投げ銭で、今日の無料枠を広げられます ▶」を出します（`FreeTierFullNote`, `ErrorText` の `quota-global` / `quota-budget`, どれも `SupportOffer`）。
+  支援のページ（`#/support`）の支援ボタンも、同じ条件の間だけ出します。
+- 表示中は `/quota` を15秒ごとと、タブに戻ってきたとき（`focus` / `visibilitychange`）に見直します（`useQuota`）。支援で拡張されると、その時点でリンクとボタンを消し、「支援が届き、無料枠が広がりました」に置き換えます。
 - **端末ごと・IPごとの上限に達したときは、お金の話をしません。** それはその人自身の1日の分で、支援があっても増えないからです。ここで寄付を案内すると、支払えば続けられるかのように読めてしまいます。
-- 探究の途中、ホーム、バナー、モーダルには出しません。
-- リンクが1つも設定されていないデプロイでは、どの導線も出ません（`hasSupportLinks()`）。支援のページ（`#/support`）自体は開けますが、仕組みの説明と「自分のキーで使う」案内だけになります。
+- 設定、ヘルプの最後、ホーム、探究の途中、バナーには出しません（以前は設定とヘルプにもありましたが、尽きていないときに寄付を求めない方針にしました）。
+- リンクが1つも設定されていないデプロイでは、どの導線も出ません（`hasSupportLinks()`）。支援のページ自体は開けますが、仕組みの説明と「自分のキーで使う」案内だけになります。
 
 ## 透明性
 
 支援のページには、手で更新する「残高」は出しません。更新を忘れた数字は、出さないより悪いからです。
 代わりに、設定からそのまま出せる事実だけを出します。
 
-- 1日の費用の上限（Worker の `/quota` の `rules.dailyBudgetUsd`。`DAILY_BUDGET_USD` の値で、Worker は実際にこの額で呼び出しを止める）
+- 1日の費用の上限（Worker の `/quota` の `rules.dailyBudgetUsd`。`DAILY_BUDGET_USD` に支援の残りを足した値で、Worker は実際にこの額で呼び出しを止める）
+- そのうち支援で広がった分の残り（`rules.donatedUsd`。0 のときは出さない）
 - 今日の全体の上限と残り（`/quota` の `global`）
 - 探究1つの平均費用（`src/lib/support.ts` の `COST_PER_INQUIRY_USD`）。上限額が何探究分かの目安として添える
 
@@ -81,4 +100,9 @@ Worker は呼び出しの前に最悪の費用を予約し、この額を超え�
 2. Ko-fi のページを作り、Stripe か PayPal をつなぐ。URL は `https://ko-fi.com/<名前>`。
 3. GitHub リポジトリの Settings → Secrets and variables → Actions → Variables に `SUPPORT_GITHUB` と `SUPPORT_KOFI` を登録する（片方だけでもよい）。
 4. Actions の「Deploy」を target `pages` で実行する。
-5. 支援が集まって上限を上げるときは、`DAILY_BUDGET_USD` と `ADMIT_BUDGET_USD` を上げ、`LIMIT_GLOBAL` と `worker/wrangler.toml` のコメントの計算も合わせて直し、Actions の「Deploy」を target `worker` で実行する。
+5. 自動の拡張を有効にする。
+   - Ko-fi: Settings → More → API → Webhook URL に `<Worker の URL>/donation/kofi` を入れ、表示される Verification Token を GitHub の Secret `KOFI_VERIFICATION_TOKEN` に登録する。
+   - GitHub Sponsors: スポンサーダッシュボード → Webhooks で Payload URL に `<Worker の URL>/donation/github`、Content type `application/json`、任意の Secret を設定し、同じ値を Secret `GITHUB_SPONSORS_WEBHOOK_SECRET` に登録する。
+   - Ko-fi ページの通貨が USD・JPY・EUR 以外なら、`worker/wrangler.toml` の `DONATION_USD_RATES` に足す。レートは手で更新するので、大きく動いたら直す。
+   - Actions の「Deploy」を target `worker` で実行する。Secret が無い側のエンドポイントは 503 を返すだけで、害はない。
+6. 基本の上限そのものを上げるときは、`DAILY_BUDGET_USD` と `ADMIT_BUDGET_USD` を上げ、`LIMIT_GLOBAL` と `worker/wrangler.toml` のコメントの計算も合わせて直し、Actions の「Deploy」を target `worker` で実行する。

@@ -138,8 +138,11 @@ export interface Quota {
   global: { used: number; limit: number };
   /** whether today's money still allows new inquiries, and calls at all (absent from proxies older than 2026-09-16) */
   budget?: { admitting: boolean; open: boolean };
-  /** dailyBudgetUsd: the most the free tier may cost the owner in a day (absent from proxies older than 2026-09-16) */
-  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number; dailyBudgetUsd?: number };
+  /**
+   * dailyBudgetUsd: the most the free tier may cost the owner today, donations included (absent from proxies older than 2026-09-16).
+   * donatedUsd: the part of it that donations add, not yet spent (absent from proxies without donations).
+   */
+  rules: { device: number; deviceFirstDay: number; perInquiry: number; ttlDays: number; dailyBudgetUsd?: number; donatedUsd?: number };
   model: string;
   resetAt: number;
 }
@@ -147,6 +150,15 @@ export interface Quota {
 /** Whether the free tier will refuse to start another inquiry today: a count is used up, or the day's money for new ones is. */
 export function noNewInquiries(q: Quota): boolean {
   return [q.device, q.ip, q.global].some((v) => v.used >= v.limit) || q.budget?.admitting === false;
+}
+
+/**
+ * Whether what ran out is the shared money rather than this learner's own share: the global count, or
+ * the day's budget. Only this can a donation fix, so only this may offer one — a device or IP limit
+ * would stay exactly where it is however much anyone gave.
+ */
+export function sharedFreeTierFull(q: Quota): boolean {
+  return q.global.used >= q.global.limit || q.budget?.admitting === false || q.budget?.open === false;
 }
 
 export async function fetchQuota(): Promise<Quota | null> {
