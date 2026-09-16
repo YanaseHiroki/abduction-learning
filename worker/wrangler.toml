@@ -66,7 +66,8 @@ DONATION_USD_RATES = "USD=1,JPY=0.0067,EUR=1.08"
 # RESEND_API_KEY  — feedback mail via Resend; without it (or FEEDBACK_TO) /feedback answers 503
 # FEEDBACK_TO     — where feedback goes; must be the address the Resend account was registered with
 # KOFI_VERIFICATION_TOKEN        — Ko-fi's webhook token; without it /donation/kofi answers 503
-# GITHUB_SPONSORS_WEBHOOK_SECRET — the Sponsors webhook's secret; without it /donation/github answers 503
+# SPONSORS_WEBHOOK_SECRET        — the Sponsors webhook's secret; without it /donation/github answers 503
+#   (not GITHUB_-prefixed: GitHub refuses Actions secret names starting with GITHUB_)
 
 [durable_objects]
 bindings = [{ name = "QUOTA", class_name = "QuotaCounter" }]

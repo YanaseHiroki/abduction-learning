@@ -87,7 +87,7 @@ Worker が掛けている制限（`worker/wrangler.toml` で変更可）:
 見返りはなく、支援しても本人の1日の回数は増えません。増えるのは全体の上限です。
 デポジット済みのAPIキーの提供はお受けしていません。自分のキーで使うことも、原資を使わない支援になります。
 
-方針と理由、運営者の設定手順（Variables の `SUPPORT_GITHUB` / `SUPPORT_KOFI`、Secrets の `KOFI_VERIFICATION_TOKEN` / `GITHUB_SPONSORS_WEBHOOK_SECRET`）は docs/funding.md にあります。
+方針と理由、運営者の設定手順（Variables の `SUPPORT_GITHUB` / `SUPPORT_KOFI`、Secrets の `KOFI_VERIFICATION_TOKEN` / `SPONSORS_WEBHOOK_SECRET`）は docs/funding.md にあります。
 
 ## 開発
 

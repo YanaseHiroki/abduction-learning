@@ -115,7 +115,7 @@ Worker は呼び出しの前に最悪の費用を予約し、この額を超え�
 4. Actions の「Deploy」を target `pages` で実行する。
 5. 自動の拡張を有効にする。
    - Ko-fi: Settings → More → API → Webhook URL に `<Worker の URL>/donation/kofi` を入れ、表示される Verification Token を GitHub の Secret `KOFI_VERIFICATION_TOKEN` に登録する。
-   - GitHub Sponsors: スポンサーダッシュボード → Webhooks で Payload URL に `<Worker の URL>/donation/github`、Content type `application/json`、任意の Secret を設定し、同じ値を Secret `GITHUB_SPONSORS_WEBHOOK_SECRET` に登録する。
+   - GitHub Sponsors: スポンサーダッシュボード → Webhooks で Payload URL に `<Worker の URL>/donation/github`、Content type `application/json`、任意の Secret を設定し、同じ値を Secret `SPONSORS_WEBHOOK_SECRET` に登録する。
    - Ko-fi ページの通貨が USD・JPY・EUR 以外なら、`worker/wrangler.toml` の `DONATION_USD_RATES` に足す。レートは手で更新するので、大きく動いたら直す。
    - Actions の「Deploy」を target `worker` で実行する。Secret が無い側のエンドポイントは 503 を返すだけで、害はない。
 6. 基本の上限そのものを上げるときは、`DAILY_BUDGET_USD` と `ADMIT_BUDGET_USD` を上げ、`LIMIT_GLOBAL` と `worker/wrangler.toml` のコメントの計算も合わせて直し、Actions の「Deploy」を target `worker` で実行する。

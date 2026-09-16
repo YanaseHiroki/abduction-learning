@@ -46,7 +46,7 @@ export interface Env {
   /** Ko-fi's webhook verification token; /donation/kofi answers 503 until it is set */
   KOFI_VERIFICATION_TOKEN?: string;
   /** secret of the GitHub Sponsors webhook; /donation/github answers 503 until it is set */
-  GITHUB_SPONSORS_WEBHOOK_SECRET?: string;
+  SPONSORS_WEBHOOK_SECRET?: string;
   QUOTA: DurableObjectNamespace<QuotaCounter>;
 }
 
@@ -549,8 +549,8 @@ export default {
     }
 
     if (url.pathname === "/donation/github" && request.method === "POST") {
-      if (!env.GITHUB_SPONSORS_WEBHOOK_SECRET) return json({ error: "donations not configured" }, 503, cors);
-      const donation = await githubDonation(request, env.GITHUB_SPONSORS_WEBHOOK_SECRET);
+      if (!env.SPONSORS_WEBHOOK_SECRET) return json({ error: "donations not configured" }, 503, cors);
+      const donation = await githubDonation(request, env.SPONSORS_WEBHOOK_SECRET);
       if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
       return json(await creditDonation(env, counter, day, donation), 200, cors);
     }
