@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courses, defaultExampleSettings, genres, languageName, languageOptions, levels } from "./courses";
+import { courses, defaultExampleSettings, genres, languageName, languageOptions, levels, showsTargetList, type CourseGroup } from "./courses";
 
 const english = courses.find((c) => c.l2 === "en")!;
 
@@ -36,6 +36,41 @@ describe("the English course", () => {
     for (const g of english.groups.filter((x) => x.hint)) {
       expect(!!g.hint!.ja && !!g.hint!.en).toBe(true);
     }
+  });
+});
+
+describe("showsTargetList", () => {
+  const group = (label: Record<string, string>, ...targets: string[]): CourseGroup =>
+    ({ id: "g", emoji: "x", label, targets: targets.map((l) => ({ label: l, kind: "word" as const })) });
+
+  it("shows the words under a Japanese name, which never spells them out", () => {
+    for (const g of english.groups) expect(showsTargetList(g, "ja")).toBe(true);
+  });
+
+  it("hides them under an English name that is already the same list", () => {
+    const say = english.groups.find((g) => g.id === "say")!;
+    expect(say.label.en).toBe("say / tell / speak / talk");
+    expect(showsTargetList(say, "en")).toBe(false);
+  });
+
+  it("keeps them when a target is missing from the name, like \"look at\" under \"look\"", () => {
+    const look = english.groups.find((g) => g.id === "see")!;
+    expect(look.targets.map((t) => t.label)).toContain("look at");
+    expect(showsTargetList(look, "en")).toBe(true);
+  });
+
+  it("ignores order, spacing and case when comparing", () => {
+    expect(showsTargetList(group({ en: "Tell /say" }, "say", "tell"), "en")).toBe(false);
+  });
+
+  it("keeps them when the name lists fewer or more words than the group has", () => {
+    expect(showsTargetList(group({ en: "say / tell" }, "say", "tell", "speak"), "en")).toBe(true);
+    expect(showsTargetList(group({ en: "say / tell / speak" }, "say", "tell"), "en")).toBe(true);
+  });
+
+  it("judges by the name actually shown, falling back to English like the screens do", () => {
+    const g = group({ en: "say / tell" }, "say", "tell");
+    expect(showsTargetList(g, "ja")).toBe(false);
   });
 });
 
