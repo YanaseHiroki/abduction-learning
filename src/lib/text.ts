@@ -63,17 +63,20 @@ export function sentenceKey(targetId: string, index: number) {
 }
 
 /**
- * Example sentences for the translation test's input, keyed by L1 (see tutorialTranslationSample, which
- * keys its ready-made sentence the same way). What goes in that field is a sentence in the learner's own
- * language, so the screen language must not decide it: an English screen with Japanese as the native
- * language still needs a Japanese example. ①② mark where the words being compared should come out.
+ * The ready-made translation-test sentence, keyed by L1. What goes in that field is a sentence in the
+ * learner's own language, so the screen language must not decide it: an English screen with Japanese as
+ * the native language still needs a Japanese sentence. ①② mark where the words being compared should
+ * come out — here, listen and hear, the pair the tutorial walks through.
+ *
+ * One copy serves both uses: the card shows it as the placeholder, and the tutorial (translationSampleFor)
+ * prefills the field with it. They were written out twice before and had already drifted apart in English.
  */
 const translationSamples: Record<string, string> = {
-  ja: "例: 嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。",
-  en: "e.g. You should ①listen to harsh opinions; rumors just ②reach your ears.",
+  ja: "嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。",
+  en: "You should ①listen to harsh opinions, and rumors just ②reach your ears anyway.",
 };
 
-/** The example for this native language, or null where there is none (the card then explains ①② instead). */
+/** The sentence for this native language, or null where there is none (the card then explains ①② instead). */
 export function translationSampleIn(l1: string): string | null {
   return translationSamples[l1] ?? null;
 }

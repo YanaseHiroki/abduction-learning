@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "./db";
 import { defaultSettings, getSettings, setSettings } from "./settings";
-import { startTutorial, translationSampleFor, tutorialExampleSettings, tutorialGroup, tutorialTranslationSample } from "./tutorial";
+import { startTutorial, translationSampleFor, tutorialExampleSettings, tutorialGroup } from "./tutorial";
+import { translationSampleIn } from "./text";
 import type { Inquiry } from "./types";
 
 const inquiry = (targets: { id: string; label: string; kind: "word" }[], l1 = "ja"): Inquiry => ({
@@ -34,14 +35,14 @@ describe("tutorialExampleSettings", () => {
 describe("translationSampleFor", () => {
   it("offers the ready-made sentence when the inquiry is the tutorial's pair in order", () => {
     const sample = translationSampleFor(inquiry([{ id: "a", label: "listen", kind: "word" }, { id: "b", label: "hear", kind: "word" }]));
-    expect(sample).toBe(tutorialTranslationSample.ja);
+    expect(sample).toBe(translationSampleIn("ja"));
     expect(sample).toContain("①");
     expect(sample).toContain("②");
   });
 
   it("offers it in the learner's own language", () => {
     const sample = translationSampleFor(inquiry([{ id: "a", label: "listen", kind: "word" }, { id: "b", label: "hear", kind: "word" }], "en"));
-    expect(sample).toBe(tutorialTranslationSample.en);
+    expect(sample).toBe(translationSampleIn("en"));
   });
 
   it("offers nothing when the pair is in the other order, so ①② would point the wrong way", () => {

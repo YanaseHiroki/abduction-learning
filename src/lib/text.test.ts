@@ -87,6 +87,12 @@ describe("translationSampleIn", () => {
     expect(translationSampleIn("en")).toContain("listen");
   });
 
+  it("is the sentence itself, with no label the tutorial would have to strip before prefilling it", () => {
+    // the card adds 例: / e.g. around it; the tutorial puts the same string straight into the field
+    expect(translationSampleIn("ja")!.startsWith("例")).toBe(false);
+    expect(translationSampleIn("en")!.startsWith("e.g.")).toBe(false);
+  });
+
   it("marks where the compared words come out, so the example teaches ①②", () => {
     for (const l1 of ["ja", "en"]) {
       expect(markersIn(translationSampleIn(l1)!)).toEqual([1, 2]);
