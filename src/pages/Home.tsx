@@ -62,7 +62,7 @@ export function Home() {
   const inquiries = loadedInquiries ?? [];
   const notes = loadedNotes ?? [];
   const noteCount = useLiveQuery(() => db.schemaNotes.count(), []) ?? 0;
-  const course = courses.find((c) => c.l2 === defaultL2);
+  const ownCourses = courses.filter((c) => c.l2 === defaultL2);
 
   // No data and no finished tutorial = a first-time visitor: show the one-way welcome instead of the menu.
   // Once shown it stays up until the tutorial is started, skipped or data is imported (importing adds data
@@ -91,11 +91,15 @@ export function Home() {
   // starting another: a new genre or verification goes into the same inquiry, so the hypothesis keeps growing in
   // one place. Those groups move to the end. A group explored only partway (say & tell of four) stays in place and
   // starts its next inquiry with the words not yet compared.
-  const groupCards = (course?.groups ?? []).map((g) => ({ g, ...groupProgress(g, inquiries, defaultL1, defaultL2) }));
-  groupCards.sort((a, b) => Number(!!a.latest) - Number(!!b.latest));
-  const nextGroup = groupCards.find((x) => !x.latest)?.g;
+  const rows = ownCourses.map((course) => {
+    const cards = course.groups.map((g) => ({ g, ...groupProgress(g, inquiries, defaultL1, defaultL2) }));
+    cards.sort((a, b) => Number(!!a.latest) - Number(!!b.latest));
+    return { course, cards };
+  });
+  // Courses come in the order they are recommended, so the next group is the first unfinished one across all of them.
+  const nextGroup = rows.flatMap((r) => r.cards).find((x) => !x.latest)?.g;
 
-  function openGroup({ g, latest, started, remaining, covered }: (typeof groupCards)[number]) {
+  function openGroup({ g, latest, started, remaining, covered }: (typeof rows)[number]["cards"][number]) {
     if (latest) return nav(`/inquiry/${latest.id}`);
     if (!started) return setDialog({ group: g });
     // Compare two at a time: the words left, topped up with one already explored when only one is left.
@@ -103,7 +107,8 @@ export function Home() {
     setDialog({ group: g, preselect });
   }
 
-  const firstFinished = groupCards.find((x) => x.latest);
+  // Free inquiry stays in the first course's row, where it was before there were more courses.
+  const firstFinished = rows[0]?.cards.find((x) => x.latest);
   const free = freeCard(!nextGroup && !tutorialInquiry);
   function freeCard(recommended: boolean) {
     return (
@@ -145,33 +150,36 @@ export function Home() {
         </section>
       )}
 
-      {course ? (
-        <section className="mb-8 rounded-2xl border bg-card p-5">
-          <h2 className="text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
-          <Carousel>
-            {groupCards.flatMap((card, i) => {
-              const { g, latest, started, remaining } = card;
-              // The book's order decides the recommended entry point: the first group not yet finished
-              // (unless the tutorial is still running: then its "continue" is the one recommendation).
-              const recommended = g === nextGroup && !tutorialInquiry;
-              const groupCard = (
-                <EntryCard key={g.id} recommended={recommended} onClick={() => openGroup(card)}>
-                  <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[uiLang] ?? g.label.en}</div>
-                  {showsTargetList(g, uiLang) && <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>}
-                  {latest ? (
-                    <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 探究を再開する", en: "▶ Resume inquiry" })}</div>
-                  ) : started && (
-                    <div className={cn("mt-2 text-xs font-medium", recommended ? "text-blue-100" : "text-muted-foreground")}>{t({ ja: `▶ 次は ${remaining.join(" · ")}`, en: `▶ Next: ${remaining.join(" · ")}` })}</div>
-                  )}
-                </EntryCard>
-              );
-              // Free inquiry is one more entry point of the same kind, so it sits in the row as a card: after the groups
-              // still to do and before the finished ones. Once every group is finished that puts it first, which is also
-              // when the recommendation moves to it for good.
-              return card === firstFinished ? [free, groupCard] : i === groupCards.length - 1 && !firstFinished ? [groupCard, free] : [groupCard];
-            })}
-          </Carousel>
-        </section>
+      {rows.length > 0 ? (
+        rows.map(({ course, cards }, ri) => (
+          <section key={course.id} className="mb-8 rounded-2xl border bg-card p-5">
+            <h2 className="text-sm font-semibold text-muted-foreground">{course.title[uiLang] ?? course.title.en}</h2>
+            <Carousel>
+              {cards.flatMap((card, i) => {
+                const { g, latest, started, remaining } = card;
+                // The course order decides the recommended entry point: the first group not yet finished
+                // (unless the tutorial is still running: then its "continue" is the one recommendation).
+                const recommended = g === nextGroup && !tutorialInquiry;
+                const groupCard = (
+                  <EntryCard key={g.id} recommended={recommended} onClick={() => openGroup(card)}>
+                    <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[uiLang] ?? g.label.en}</div>
+                    {showsTargetList(g, uiLang) && <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>}
+                    {latest ? (
+                      <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 探究を再開する", en: "▶ Resume inquiry" })}</div>
+                    ) : started && (
+                      <div className={cn("mt-2 text-xs font-medium", recommended ? "text-blue-100" : "text-muted-foreground")}>{t({ ja: `▶ 次は ${remaining.join(" · ")}`, en: `▶ Next: ${remaining.join(" · ")}` })}</div>
+                    )}
+                  </EntryCard>
+                );
+                if (ri > 0) return [groupCard];
+                // Free inquiry is one more entry point of the same kind, so it sits in the row as a card: after the groups
+                // still to do and before the finished ones. Once every group is finished that puts it first, which is also
+                // when the recommendation moves to it for good.
+                return card === firstFinished ? [free, groupCard] : i === cards.length - 1 && !firstFinished ? [groupCard, free] : [groupCard];
+              })}
+            </Carousel>
+          </section>
+        ))
       ) : (
         <section className="mb-8">
           <p className="text-sm whitespace-pre-line text-muted-foreground">{t({ ja: "この言語には既定コースがまだありません。\n「自由に探究する」から始めてください。", en: "No default course for this language yet.\nStart with a custom inquiry." })}</p>

@@ -41,7 +41,9 @@ Rules you must follow in every task:
 const SentenceSchema = z.object({
   l2: z.string(),
   l1: z.string(),
-  target_form: z.string().describe("the exact surface form of the target as it appears in l2, e.g. 'listened'"),
+  // Without "the target only", a preposition tends to come back as its whole phrase ("at the station"), which then
+  // bolds the noun too and swallows the preposition_phrase guide.
+  target_form: z.string().describe("the exact surface form of the target only as it appears in l2, without the words around it, e.g. 'listened', or 'at' (not 'at the station')"),
   object: z.string().nullable().describe("the object / thing the action is directed at, exactly as written in l2, or null"),
   complement: z.string().nullable().describe("complement (e.g. in SVOC), exactly as written, or null"),
   adverb: z.string().nullable().describe("adverb modifying the target, exactly as written, or null"),
@@ -90,7 +92,7 @@ export async function generateExamplesForTarget(input: GenerateExamplesInput, ta
     maxWords ? `Each sentence at most ${maxWords} words.` : null,
     others.length ? `The learner compares "${target.label}" with ${quoted}. Do not use those expressions in the sentences.` : null,
     adverbs
-      ? `Every sentence must contain an adverb modifying the target${others.length ? ` that reveals how "${target.label}" differs from ${quoted}` : ""}.`
+      ? `Every sentence must contain an adverb modifying the target (for a preposition, the phrase it heads, as in "right at the door")${others.length ? ` that reveals how "${target.label}" differs from ${quoted}` : ""}.`
       : others.length
         ? `Choose contexts typical of "${target.label}" that reveal how it differs from ${quoted}.`
         : null,
@@ -243,6 +245,8 @@ export async function translateTest(input: TranslateTestInput, opts: CallOptions
   const { l1, l2, l1Text, targets, restrictToTargets, fixedGloss, feasibilityTarget } = input;
   const rules = [
     `Translate the ${langName(l1)} text into natural ${langName(l2)}. The text contains circled numbers (①②③…) placed right before expressions the learner is studying.`,
+    // A Japanese learner testing at / in / on writes ①駅で: the number sits before the noun because the particle follows it.
+    `Where ${langName(l1)} expresses the target after its word (a particle or postposition), the number sits before that whole phrase; report the target used for the phrase.`,
     `For every circled number, report which target expression you used at that position: word is the form as it appears in your translation (inflected or conjugated as the sentence requires), and target is the same expression copied letter for letter from the list under study, in the form the learner wrote it. Do not include the circled numbers in l2_text.`,
     restrictToTargets
       ? `At each numbered position you must choose the most appropriate one of these candidates only: ${targets.map((t) => `"${t.label}"`).join(", ")}.`

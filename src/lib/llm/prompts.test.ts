@@ -4,6 +4,7 @@ import { structured } from "./client";
 import { frameTest, generateExamples, generateExamplesForTarget, qaCheck, translateTest, writingFeedback } from "./prompts";
 import type { GenerateExamplesInput } from "./prompts";
 import type { Sentence, Target } from "../types";
+import { courses } from "../courses";
 
 vi.mock("./client", () => ({ structured: vi.fn() }));
 
@@ -236,5 +237,42 @@ describe("writingFeedback", () => {
     expect(user).toContain("Avoid verdict words");
     expect(user).toContain("Write in Japanese");
     expect(r.comments[0].confidence).toBe("medium");
+  });
+});
+
+describe("the at / in / on course", () => {
+  // The real targets, as a card copies them into an inquiry
+  const group = courses.find((c) => c.id === "prepositions")!.groups[0];
+  const [at, inT, on] = group.targets.map((x, i): Target => ({ ...x, id: `p${i}` }));
+  const prepositions = input({ targets: [at, inT, on] });
+
+  it("keeps the examples to place and time, and bans the other two prepositions", async () => {
+    reply({ sentences: [] });
+    await generateExamplesForTarget(prepositions, at);
+    const { user } = lastCall();
+    expect(user).toContain('Target:\n- "at" (word: preposition of place or time)');
+    expect(user).toContain('compares "at" with "in", "on"');
+    expect(user).toContain("Do not use those expressions");
+  });
+
+  it("asks for the preposition alone as the form to bold, not the phrase around it", async () => {
+    reply({ sentences: [] });
+    await generateExamplesForTarget(prepositions, at);
+    const shape = (lastCall().schema as unknown as { shape: { sentences: { element: { shape: Record<string, { description?: string }> } } } }).shape;
+    expect(shape.sentences.element.shape.target_form.description).toContain("'at' (not 'at the station')");
+  });
+
+  it("asks for an adverb a preposition can actually take", async () => {
+    reply({ sentences: [] });
+    await generateExamplesForTarget({ ...prepositions, adverbs: true }, on);
+    expect(lastCall().user).toContain("for a preposition, the phrase it heads");
+  });
+
+  it("limits the translation test to the three prepositions, numbered before the phrase a particle ends", async () => {
+    reply({ l2_text: "", alignments: [], note: null });
+    await translateTest({ l1: "ja", l2: "en", l1Text: "①駅で②3時に会う", targets: [at, inT, on], restrictToTargets: true, fixedGloss: "", feasibilityTarget: null });
+    const { user } = lastCall();
+    expect(user).toContain('one of these candidates only: "at", "in", "on"');
+    expect(user).toContain("Where Japanese expresses the target after its word (a particle or postposition), the number sits before that whole phrase");
   });
 });

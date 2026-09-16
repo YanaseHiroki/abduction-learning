@@ -24,14 +24,23 @@ export function showsTargetList(g: CourseGroup, lang: string) {
 }
 
 export interface Course {
+  id: string;
   l2: string;
+  /** The heading over the course's cards, keyed by uiLang code with fallback "en" (it is screen copy, not a concept label). */
+  title: Record<string, string>;
   groups: CourseGroup[];
 }
 
-/** Default course for English: 13 basic verbs in 4 groups (the scope used in the book). */
+/**
+ * Default courses, in the order they are recommended. A language may have several; the first one is the
+ * tutorial's (see tutorialGroup), so new courses go after it.
+ */
 export const courses: Course[] = [
   {
+    // The 13 basic verbs in 4 groups: the scope used in the book.
+    id: "verbs",
     l2: "en",
+    title: { ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" },
     groups: [
       {
         id: "hear",
@@ -76,6 +85,28 @@ export const courses: Course[] = [
           { label: "consider", kind: "word" },
         ],
         hint: { ja: "「I think の代わりになる動詞は？」という問いを立てると探究しやすいです", en: "A good guiding question: what can replace 'I think'?" },
+      },
+    ],
+  },
+  {
+    // One of the next topics the book names. Only the word list is used; the spec keeps the examples to place and
+    // time, because at / in / on also head countless fixed phrases ("interested in", "depend on") that would bury
+    // the contrast the learner is looking for.
+    id: "prepositions",
+    l2: "en",
+    title: { ja: "🧭 前置詞コース（場所と時間）", en: "🧭 Prepositions course (place and time)" },
+    groups: [
+      {
+        id: "at-in-on",
+        emoji: "📍",
+        // The Japanese name is the concept as a Japanese speaker meets it: both particles cover all three words.
+        label: { ja: "〜に・〜で", en: "at / in / on" },
+        targets: [
+          { label: "at", kind: "word", spec: "preposition of place or time" },
+          { label: "in", kind: "word", spec: "preposition of place or time" },
+          { label: "on", kind: "word", spec: "preposition of place or time" },
+        ],
+        hint: { ja: "場所の文と時間の文を分けて見比べると、違いが見えやすくなります", en: "Look at place and time sentences separately; the differences show more easily." },
       },
     ],
   },
