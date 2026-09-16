@@ -58,7 +58,7 @@ export function HypothesisCard({ card, inquiry, cards }: { card: Card<"hypothesi
       title={t({ ja: `私たちのアブダクション v${p.version}`, en: `Our abduction v${p.version}` })}
       hint={cardHint({ ...card, payload: { ...p, lines } }, inquiry)}
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {notes.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button size="sm" variant="ghost" />}>

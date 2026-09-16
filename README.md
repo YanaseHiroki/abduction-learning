@@ -88,6 +88,16 @@ pnpm dev
 結果は「Copy Markdown」で貼り付けられます。
 2026年9月の実測は docs/model-bench-2026-09.md にあります。
 
+### テスト
+
+```
+pnpm test
+```
+
+ロジック（Vitest）、画面（Playwright で実ブラウザ）、無料枠の Worker（workerd 上の Durable Object）を通しで実行します。AI は一度も呼びません。
+個別に走らせるときは `pnpm test:unit` / `pnpm test:ui` / `pnpm test:worker`。
+詳細は docs/testing.md にあります。
+
 ### ヘルプのスクリーンショット
 
 ヘルプ（`#/help`）のスクリーンショットは `pnpm shots` で撮り直します（AI は呼びません）。
