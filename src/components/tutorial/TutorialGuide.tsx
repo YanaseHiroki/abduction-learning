@@ -69,11 +69,14 @@ export function TutorialGuide({
 
   const failed = !busy && (!!error || (!hasExamples && cards.some((c) => c.kind === "examples")));
   const steps: GuideStep[] = [
-    busy || (!hasExamples && !failed)
+    busy
       ? { title: { ja: "📘 例文を作っています", en: "📘 Making examples" }, body: { ja: "AIが例文を作っています。\n1分ほどかかることがあります。", en: "The AI is writing examples.\nThis can take a minute." }, canNext: false }
       : failed && !hasExamples
         ? { title: { ja: "📘 例文を出せませんでした", en: "📘 No examples yet" }, body: { ja: "上のメッセージを確かめてから、もう一度出してみてください。", en: "Check the message above, then try again." }, action: { label: { ja: "🔁 もう一度出す", en: "🔁 Try again" }, run: () => onPick("examples") }, canNext: false }
-        : {
+        : // Nothing running and nothing to read: the learner closed the example dialog, so offer it again.
+          !hasExamples
+          ? { title: { ja: "📘 まず例文を出す", en: "📘 Start with examples" }, body: { ja: "比べる2語の例文を出すところから始めます。", en: "Start by generating examples of the two words you are comparing." }, action: { label: { ja: "📝 例文を出す", en: "📝 Generate examples" }, run: () => onPick("examples") }, canNext: false }
+          : {
             title: { ja: "📘 例文を眺める", en: "📘 Look over the examples" },
             body: hint("examples")!,
             canNext: true,

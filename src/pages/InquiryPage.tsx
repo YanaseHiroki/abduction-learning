@@ -41,13 +41,14 @@ function NextSteps({ inquiry, cards, hasHypothesis, onPick }: { inquiry: Inquiry
   const t = useT();
   const last = cards[cards.length - 1];
   const [primary, ...others] = nextSteps(last, hasHypothesis);
-  const [early, setEarly] = useState(false);
+  // Which card the learner chose to move on from early; a new card is quiet again until it is worked on.
+  const [early, setEarly] = useState<string | null>(null);
 
-  if (!cardReady(last, inquiry) && !early) {
+  if (!cardReady(last, inquiry) && early !== last.id) {
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-dashed px-5 py-3 text-sm text-muted-foreground">
         <span>{t({ ja: "上のカードを進めると、ここに次の一手が出ます。", en: "Work on the card above and the next step appears here." })}</span>
-        <Button variant="link" size="sm" className="h-auto px-0 text-muted-foreground" onClick={() => setEarly(true)}>{t({ ja: "先に次へ進む ▸", en: "Move on anyway ▸" })}</Button>
+        <Button variant="link" size="sm" className="h-auto px-0 text-muted-foreground" onClick={() => setEarly(last.id)}>{t({ ja: "先に次へ進む ▸", en: "Move on anyway ▸" })}</Button>
       </div>
     );
   }

@@ -121,6 +121,8 @@ export function FeedbackDialog({ open, onOpenChange }: { open: boolean; onOpenCh
                   </div>
                 ))}
               </dl>
+              {/* The Worker adds the sender's IP to the mail (it is what the daily send limit counts); say so here. */}
+              <p className="pt-2 text-xs text-muted-foreground">{t({ ja: "このほかに、送信元のIPアドレスが付きます（大量送信を防ぐために使います）。", en: "Your IP address is added as well (it is what the daily send limit counts)." })}</p>
             </Disclosure>
             {state === "quota" && <p className="text-sm text-destructive">{t({ ja: "今日はこれ以上送れません。明日もう一度お試しください。", en: "No more messages can be sent today. Please try again tomorrow." })}</p>}
             {state === "error" && <p className="text-sm text-destructive">{t({ ja: "送信できませんでした。時間をおいてもう一度お試しください。", en: "Couldn't send. Please try again later." })}</p>}

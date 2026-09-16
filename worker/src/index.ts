@@ -126,6 +126,13 @@ export class QuotaCounter extends DurableObject<Env> {
     sql.exec("DELETE FROM admissions WHERE day < ?", day - 2);
     return true;
   }
+
+  /** Give the message back when the mail could not be sent, so a broken setup does not eat the day's allowance. */
+  async refundFeedback(day: number, ip: string) {
+    for (const key of [ip, "*"]) {
+      this.ctx.storage.sql.exec("UPDATE admissions SET n = MAX(n - 1, 0) WHERE day = ? AND scope = 'feedback' AND key = ?", day, key);
+    }
+  }
 }
 
 const FEEDBACK_KINDS = { usage: "使い方", bug: "不具合", request: "要望", other: "その他" } as const;
@@ -136,7 +143,8 @@ const FEEDBACK_KINDS = { usage: "使い方", bug: "不具合", request: "要望"
  * is stored here.
  */
 function feedbackMail(env: Env, body: Record<string, unknown>, ip: string): Record<string, unknown> | string {
-  const kind = typeof body.kind === "string" && body.kind in FEEDBACK_KINDS ? (body.kind as keyof typeof FEEDBACK_KINDS) : "other";
+  // hasOwn, not `in`: "toString" and friends are inherited and would print a function into the subject.
+  const kind = typeof body.kind === "string" && Object.hasOwn(FEEDBACK_KINDS, body.kind) ? (body.kind as keyof typeof FEEDBACK_KINDS) : "other";
   const message = typeof body.message === "string" ? body.message.trim() : "";
   const email = typeof body.email === "string" ? body.email.trim() : "";
   const context = body.context && typeof body.context === "object" ? (body.context as Record<string, unknown>) : {};
@@ -287,7 +295,11 @@ export default {
         headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
         body: JSON.stringify(mail),
       });
-      if (!res.ok) return json({ error: `resend ${res.status}: ${(await res.text()).slice(0, 200)}` }, 502, cors);
+      if (!res.ok) {
+        // Nothing was delivered, so the attempt must not count against the sender's day.
+        await counter.refundFeedback(day, ip);
+        return json({ error: `resend ${res.status}: ${(await res.text()).slice(0, 200)}` }, 502, cors);
+      }
       return json({ ok: true }, 200, cors);
     }
 
