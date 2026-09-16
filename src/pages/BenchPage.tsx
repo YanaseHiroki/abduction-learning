@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { describeError, structured } from "@/lib/llm/client";
+import { candidates, type Candidate } from "@/lib/llm/candidates";
 import { generateExamples, translateTest } from "@/lib/llm/prompts";
 import { providerMeta, type Provider } from "@/lib/llm/providers";
 import { useSettings } from "@/lib/settings";
@@ -17,25 +18,6 @@ import type { Sentence, Target } from "@/lib/types";
  * Runs the same STEP 1 + translation test on each candidate with the keys in Settings,
  * measures time and tokens, and lets a judge model grade the output.
  */
-
-interface Candidate {
-  provider: Provider;
-  model: string;
-  /** USD per 1M tokens, taken from each provider's public price list (Sep 2026) */
-  inputPrice: number;
-  outputPrice: number;
-}
-
-const candidates: Candidate[] = [
-  { provider: "gemini", model: "gemini-2.5-flash-lite", inputPrice: 0.1, outputPrice: 0.4 },
-  { provider: "openai", model: "gpt-5-nano", inputPrice: 0.05, outputPrice: 0.4 },
-  { provider: "openai", model: "gpt-5.6-luna", inputPrice: 0.2, outputPrice: 1.2 },
-  { provider: "gemini", model: "gemini-3.1-flash-lite", inputPrice: 0.25, outputPrice: 1.5 },
-  { provider: "openai", model: "gpt-5-mini", inputPrice: 0.25, outputPrice: 2.0 },
-  { provider: "gemini", model: "gemini-3.5-flash-lite", inputPrice: 0.3, outputPrice: 2.5 },
-  { provider: "gemini", model: "gemini-2.5-flash", inputPrice: 0.3, outputPrice: 2.5 },
-  { provider: "anthropic", model: "claude-haiku-4-5", inputPrice: 1.0, outputPrice: 5.0 },
-];
 
 const judgeDefault: Record<Provider, string> = { anthropic: "claude-opus-5", openai: "gpt-5.6", gemini: "gemini-3.8-flash" };
 

@@ -17,8 +17,9 @@ export function hasSupportLinks() {
 
 /**
  * Average cost of one inquiry on the free-tier model, from the 2026-09 benchmark
- * (docs/model-bench-2026-09.md). It only explains what the budget buys; the budget itself comes
- * from the proxy. Update it when the model or its price changes.
+ * (docs/model-bench-2026-09.md, "探究1つあたりの概算"). It only explains what the budget buys; the
+ * budget itself comes from the proxy. Update it when the model or its price changes:
+ * src/lib/llm/candidates.test.ts checks it against that doc's row for the Worker's MODEL.
  */
 export const COST_PER_INQUIRY_USD = 0.009;
 
