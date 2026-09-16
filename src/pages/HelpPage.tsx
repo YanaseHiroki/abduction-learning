@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
 import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import shotsJson from "@/assets/help/shots.json";
 import { useT, type Localized } from "@/lib/i18n";
+import { PROXY_URL } from "@/lib/llm/client";
 import { useSettings } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 
@@ -76,6 +78,7 @@ export function HelpPage() {
   const slide = slides[index];
   const last = index === slides.length - 1;
   const [dir, setDir] = useState<1 | -1>(1);
+  const [feedback, setFeedback] = useState(false);
   const swipe = useRef<{ x: number; y: number } | null>(null);
 
   const go = useCallback(
@@ -134,6 +137,15 @@ export function HelpPage() {
           )}
         </Recommended>
       </ButtonRow>
+      {/* The end of the help is where someone who is still lost gives up, so offer the way to ask here too. */}
+      {last && PROXY_URL && (
+        <p className="pt-8 text-center text-sm whitespace-pre-line text-muted-foreground">
+          {t({ ja: "分かりにくい所や、うまく動かない所はありませんでしたか？", en: "Anything unclear, or not working as it should?" })}
+          <br />
+          <Button variant="link" className="h-auto px-0 py-1" onClick={() => setFeedback(true)}>{t({ ja: "✉️ ご意見・不具合を伝える", en: "✉️ Tell us about it" })}</Button>
+        </p>
+      )}
+      <FeedbackDialog open={feedback} onOpenChange={setFeedback} />
     </div>
   );
 }
