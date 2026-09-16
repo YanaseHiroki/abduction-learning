@@ -530,3 +530,60 @@ describe("unknown routes", () => {
     expect(res.headers.get("access-control-allow-origin")).toBe(ORIGIN);
   });
 });
+
+describe("logs", () => {
+  /** Every object the worker logged during the test, whichever console method it went through. */
+  let logged: Record<string, unknown>[];
+  beforeEach(() => {
+    logged = [];
+    for (const m of ["log", "warn", "error"] as const) vi.spyOn(console, m).mockImplementation((x: unknown) => void logged.push(x as Record<string, unknown>));
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  const event = (name: string) => logged.find((l) => l.event === name);
+  /** Logs outlive the request, so none may carry who sent it or what they wrote. */
+  const expectNothingPersonal = (...secrets: string[]) => {
+    const all = JSON.stringify(logged);
+    for (const s of ["test-key", "test-resend-key", "owner@example.com", ...secrets]) expect(all).not.toContain(s);
+  };
+
+  it("records which scope turned a /generate away, with the device only as a tag", async () => {
+    const d = { "x-device-id": `logged-${device}`, "cf-connecting-ip": `10.9.0.${device}` };
+    for (let i = 0; i < Number(env.LIMIT_DEVICE_FIRST_DAY); i++) await generate({}, { headers: { ...d, "x-inquiry-id": `inq-${i}` } });
+
+    expect((await generate({}, { headers: { ...d, "x-inquiry-id": "one-too-many" } })).status).toBe(429);
+
+    expect(event("generate_quota")).toMatchObject({ scope: "device", deviceTag: expect.stringMatching(/^[0-9a-f]{8}$/) });
+    expect(logged.filter((l) => l.event === "request").at(-1)).toMatchObject({ method: "POST", route: "/generate", status: 429 });
+    expectNothingPersonal(d["x-device-id"], d["cf-connecting-ip"], "Target: listen", SYSTEM_SIGNATURE);
+  });
+
+  it("records a provider failure with its status and a short summary", async () => {
+    upstream.reply = () => ({ status: 429, body: { error: { message: "Rate limit reached for gpt-5.6-luna" } } });
+
+    expect((await generate({ user: "a sentence the learner wrote" })).status).toBe(502);
+
+    expect(event("provider_failed")).toMatchObject({ provider: "openai", status: 429, error: "Rate limit reached for gpt-5.6-luna" });
+    expectNothingPersonal(`device-${device}`, `10.0.0.${device}`, "a sentence the learner wrote");
+  });
+
+  it("records a feedback mail that failed, with addresses masked and without the message", async () => {
+    upstream.reply = () => ({ status: 403, body: { message: "You can only send testing emails to your own email address (owner@example.com)." } });
+
+    const res = await SELF.fetch("https://proxy.test/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json", "cf-connecting-ip": "7.7.7.7" },
+      body: JSON.stringify({ kind: "bug", message: "secret complaint", email: "learner@example.org", context: {} }),
+    });
+
+    expect(res.status).toBe(502);
+    expect(event("feedback_failed")).toMatchObject({ status: 403, error: expect.stringContaining("<email>") });
+    expectNothingPersonal("7.7.7.7", "secret complaint", "learner@example.org");
+  });
+
+  it("folds paths the app does not serve into one route, so a scanner cannot fill the logs with its own strings", async () => {
+    await SELF.fetch("https://proxy.test/wp-admin/setup.php");
+
+    expect(event("request")).toMatchObject({ route: "other", status: 404 });
+  });
+});

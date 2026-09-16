@@ -69,6 +69,19 @@ DONATION_USD_RATES = "USD=1,JPY=0.0067,EUR=1.08"
 # SPONSORS_WEBHOOK_SECRET        — the Sponsors webhook's secret; without it /donation/github answers 503
 #   (not GITHUB_-prefixed: GitHub refuses Actions secret names starting with GITHUB_)
 
+# Workers Logs keeps what the Worker logs on Cloudflare's side, so a failure can be traced after the fact
+# instead of only while someone happens to run `wrangler tail`. Free plan (2026-09): 200,000 log events a day,
+# kept 3 days. The limits above bound a day at LIMIT_GLOBAL x CALLS_PER_INQUIRY ≈ 20,000 AI calls, each writing
+# one or two lines, plus /quota reads: far inside that, so every request is kept (rate 1).
+# Invocation logs are off: they record the request headers, the learner's IP among them. src/index.ts writes
+# its own line per request instead (route, status, duration) and never logs IPs, texts, addresses or keys.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+invocation_logs = false
+
 [durable_objects]
 bindings = [{ name = "QUOTA", class_name = "QuotaCounter" }]
 

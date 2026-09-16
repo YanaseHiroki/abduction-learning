@@ -373,11 +373,13 @@ async function creditDonation(env: Env, counter: DurableObjectStub<QuotaCounter>
   const rate = usdRates(env.DONATION_USD_RATES)[donation.currency];
   const share = Number(env.DONATION_SHARE);
   if (!(rate > 0) || !(share > 0 && share <= 1)) {
-    console.warn(`donation ${donation.id} not credited: no rate for ${donation.currency} or DONATION_SHARE unset`);
+    log("warn", "donation_not_credited", { id: donation.id, currency: donation.currency, reason: rate > 0 ? "share" : "rate" });
     return { ok: true, creditedUsd: 0 };
   }
   const micros = Math.floor(donation.amount * rate * share * 1e6);
   const fresh = await counter.credit(donation.id, micros, day);
+  // The amount is left out: next to the time it would single out the donor in the services' own records.
+  log("info", fresh ? "donation_credited" : "donation_duplicate", { id: donation.id });
   return { ok: true, creditedUsd: fresh ? micros / 1e6 : 0 };
 }
 
@@ -415,146 +417,215 @@ function corsHeaders(env: Env, origin: string | null) {
   };
 }
 
+/**
+ * One structured line to Workers Logs, which indexes the fields so they can be filtered on in the dashboard.
+ * Logs outlive the request and are read by whoever has the Cloudflare account, so nothing here may identify a
+ * learner or leak a secret: no IP, no message or prompt text, no address, no key, and the device only as `deviceTag`.
+ */
+export function log(level: "info" | "warn" | "error", event: string, fields: Record<string, unknown> = {}) {
+  console[level === "info" ? "log" : level]({ event, ...fields });
+}
+
+/**
+ * A short digest of the device ID: enough to tell whether failures come from one device or many, not enough to
+ * look the device up in the app or to match it against the ID the browser keeps.
+ */
+export async function deviceTag(device: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`log:${device}`)));
+  return [...digest.slice(0, 4)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * An upstream error message cut down for the log. Resend's errors name the account's address, and a provider's
+ * may quote part of the request, so addresses are masked and only the start is kept.
+ */
+export function errorSummary(message: string): string {
+  return message.replace(/[^\s@"'<>()]+@[^\s@"'<>()]+/g, "<email>").replace(/\s+/g, " ").slice(0, 160);
+}
+
+/** Only the app's own routes by name; anything else (scanners probing paths) is folded into one value. */
+const ROUTES = new Set(["/quota", "/generate", "/feedback", "/donation/kofi", "/donation/github"]);
+
 function json(body: unknown, status: number, headers: Record<string, string>) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", ...headers } });
 }
 
 export default {
+  /**
+   * Invocation logs are off in wrangler.toml because they carry the request headers, IP included, so this
+   * line stands in for them: every request's route, status and duration, and any exception that escapes.
+   */
   async fetch(request: Request, env: Env): Promise<Response> {
-    const origin = request.headers.get("origin");
-    const cors = corsHeaders(env, origin);
-    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
-
-    const allowed = env.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
-    if (allowed.length && origin && !allowed.includes(origin)) return json({ error: "origin not allowed" }, 403, cors);
-
-    const url = new URL(request.url);
-    const device = (request.headers.get("x-device-id") ?? "").slice(0, 64) || "anonymous";
-    const ip = request.headers.get("cf-connecting-ip") ?? "0.0.0.0";
-    const { day, resetAt } = dayInfo(env);
-    const limits: Limits = {
-      device: Number(env.LIMIT_DEVICE),
-      deviceFirstDay: Number(env.LIMIT_DEVICE_FIRST_DAY),
-      ip: Number(env.LIMIT_IP),
-      global: Number(env.LIMIT_GLOBAL),
-      perInquiry: Number(env.CALLS_PER_INQUIRY),
-      ttlDays: Number(env.INQUIRY_TTL_DAYS),
-      budget: Math.floor(Number(env.DAILY_BUDGET_USD) * 1e6),
-      admitBudget: Math.floor(Number(env.ADMIT_BUDGET_USD) * 1e6),
-    };
-    const prices: Prices = { input: Number(env.PRICE_INPUT_PER_M), output: Number(env.PRICE_OUTPUT_PER_M) };
-    const counter = env.QUOTA.get(env.QUOTA.idFromName("global"));
-
-    if (url.pathname === "/quota" && request.method === "GET") {
-      const { status, budget, limits: today, pooledMicros, donors } = await counter.quota(day, device, ip, limits);
-      return json(
-        {
-          ...status,
-          budget,
-          // dailyBudgetUsd includes what donations add today; donatedUsd is that part, so the app can say where it came from.
-          rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays, dailyBudgetUsd: today.budget / 1e6, donatedUsd: pooledMicros / 1e6 },
-          // Here rather than on a route of its own: the support page already re-reads /quota the moment a
-          // donation may have landed, so the giver sees their number appear together with the wider free tier.
-          // Dates only, in the reset time zone: a minute-exact time could be matched against the payment services' own public feeds.
-          donations: { count: donors.count, totalUsd: donors.micros / 1e6, recent: donors.recent.map((d) => ({ no: d.no, date: localDate(d.at, env) })) },
-          model: env.MODEL,
-          resetAt,
-        },
-        200,
-        cors,
-      );
+    const started = Date.now();
+    const pathname = new URL(request.url).pathname;
+    const route = ROUTES.has(pathname) ? pathname : "other";
+    try {
+      const res = await handle(request, env);
+      log(res.status >= 500 ? "error" : "info", "request", { method: request.method, route, status: res.status, ms: Date.now() - started });
+      return res;
+    } catch (e) {
+      log("error", "exception", { method: request.method, route, ms: Date.now() - started, error: errorSummary(e instanceof Error ? `${e.name}: ${e.message}` : String(e)) });
+      throw e;
     }
-
-    if (url.pathname === "/generate" && request.method === "POST") {
-      let body: { system?: unknown; user?: unknown; schema?: unknown; effort?: unknown; maxTokens?: unknown };
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: "invalid json" }, 400, cors);
-      }
-      const { system, user, schema } = body;
-      if (typeof system !== "string" || !system.includes(SYSTEM_SIGNATURE)) return json({ error: "unsupported prompt" }, 400, cors);
-      if (typeof user !== "string" || user.length > Number(env.MAX_USER_CHARS)) return json({ error: "user text too long" }, 400, cors);
-      if (!schema || typeof schema !== "object") return json({ error: "schema required" }, 400, cors);
-      const inquiry = (request.headers.get("x-inquiry-id") ?? "").slice(0, 64);
-      if (!inquiry) return json({ error: "inquiry required" }, 400, cors);
-      const maxTokens = Math.min(Number(body.maxTokens) || 4000, Number(env.MAX_TOKENS_CAP));
-      const effort = body.effort === "medium" || body.effort === "high" ? body.effort : "low";
-
-      // A missing or mistyped price would make every call look free, so refuse rather than spend blind.
-      if (!(prices.input > 0 && prices.output > 0 && limits.budget > 0)) return json({ error: "budget not configured" }, 503, cors);
-
-      const inquiryKey = `${device}:${inquiry}`;
-      const reserve = reserveMicros([system, user, JSON.stringify(schema)], maxTokens, prices);
-      const charged = await counter.charge(day, device, ip, inquiryKey, limits, reserve);
-      if (!charged.ok) return json({ error: "quota", scope: charged.scope, resetAt }, 429, cors);
-
-      try {
-        const r = await callProvider({
-          provider: env.PROVIDER,
-          apiKey: env.PROVIDER_API_KEY,
-          model: env.MODEL,
-          system,
-          user,
-          schema: schema as Record<string, unknown>,
-          effort,
-          maxTokens,
-        });
-        // Without usage the bill is unknown, so the reservation stands as the cost.
-        await counter.settle(day, reserve, r.usage ? costMicros(r.usage, prices) : reserve);
-        return json({ text: r.text, model: r.model }, 200, { ...cors, "x-quota-inquiry-remaining": String(charged.remaining) });
-      } catch (e) {
-        // A provider's error status means nothing was billed. Anything else (a dropped connection, an
-        // unreadable body) may have been, so that call keeps its reservation but not the learner's call.
-        if (e instanceof ProviderError && e.status !== 200) await counter.refund(inquiryKey, day, reserve);
-        else await counter.refund(inquiryKey, day, 0);
-        if (e instanceof ProviderError) return json({ error: `${e.provider} ${e.status}: ${e.message}` }, 502, cors);
-        return json({ error: e instanceof Error ? e.message : String(e) }, 500, cors);
-      }
-    }
-
-    if (url.pathname === "/feedback" && request.method === "POST") {
-      if (!env.RESEND_API_KEY || !env.FEEDBACK_TO) return json({ error: "feedback not configured" }, 503, cors);
-      let body: Record<string, unknown>;
-      try {
-        body = await request.json();
-      } catch {
-        return json({ error: "invalid json" }, 400, cors);
-      }
-      // Hidden field only bots fill in: pretend it worked so they do not retry.
-      if (typeof body.website === "string" && body.website) return json({ ok: true }, 200, cors);
-      const mail = feedbackMail(env, body, ip);
-      if (typeof mail === "string") return json({ error: mail }, 400, cors);
-      if (!(await counter.admitFeedback(day, ip, Number(env.FEEDBACK_LIMIT_IP), Number(env.FEEDBACK_LIMIT_GLOBAL)))) {
-        return json({ error: "quota", resetAt }, 429, cors);
-      }
-      const res = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
-        body: JSON.stringify(mail),
-      });
-      if (!res.ok) {
-        // Nothing was delivered, so the attempt must not count against the sender's day.
-        await counter.refundFeedback(day, ip);
-        return json({ error: `resend ${res.status}: ${(await res.text()).slice(0, 200)}` }, 502, cors);
-      }
-      return json({ ok: true }, 200, cors);
-    }
-
-    if (url.pathname === "/donation/kofi" && request.method === "POST") {
-      if (!env.KOFI_VERIFICATION_TOKEN) return json({ error: "donations not configured" }, 503, cors);
-      const donation = await kofiDonation(request, env.KOFI_VERIFICATION_TOKEN);
-      if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
-      return json(await creditDonation(env, counter, day, donation), 200, cors);
-    }
-
-    if (url.pathname === "/donation/github" && request.method === "POST") {
-      if (!env.SPONSORS_WEBHOOK_SECRET) return json({ error: "donations not configured" }, 503, cors);
-      const donation = await githubDonation(request, env.SPONSORS_WEBHOOK_SECRET);
-      if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
-      return json(await creditDonation(env, counter, day, donation), 200, cors);
-    }
-
-    return json({ error: "not found" }, 404, cors);
   },
 } satisfies ExportedHandler<Env>;
+
+async function handle(request: Request, env: Env): Promise<Response> {
+  const origin = request.headers.get("origin");
+  const cors = corsHeaders(env, origin);
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+
+  const allowed = env.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean);
+  if (allowed.length && origin && !allowed.includes(origin)) return json({ error: "origin not allowed" }, 403, cors);
+
+  const url = new URL(request.url);
+  const device = (request.headers.get("x-device-id") ?? "").slice(0, 64) || "anonymous";
+  const ip = request.headers.get("cf-connecting-ip") ?? "0.0.0.0";
+  const { day, resetAt } = dayInfo(env);
+  const limits: Limits = {
+    device: Number(env.LIMIT_DEVICE),
+    deviceFirstDay: Number(env.LIMIT_DEVICE_FIRST_DAY),
+    ip: Number(env.LIMIT_IP),
+    global: Number(env.LIMIT_GLOBAL),
+    perInquiry: Number(env.CALLS_PER_INQUIRY),
+    ttlDays: Number(env.INQUIRY_TTL_DAYS),
+    budget: Math.floor(Number(env.DAILY_BUDGET_USD) * 1e6),
+    admitBudget: Math.floor(Number(env.ADMIT_BUDGET_USD) * 1e6),
+  };
+  const prices: Prices = { input: Number(env.PRICE_INPUT_PER_M), output: Number(env.PRICE_OUTPUT_PER_M) };
+  const counter = env.QUOTA.get(env.QUOTA.idFromName("global"));
+
+  if (url.pathname === "/quota" && request.method === "GET") {
+    const { status, budget, limits: today, pooledMicros, donors } = await counter.quota(day, device, ip, limits);
+    return json(
+      {
+        ...status,
+        budget,
+        // dailyBudgetUsd includes what donations add today; donatedUsd is that part, so the app can say where it came from.
+        rules: { device: limits.device, deviceFirstDay: limits.deviceFirstDay, perInquiry: limits.perInquiry, ttlDays: limits.ttlDays, dailyBudgetUsd: today.budget / 1e6, donatedUsd: pooledMicros / 1e6 },
+        // Here rather than on a route of its own: the support page already re-reads /quota the moment a
+        // donation may have landed, so the giver sees their number appear together with the wider free tier.
+        // Dates only, in the reset time zone: a minute-exact time could be matched against the payment services' own public feeds.
+        donations: { count: donors.count, totalUsd: donors.micros / 1e6, recent: donors.recent.map((d) => ({ no: d.no, date: localDate(d.at, env) })) },
+        model: env.MODEL,
+        resetAt,
+      },
+      200,
+      cors,
+    );
+  }
+
+  if (url.pathname === "/generate" && request.method === "POST") {
+    let body: { system?: unknown; user?: unknown; schema?: unknown; effort?: unknown; maxTokens?: unknown };
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: "invalid json" }, 400, cors);
+    }
+    const { system, user, schema } = body;
+    if (typeof system !== "string" || !system.includes(SYSTEM_SIGNATURE)) return json({ error: "unsupported prompt" }, 400, cors);
+    if (typeof user !== "string" || user.length > Number(env.MAX_USER_CHARS)) return json({ error: "user text too long" }, 400, cors);
+    if (!schema || typeof schema !== "object") return json({ error: "schema required" }, 400, cors);
+    const inquiry = (request.headers.get("x-inquiry-id") ?? "").slice(0, 64);
+    if (!inquiry) return json({ error: "inquiry required" }, 400, cors);
+    const maxTokens = Math.min(Number(body.maxTokens) || 4000, Number(env.MAX_TOKENS_CAP));
+    const effort = body.effort === "medium" || body.effort === "high" ? body.effort : "low";
+
+    // A missing or mistyped price would make every call look free, so refuse rather than spend blind.
+    if (!(prices.input > 0 && prices.output > 0 && limits.budget > 0)) {
+      log("error", "generate_unconfigured", { reason: "prices or DAILY_BUDGET_USD missing" });
+      return json({ error: "budget not configured" }, 503, cors);
+    }
+
+    const inquiryKey = `${device}:${inquiry}`;
+    const reserve = reserveMicros([system, user, JSON.stringify(schema)], maxTokens, prices);
+    const charged = await counter.charge(day, device, ip, inquiryKey, limits, reserve);
+    if (!charged.ok) {
+      // "budget" means the day's money is gone, and "global" includes new inquiries stopped at ADMIT_BUDGET_USD,
+      // which is what the owner needs to tell apart from a single device using up its own allowance.
+      log(charged.scope === "budget" ? "warn" : "info", "generate_quota", { scope: charged.scope, deviceTag: await deviceTag(device), reserveMicros: reserve });
+      return json({ error: "quota", scope: charged.scope, resetAt }, 429, cors);
+    }
+
+    try {
+      const r = await callProvider({
+        provider: env.PROVIDER,
+        apiKey: env.PROVIDER_API_KEY,
+        model: env.MODEL,
+        system,
+        user,
+        schema: schema as Record<string, unknown>,
+        effort,
+        maxTokens,
+      });
+      // Without usage the bill is unknown, so the reservation stands as the cost.
+      await counter.settle(day, reserve, r.usage ? costMicros(r.usage, prices) : reserve);
+      return json({ text: r.text, model: r.model }, 200, { ...cors, "x-quota-inquiry-remaining": String(charged.remaining) });
+    } catch (e) {
+      // A provider's error status means nothing was billed. Anything else (a dropped connection, an
+      // unreadable body) may have been, so that call keeps its reservation but not the learner's call.
+      if (e instanceof ProviderError && e.status !== 200) await counter.refund(inquiryKey, day, reserve);
+      else await counter.refund(inquiryKey, day, 0);
+      log("error", "provider_failed", {
+        provider: e instanceof ProviderError ? e.provider : env.PROVIDER,
+        model: env.MODEL,
+        // 200 is a refusal or an empty answer; 0 is a failure before any status arrived
+        status: e instanceof ProviderError ? e.status : null,
+        error: errorSummary(e instanceof Error ? e.message : String(e)),
+        deviceTag: await deviceTag(device),
+      });
+      if (e instanceof ProviderError) return json({ error: `${e.provider} ${e.status}: ${e.message}` }, 502, cors);
+      return json({ error: e instanceof Error ? e.message : String(e) }, 500, cors);
+    }
+  }
+
+  if (url.pathname === "/feedback" && request.method === "POST") {
+    if (!env.RESEND_API_KEY || !env.FEEDBACK_TO) {
+      log("error", "feedback_unconfigured");
+      return json({ error: "feedback not configured" }, 503, cors);
+    }
+    let body: Record<string, unknown>;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: "invalid json" }, 400, cors);
+    }
+    // Hidden field only bots fill in: pretend it worked so they do not retry.
+    if (typeof body.website === "string" && body.website) return json({ ok: true }, 200, cors);
+    const mail = feedbackMail(env, body, ip);
+    if (typeof mail === "string") return json({ error: mail }, 400, cors);
+    if (!(await counter.admitFeedback(day, ip, Number(env.FEEDBACK_LIMIT_IP), Number(env.FEEDBACK_LIMIT_GLOBAL)))) {
+      log("warn", "feedback_quota");
+      return json({ error: "quota", resetAt }, 429, cors);
+    }
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+      body: JSON.stringify(mail),
+    });
+    if (!res.ok) {
+      // Nothing was delivered, so the attempt must not count against the sender's day.
+      await counter.refundFeedback(day, ip);
+      const detail = (await res.text()).slice(0, 200);
+      log("error", "feedback_failed", { status: res.status, error: errorSummary(detail) });
+      return json({ error: `resend ${res.status}: ${detail}` }, 502, cors);
+    }
+    return json({ ok: true }, 200, cors);
+  }
+
+  if (url.pathname === "/donation/kofi" && request.method === "POST") {
+    if (!env.KOFI_VERIFICATION_TOKEN) return json({ error: "donations not configured" }, 503, cors);
+    const donation = await kofiDonation(request, env.KOFI_VERIFICATION_TOKEN);
+    if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
+    return json(await creditDonation(env, counter, day, donation), 200, cors);
+  }
+
+  if (url.pathname === "/donation/github" && request.method === "POST") {
+    if (!env.SPONSORS_WEBHOOK_SECRET) return json({ error: "donations not configured" }, 503, cors);
+    const donation = await githubDonation(request, env.SPONSORS_WEBHOOK_SECRET);
+    if (donation === "forbidden") return json({ error: "forbidden" }, 403, cors);
+    return json(await creditDonation(env, counter, day, donation), 200, cors);
+  }
+
+  return json({ error: "not found" }, 404, cors);
+}
