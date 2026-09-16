@@ -61,3 +61,54 @@ export function fmtDate(ts: number, lang: string) {
 export function sentenceKey(targetId: string, index: number) {
   return `${targetId}:${index}`;
 }
+
+/**
+ * Example sentences for the translation test's input, keyed by L1 (see tutorialTranslationSample, which
+ * keys its ready-made sentence the same way). What goes in that field is a sentence in the learner's own
+ * language, so the screen language must not decide it: an English screen with Japanese as the native
+ * language still needs a Japanese example. ①② mark where the words being compared should come out.
+ */
+const translationSamples: Record<string, string> = {
+  ja: "例: 嫌な意見も①聞くべきだし、噂は自然と②聞こえてくる。",
+  en: "e.g. You should ①listen to harsh opinions; rumors just ②reach your ears.",
+};
+
+/** The example for this native language, or null where there is none (the card then explains ①② instead). */
+export function translationSampleIn(l1: string): string | null {
+  return translationSamples[l1] ?? null;
+}
+
+/**
+ * Which studied expression an AI translation used at a circled marker.
+ *
+ * The model reports it in `target`, copied from the candidate list, so an inflected surface form
+ * ("眺めて" for 眺める, "regardais" for regarder) still lands on its target. When that is missing —
+ * an older stored result, or a model that writes the inflected form there too — fall back to the
+ * surface form: the target whose label shares the longest prefix with it, as long as the shared part
+ * covers at least half the label. Labels that tie (look at / look for against "looked at") fall to
+ * the first one, the same guess the fallback has always made.
+ */
+export function matchTargetId(
+  a: { word: string; target?: string | null },
+  targets: { id: string; label: string }[],
+): string | null {
+  const norm = (s: string) => s.trim().toLowerCase();
+  const named = a.target ? targets.find((x) => norm(x.label) === norm(a.target!)) : undefined;
+  if (named) return named.id;
+  const forms = [a.target, a.word].filter((s): s is string => !!s).map(norm);
+  let best: { id: string; len: number } | null = null;
+  for (const x of targets) {
+    const label = norm(x.label);
+    if (!label) continue;
+    const len = Math.max(...forms.map((f) => commonPrefixLength(f, label)));
+    if (len < Math.ceil(label.length / 2)) continue;
+    if (!best || len > best.len) best = { id: x.id, len };
+  }
+  return best?.id ?? null;
+}
+
+function commonPrefixLength(a: string, b: string) {
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return i;
+}

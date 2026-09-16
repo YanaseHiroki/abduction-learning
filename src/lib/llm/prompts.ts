@@ -220,6 +220,10 @@ const TranslationSchema = z.object({
     z.object({
       index: z.number().describe("the circled number in the source text"),
       word: z.string().describe("the target expression you used at that position, in its surface form"),
+      target: z
+        .string()
+        .nullable()
+        .describe("which expression under study that is, copied exactly as the learner wrote it, or null if none of them was used"),
     }),
   ),
   note: z.string().nullable().describe("only if the learner asked a feasibility question; otherwise null"),
@@ -239,7 +243,7 @@ export async function translateTest(input: TranslateTestInput, opts: CallOptions
   const { l1, l2, l1Text, targets, restrictToTargets, fixedGloss, feasibilityTarget } = input;
   const rules = [
     `Translate the ${langName(l1)} text into natural ${langName(l2)}. The text contains circled numbers (①②③…) placed right before expressions the learner is studying.`,
-    `For every circled number, report which target expression you used at that position. Do not include the circled numbers in l2_text.`,
+    `For every circled number, report which target expression you used at that position: word is the form as it appears in your translation (inflected or conjugated as the sentence requires), and target is the same expression copied letter for letter from the list under study, in the form the learner wrote it. Do not include the circled numbers in l2_text.`,
     restrictToTargets
       ? `At each numbered position you must choose the most appropriate one of these candidates only: ${targets.map((t) => `"${t.label}"`).join(", ")}.`
       : `Choose whatever is most natural; the candidates under study are ${targets.map((t) => `"${t.label}"`).join(", ")}, but you are not restricted to them.`,

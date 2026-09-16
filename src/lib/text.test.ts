@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fmtDate, markersIn, segment, sentenceKey } from "./text";
+import { fmtDate, markersIn, matchTargetId, segment, sentenceKey, translationSampleIn } from "./text";
 
 const texts = (segs: { text: string }[]) => segs.map((s) => s.text);
 const typed = (segs: { text: string; type: string | null }[], type: string) => segs.filter((s) => s.type === type).map((s) => s.text);
@@ -78,5 +78,67 @@ describe("fmtDate", () => {
     const ts = Date.UTC(2026, 8, 1, 3, 0);
     expect(fmtDate(ts, "ja")).toMatch(/2026/);
     expect(fmtDate(ts, "en")).toMatch(/2026/);
+  });
+});
+
+describe("translationSampleIn", () => {
+  it("gives the example in the native language, not the screen language", () => {
+    expect(translationSampleIn("ja")).toContain("聞く");
+    expect(translationSampleIn("en")).toContain("listen");
+  });
+
+  it("marks where the compared words come out, so the example teaches ①②", () => {
+    for (const l1 of ["ja", "en"]) {
+      expect(markersIn(translationSampleIn(l1)!)).toEqual([1, 2]);
+    }
+  });
+
+  it("has nothing to offer for a language with no example, rather than one in the wrong language", () => {
+    expect(translationSampleIn("fr")).toBeNull();
+  });
+});
+
+describe("matchTargetId", () => {
+  const listen = { id: "t1", label: "listen" };
+  const hear = { id: "t2", label: "hear" };
+  const miru = { id: "t3", label: "見る" };
+  const nagameru = { id: "t4", label: "眺める" };
+
+  it("takes the target the AI names, whatever form the sentence used", () => {
+    expect(matchTargetId({ word: "眺めて", target: "眺める" }, [miru, nagameru])).toBe("t4");
+    expect(matchTargetId({ word: "listened", target: "listen" }, [listen, hear])).toBe("t1");
+  });
+
+  it("ignores case and stray spaces in the named target", () => {
+    expect(matchTargetId({ word: "Heard", target: " Hear " }, [listen, hear])).toBe("t2");
+  });
+
+  it("falls back to the surface form when no target is named", () => {
+    // stored results from before the AI was asked for the target, and models that inflect it anyway
+    expect(matchTargetId({ word: "listened", target: null }, [listen, hear])).toBe("t1");
+    expect(matchTargetId({ word: "heard" }, [listen, hear])).toBe("t2");
+    expect(matchTargetId({ word: "眺めて", target: "眺めた" }, [miru, nagameru])).toBe("t4");
+  });
+
+  it("matches a conjugated form in languages where the ending changes", () => {
+    // the bug this guards: 眺めて never contains 眺める, and regardais never contains regarder
+    expect(matchTargetId({ word: "眺めていた" }, [miru, nagameru])).toBe("t4");
+    expect(matchTargetId({ word: "見ていた" }, [miru, nagameru])).toBe("t3");
+    const fr = [{ id: "t5", label: "regarder" }, { id: "t6", label: "voir" }];
+    expect(matchTargetId({ word: "regardais" }, fr)).toBe("t5");
+    expect(matchTargetId({ word: "voyait" }, fr)).toBe("t6");
+    expect(matchTargetId({ word: "made" }, [{ id: "t7", label: "make" }])).toBe("t7");
+  });
+
+  it("prefers the target that shares more of the form", () => {
+    const targets = [miru, { id: "t8", label: "見せる" }];
+    expect(matchTargetId({ word: "見せた" }, targets)).toBe("t8");
+    expect(matchTargetId({ word: "見た" }, targets)).toBe("t3");
+  });
+
+  it("reports no target when the AI used something else entirely", () => {
+    expect(matchTargetId({ word: "watched", target: null }, [listen, hear])).toBeNull();
+    expect(matchTargetId({ word: "読んだ" }, [miru, nagameru])).toBeNull();
+    expect(matchTargetId({ word: "listened", target: "listen" }, [])).toBeNull();
   });
 });
