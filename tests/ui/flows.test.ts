@@ -212,6 +212,20 @@ describe("settings", () => {
     expect(await app.page.evaluate(() => document.documentElement.lang)).toBe("en");
   });
 
+  it("moves the language being learned aside when the native language takes its place", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/");
+    await app.page.getByRole("button", { name: /学習する言語を変更する/ }).click();
+
+    // 母語 = 英語, while 学ぶ言語 is still 英語
+    await app.page.getByRole("combobox").filter({ hasText: "日本語" }).first().click();
+    await app.page.getByRole("option", { name: "英語", exact: true }).click();
+
+    const stored = await app.page.evaluate(() => JSON.parse(localStorage.getItem("abduction-learning.settings")!));
+    expect(stored.defaultL1).toBe("en");
+    expect(stored.defaultL2).toBe("ja");
+  });
+
   it("turns the page dark and keeps it dark after a reload", async () => {
     app = await openApp({ seed: true });
     await app.go("/settings");
@@ -291,6 +305,16 @@ describe("working inside an inquiry", () => {
 
     expect(asked).toHaveLength(2);
     expect(await cards.count()).toBe(before - 1);
+  });
+
+  it("shows the translation test's example in the native language, whatever the screen language is", async () => {
+    app = await openApp({ seed: true, lang: "en" });
+    await app.go("/inquiry/demo");
+    const field = app.page.locator("#card-demo-translation textarea").first();
+
+    // the screen is English, but the sentence typed here is Japanese (the demo inquiry's L1)
+    expect(await app.page.evaluate(() => document.documentElement.lang)).toBe("en");
+    expect(await field.getAttribute("placeholder")).toContain("嫌な意見");
   });
 
   it("goes back to the home screen from the inquiry", async () => {
