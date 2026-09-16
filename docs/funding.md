@@ -1,7 +1,8 @@
 # 無料枠の原資と支援の受け口
 
-無料枠は運営者のAPIキーで動いていて、`worker/wrangler.toml` の `LIMIT_GLOBAL` が1日の費用の上限を決めています。
-上限は「1日に出せる額 ÷ 探究1つの平均費用」で決めます（2026-09 時点: $3 ÷ $0.009 ≒ 330。根拠は docs/model-bench-2026-09.md）。
+無料枠は運営者のAPIキーで動いていて、`worker/wrangler.toml` の `DAILY_BUDGET_USD` が1日の費用の上限を決めています（2026-09 時点: $3）。
+Worker は呼び出しの前に最悪の費用を予約し、この額を超える呼び出しは送りません。新しい探究は `ADMIT_BUDGET_USD`（$2.50）で締め切ります。
+`LIMIT_GLOBAL`（探究の数での全体の上限）は予備の歯止めで、「1日に出せる額 ÷ 探究1つの平均費用」で合わせてあります（$3 ÷ $0.009 ≒ 330。根拠は docs/model-bench-2026-09.md）。
 原資が増えればこの上限を上げられる、という構造なので、その受け口を用意しています。
 
 このドキュメントは方針と、その理由の記録です。
@@ -53,7 +54,7 @@
 - **提供者の側で、使用額のハード上限を設定済み**であること（OpenAI の usage limits、Anthropic の spend limits など）。上限額を運営者も把握しておく。
 - **受け渡しは秘密を扱える経路だけ**で行う。ご意見フォーム・メール・チャット・Issue では受け取らない。フォームにキーらしき文字列が届いたら、使わずに提供者へ失効を依頼する。
 - 提供者がいつでもキーを失効できること、失効されても運営者は責任を負わないことを、事前に文面で合意しておく。
-- Worker 側は、キーごとに `LIMIT_GLOBAL` 相当の上限を持ち、どのキーでどれだけ使ったかを提供者に報告できるようにしてから受ける。
+- Worker 側は、キーごとに `DAILY_BUDGET_USD` 相当の費用の上限を持ち、どのキーでどれだけ使ったかを提供者に報告できるようにしてから受ける。
 
 ## 導線の置き方
 
@@ -72,12 +73,12 @@
 - 探究1つの平均費用（`src/lib/support.ts` の `COST_PER_INQUIRY_USD`）。上限額が何探究分かの目安として添える
 
 `rules.dailyBudgetUsd` を返さない古い Worker のときだけ、`COST_PER_INQUIRY_USD` × 全体の上限で1日の額を見積もり、「およそ」と書きます。
-`COST_PER_INQUIRY_USD` は `LIMIT_GLOBAL` を決めたのと同じ数字です。モデルや価格を変えて決め直したときは、ここも一緒に直してください。
+`COST_PER_INQUIRY_USD` は `LIMIT_GLOBAL` を合わせたのと同じ数字です。モデルや価格を変えて決め直したときは、ここも一緒に直してください。
 
 ## 運営者の設定手順
 
 1. GitHub Sponsors のプロフィールを作る（本人確認、振込先、税務情報）。URL は `https://github.com/sponsors/<ユーザー名>`。
 2. Ko-fi のページを作り、Stripe か PayPal をつなぐ。URL は `https://ko-fi.com/<名前>`。
 3. GitHub リポジトリの Settings → Secrets and variables → Actions → Variables に `SUPPORT_GITHUB` と `SUPPORT_KOFI` を登録する（片方だけでもよい）。
-4. 「Deploy to GitHub Pages」を再実行する。
-5. 支援が集まって上限を上げるときは、`LIMIT_GLOBAL` と `worker/wrangler.toml` のコメントの計算を直し、「Deploy shared-key proxy」を実行する。
+4. Actions の「Deploy」を target `pages` で実行する。
+5. 支援が集まって上限を上げるときは、`DAILY_BUDGET_USD` と `ADMIT_BUDGET_USD` を上げ、`LIMIT_GLOBAL` と `worker/wrangler.toml` のコメントの計算も合わせて直し、Actions の「Deploy」を target `worker` で実行する。
