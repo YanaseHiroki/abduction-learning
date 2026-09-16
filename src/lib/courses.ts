@@ -5,7 +5,7 @@ export interface CourseGroup {
   label: Record<string, string>; // L1 label keyed by l1 code, with fallback "en"
   emoji: string;
   targets: Omit<Target, "id">[];
-  hint?: Record<string, string>;
+  hint?: Record<string, string>; // UI copy keyed by uiLang code, with fallback "en"
 }
 
 export interface Course {
