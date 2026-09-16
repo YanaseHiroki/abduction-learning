@@ -125,6 +125,17 @@ pnpm test
 
 Vite + React + TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、Dexie（IndexedDB）、Anthropic TypeScript SDK / OpenAI・Gemini REST（JSON Schema 構造化出力）、Cloudflare Workers + Durable Objects（共有キーの回数制限）。
 
+## 共同開発・フォーク
+
+パブリックリポジトリなので、共同開発したい方も、フォークして続きを開発したい方も大歓迎です（非営利に限ります。条件は下の「ライセンス」を見てください）。
+Issue や Pull Request をお気軽にどうぞ。
+
 ## ライセンス
 
-MIT
+[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)（全文は [LICENSE](LICENSE)）。
+
+- **非営利なら**、使う・改変する・改変したものを配布することができます。営利目的での利用はできません。
+- **配布するときは出所を明記してください。** LICENSE の `Required Notice:` の行（オリジナルの著作権者とリポジトリの URL）とライセンスの条文（または URL）を、配布物に必ず含めます。
+- **「Abduction Learning」の名前とアイコン・ロゴはオリジナル専用です。** 改変版を配布するときは別の名前とアイコンにし、オリジナル（またはその公認版）と誤解されないようにしてください。
+
+このライセンスに切り替える前に公開した版は、当時の MIT License のままです。
