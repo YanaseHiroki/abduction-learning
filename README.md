@@ -125,6 +125,11 @@ pnpm test
 
 Vite + React + TypeScript、Tailwind CSS v4、shadcn/ui（Base UI）、Dexie（IndexedDB）、Anthropic TypeScript SDK / OpenAI・Gemini REST（JSON Schema 構造化出力）、Cloudflare Workers + Durable Objects（共有キーの回数制限）。
 
+## 共同開発・フォーク
+
+パブリックリポジトリなので、共同開発したい方も、フォークして続きを開発したい方も大歓迎です。
+Issue や Pull Request をお気軽にどうぞ。
+
 ## ライセンス
 
 MIT
