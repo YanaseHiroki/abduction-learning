@@ -22,16 +22,25 @@ LIMIT_DEVICE = "3"
 LIMIT_DEVICE_FIRST_DAY = "5"
 # Per IP: slows down clearing the anonymous device ID to get another first day. Must be >= the first-day limit.
 LIMIT_IP = "10"
-# Everyone together: caps the owner's daily spend. Set from a $3/day budget and the average cost of one
-# inquiry at the 2026-09 benchmark price for gpt-5.6-luna (docs/model-bench-2026-09.md: $0.009 per inquiry,
-# i.e. 3 example sets + 5 translation tests): $3 / $0.009 = 333, rounded down to 330 ≈ $2.97/day.
-# This is the average, not the worst case: an inquiry that burns all CALLS_PER_INQUIRY calls on the
-# expensive endpoint costs $0.156, so a pathological day could still reach $51.
-# LIMIT_IP still applies, so reaching 330 inquiries takes at least 33 distinct IPs.
+# Everyone together, counted in inquiries. A backstop only: the money is capped by DAILY_BUDGET_USD below.
+# 330 ≈ $3 at the 2026-09 average of $0.009 per inquiry (docs/model-bench-2026-09.md), so on an ordinary
+# day ADMIT_BUDGET_USD stops admissions first. LIMIT_IP still applies, so 330 takes at least 33 distinct IPs.
 LIMIT_GLOBAL = "330"
 # AI calls an admitted inquiry may use (one inquiry typically needs 15–30), and how many days it stays open.
 CALLS_PER_INQUIRY = "60"
 INQUIRY_TTL_DAYS = "3"
+# The owner's money, which is what is actually capped. Every call first reserves its worst case
+# (UTF-8 bytes of system + user + schema as input tokens, MAX_TOKENS_CAP-bounded output) at the prices
+# below, then settles to the usage the provider reports. No call is sent once today's spend plus its
+# reservation would pass DAILY_BUDGET_USD, so the day cannot cost more than that however the calls are used.
+# New inquiries stop at ADMIT_BUDGET_USD, leaving the rest for inquiries already under way
+# ($0.50 ≈ 55 inquiries at the $0.009 average), so a learner is rarely cut off mid-inquiry.
+DAILY_BUDGET_USD = "3"
+ADMIT_BUDGET_USD = "2.5"
+# USD per 1M tokens for MODEL (OpenAI's list price, 2026-09; same as src/pages/BenchPage.tsx).
+# Change these together with MODEL. If either is missing or 0, /generate answers 503 instead of spending blind.
+PRICE_INPUT_PER_M = "0.2"
+PRICE_OUTPUT_PER_M = "1.2"
 # Hour offset for the daily reset (9 = midnight JST)
 RESET_TZ_OFFSET_HOURS = "9"
 # Hard caps on a single request

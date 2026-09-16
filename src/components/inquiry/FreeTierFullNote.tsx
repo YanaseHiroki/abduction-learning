@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/lib/i18n";
-import { fetchQuota, type Quota } from "@/lib/llm/client";
+import { fetchQuota, noNewInquiries, type Quota } from "@/lib/llm/client";
 import { useSettings } from "@/lib/settings";
 
 /** On the free tier, says before starting when no more inquiries can be started today (renders nothing otherwise). */
@@ -11,7 +11,7 @@ export function FreeTierFullNote({ active = true }: { active?: boolean }) {
   useEffect(() => {
     if (active && provider === "shared") fetchQuota().then(setQuota);
   }, [active, provider]);
-  const full = provider === "shared" && !!quota && [quota.device, quota.ip, quota.global].some((v) => v.used >= v.limit);
+  const full = provider === "shared" && !!quota && noNewInquiries(quota);
   if (!full) return null;
   return (
     <p className="text-sm whitespace-pre-line text-destructive">
