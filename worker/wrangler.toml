@@ -22,11 +22,12 @@ LIMIT_DEVICE = "3"
 LIMIT_DEVICE_FIRST_DAY = "5"
 # Per IP: slows down clearing the anonymous device ID to get another first day. Must be >= the first-day limit.
 LIMIT_IP = "10"
-# Everyone together: caps the owner's daily spend at LIMIT_GLOBAL × CALLS_PER_INQUIRY calls (50 × 60 = 3,000).
+# Everyone together: caps the owner's daily spend at LIMIT_GLOBAL × CALLS_PER_INQUIRY calls (2,000 × 60 = 120,000).
 # At the 2026-09 benchmark price for gpt-5.6-luna (docs/model-bench-2026-09.md: $0.0026 per example set,
-# $0.0003 per translation test) that is at most $7.80/day — and only if all 50 inquiries burn every one of
-# their 60 calls on the expensive endpoint. A realistic saturated day (15–30 calls each) costs $0.80–1.60.
-LIMIT_GLOBAL = "50"
+# $0.0003 per translation test) that is at most $312/day — and only if all 2,000 inquiries burn every one of
+# their 60 calls on the expensive endpoint. A realistic saturated day (15–30 calls each) costs $32–64.
+# LIMIT_IP still applies, so reaching 2,000 inquiries takes at least 200 distinct IPs.
+LIMIT_GLOBAL = "2000"
 # AI calls an admitted inquiry may use (one inquiry typically needs 15–30), and how many days it stays open.
 CALLS_PER_INQUIRY = "60"
 INQUIRY_TTL_DAYS = "3"
