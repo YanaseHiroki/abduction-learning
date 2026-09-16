@@ -33,6 +33,11 @@ function groupProgress(g: CourseGroup, inquiries: Inquiry[], l1: string, l2: str
   return { latest: remaining.length === 0 ? own[0] : undefined, started: own.length > 0, remaining, covered };
 }
 
+/** A language name shown like a picked dropdown value, in the "🌐 学習する言語を変更する" hint. */
+function LangPill({ children }: { children: ReactNode }) {
+  return <span className="rounded-md border bg-muted px-1.5 py-0.5">{children}</span>;
+}
+
 /** A card in the course row: a course group, or free inquiry. */
 function EntryCard({ recommended, onClick, children }: { recommended: boolean; onClick: () => void; children: ReactNode }) {
   return (
@@ -112,7 +117,28 @@ export function Home() {
       <section className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <div className="mt-4 grid items-start gap-3 sm:grid-cols-2">
-          <Disclosure label={t({ ja: "🌐 学習する言語を変更する", en: "🌐 Change study languages" })} hint={`${languageName(defaultL1, uiLang)} → ${languageName(defaultL2, uiLang)}`}>
+          <Disclosure
+            label={t({ ja: "🌐 学習する言語を変更する", en: "🌐 Change study languages" })}
+            hint={
+              <span className="flex items-center gap-1 text-foreground">
+                {uiLang === "ja" ? (
+                  <>
+                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
+                    <span>で</span>
+                    <LangPill>{languageName(defaultL2, uiLang)}</LangPill>
+                    <span>を学習する</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Learning</span>
+                    <LangPill>{languageName(defaultL2, uiLang)}</LangPill>
+                    <span>in</span>
+                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
+                  </>
+                )}
+              </span>
+            }
+          >
             <LanguageFields />
           </Disclosure>
           <Disclosure label={t({ ja: "📖 このアプリについて", en: "📖 About this app" })}>
