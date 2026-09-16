@@ -10,8 +10,8 @@ vi.mock("./client", () => ({ structured: vi.fn() }));
 const mocked = vi.mocked(structured);
 const reply = (data: unknown) => mocked.mockResolvedValue({ data, model: "test-model", generatedAt: 1000, elapsedMs: 5 } as never);
 const lastCall = () => {
-  const [system, user, , opts] = mocked.mock.calls.at(-1)!;
-  return { system: system as string, user: user as string, opts: (opts ?? {}) as Record<string, unknown> };
+  const [system, user, schema, opts] = mocked.mock.calls.at(-1)!;
+  return { system: system as string, user: user as string, schema, opts: (opts ?? {}) as Record<string, unknown> };
 };
 
 const listen: Target = { id: "t1", label: "listen", kind: "word" };
@@ -161,7 +161,7 @@ describe("translateTest", () => {
   const targets = [listen, hear];
 
   it("explains the circled numbers and asks for the word used at each", async () => {
-    reply({ l2_text: "…", alignments: [{ index: 1, word: "listen" }], note: null });
+    reply({ l2_text: "…", alignments: [{ index: 1, word: "listened", target: "listen" }], note: null });
 
     const r = await translateTest({ l1: "ja", l2: "en", l1Text: "①聞く", targets, restrictToTargets: true, fixedGloss: "", feasibilityTarget: null });
 
@@ -169,8 +169,20 @@ describe("translateTest", () => {
     expect(user).toContain("circled numbers");
     expect(user).toContain("Do not include the circled numbers in l2_text");
     expect(user).toContain("①聞く");
-    expect(r.alignments).toEqual([{ index: 1, word: "listen" }]);
+    expect(r.alignments).toEqual([{ index: 1, word: "listened", target: "listen" }]);
     expect(r.meta.model).toBe("test-model");
+  });
+
+  it("asks for the inflected form and the expression under study separately", async () => {
+    // the surface form alone cannot be matched back to the target in a language that conjugates it
+    reply({ l2_text: "…", alignments: [{ index: 1, word: "眺めて", target: "眺める" }], note: null });
+
+    await translateTest({ l1: "en", l2: "ja", l1Text: "①gaze", targets, restrictToTargets: true, fixedGloss: "", feasibilityTarget: null });
+
+    const { user, schema } = lastCall();
+    expect(user).toContain("copied letter for letter from the list under study");
+    const alignment = (schema as unknown as { shape: Record<string, { element: { shape: object } }> }).shape.alignments.element;
+    expect(Object.keys(alignment.shape)).toContain("target");
   });
 
   it("restricts the choice to the targets, or explicitly does not", async () => {
