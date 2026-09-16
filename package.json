@@ -12,7 +12,9 @@
     "test:ui": "vitest run --project ui",
     "test:worker": "pnpm --filter abduction-learning-proxy test",
     "preview": "vite preview",
-    "shots": "node scripts/help-shots.ts"
+    "shots": "node scripts/help-shots.ts",
+    "shots:check": "node scripts/help-shots.ts --check",
+    "shots:record": "node scripts/help-shots.ts --record"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.125.0",

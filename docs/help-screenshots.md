@@ -11,11 +11,55 @@ pnpm shots
 ```
 
 - 日本語と英語の画面を、スマホ幅（390×680、2倍密度）で撮ります。
-- 出力: `src/assets/help/<ja|en>/<id>.webp` と `src/assets/help/shots.json`（画像の大きさと丸の位置を % で）。
+- 出力: `src/assets/help/<ja|en>/<id>.webp`、`src/assets/help/shots.json`（画像の大きさと丸の位置を % で）、
+  `src/assets/help/shots-text.json`（その画面に出ていた文言。撮り直し漏れに気づくため。下記）。
 - 1枚だけ直すとき: `pnpm shots --lang=ja --only=observe`（`--only` はカンマ区切りで複数可）。他の画像と `shots.json` の他の項目はそのまま残ります。
 - 20秒ほどで終わります。
   インストール済みの Google Chrome を使います。
   Chrome がなければ `pnpm exec playwright install chromium` を一度実行してください。
+
+## 撮り直し漏れに気づく
+
+画面の文言を変えて撮り直しを忘れると、ヘルプだけが古い言い回しを見せ続けます。
+画像そのものは何も壊れていないように見えるので、レビューでも気づきにくいところです。
+
+```bash
+pnpm shots:check
+```
+
+撮影と同じ手順で同じ画面をたどり、**いま画面に出ている文言**を、
+撮影時に記録した `shots-text.json` の文言と比べます。
+食い違っていたら、どのスライドか・どこが変わったか・撮り直すコマンドを出して失敗します。
+
+```
+ja/course: the screen no longer says what the screenshot shows
+  screenshot: … 🌐 学習する言語を変更する 日本語 → 英語 …
+  screen now: … 🌐 学ぶ言語を切り替える 日本語 → 英語 …
+
+Re-shoot those slides, then commit the pictures with the change:
+  pnpm shots --lang=ja --only=course,words,genre
+```
+
+`src/**` を触った PR で GitHub Actions（`.github/workflows/help-shots.yml`）が自動で走ります。
+
+### 比べるのが文言だけな理由
+
+見た目そのもの（画素や丸の座標）は、フォントの違いで Mac と CI でずれるので比べられません。
+文言なら、空白をすべて畳んでから比べることで折り返しの違いを吸収でき、どちらで走らせても同じ結果になります。
+
+その代わり、**文言が同じまま見た目だけ古くなった場合は見つかりません**。
+（例: ボタンが1行に収まらず右端で見切れていたのが、後の修正で2行に折り返るようになった。）
+これは安く自動で見つける方法がないので、画面まわりを直したときは目で見てください。
+
+### 画像は正しいのに check が落ちるとき
+
+記録のほうが古いだけなら、画像を触らずに記録だけ取り直せます。
+
+```bash
+pnpm shots:record
+```
+
+`--lang` と `--only` は `pnpm shots` と同じように使えます。
 
 ## AI は呼ばない
 
@@ -53,7 +97,7 @@ scripts/help-shots.ts の `shots` に、スライドごとの手順を書いて�
 
 1. HelpPage.tsx の `slides` に `{ id, title, body }` を足す（見出しは絵文字付きの1行、本文は1〜2文）。
 2. help-shots.ts の `shots` に同じ `id` の手順を足す。
-3. `pnpm shots` を実行する。
+3. `pnpm shots` を実行する（`shots-text.json` の記録も一緒に増えます）。
 
 画像がまだないスライドは、点線の枠に見出しだけが出ます。
 英語の画像がないときは日本語の画像を使います。

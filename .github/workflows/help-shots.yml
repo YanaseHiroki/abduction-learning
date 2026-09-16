@@ -1,0 +1,29 @@
+name: Help screenshots
+
+# Changing the wording on a screen without re-shooting leaves the help showing copy the app no longer
+# uses, which is easy to miss in review because the pictures look fine on their own. This walks the same
+# screens the screenshots were taken from and compares what they say now with what they said then.
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "scripts/help-shots.ts"
+      - ".github/workflows/help-shots.yml"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # No Google Chrome on the runner, so the script falls back to this one.
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm shots:check
