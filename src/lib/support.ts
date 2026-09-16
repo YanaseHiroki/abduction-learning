@@ -1,7 +1,8 @@
 /**
- * Where the free tier's money comes from. The owner pays for the shared key, and LIMIT_GLOBAL in
- * worker/wrangler.toml turns that daily budget into a number of inquiries, so more funding is the
- * only thing that raises the ceiling.
+ * Where the free tier's money comes from. The owner pays for the shared key, and the Worker stops
+ * spending at DAILY_BUDGET_USD (new inquiries at ADMIT_BUDGET_USD) in worker/wrangler.toml, so
+ * more funding is the only thing that raises the ceiling. LIMIT_GLOBAL is only a backstop counted
+ * in inquiries, sized to roughly the same budget.
  *
  * Donations are handled entirely by external services: no payment code, card data or supporter
  * record ever touches this app. Each link is set at build time and its route into the UI stays
@@ -17,8 +18,9 @@ export function hasSupportLinks() {
 
 /**
  * Average cost of one inquiry on the free-tier model, from the 2026-09 benchmark
- * (docs/model-bench-2026-09.md). It only explains what the budget buys; the budget itself comes
- * from the proxy. Update it when the model or its price changes.
+ * (docs/model-bench-2026-09.md, "探究1つあたりの概算"). It only explains what the budget buys; the
+ * budget itself comes from the proxy. Update it when the model or its price changes:
+ * src/lib/llm/candidates.test.ts checks it against that doc's row for the Worker's MODEL.
  */
 export const COST_PER_INQUIRY_USD = 0.009;
 

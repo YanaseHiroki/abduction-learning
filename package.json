@@ -15,6 +15,7 @@
     "shots": "node scripts/help-shots.ts",
     "shots:check": "node scripts/help-shots.ts --check",
     "shots:record": "node scripts/help-shots.ts --record",
+    "og-image": "node scripts/og-image.ts",
     "pwa-icons": "node scripts/pwa-icons.ts"
   },
   "dependencies": {

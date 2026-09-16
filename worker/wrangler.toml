@@ -39,7 +39,8 @@ INQUIRY_TTL_DAYS = "3"
 # ($0.50 ≈ 55 inquiries at the $0.009 average), so a learner is rarely cut off mid-inquiry.
 DAILY_BUDGET_USD = "3"
 ADMIT_BUDGET_USD = "2.5"
-# USD per 1M tokens for MODEL (OpenAI's list price, 2026-09; same as src/pages/BenchPage.tsx).
+# USD per 1M tokens for MODEL (OpenAI's list price, 2026-09). Must equal MODEL's row in src/lib/llm/candidates.ts,
+# the table the #/bench page costs runs with; src/lib/llm/candidates.test.ts fails if they drift apart.
 # Change these together with MODEL. If either is missing or 0, /generate answers 503 instead of spending blind.
 PRICE_INPUT_PER_M = "0.2"
 PRICE_OUTPUT_PER_M = "1.2"

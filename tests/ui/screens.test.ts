@@ -48,6 +48,29 @@ describe("the home screen", () => {
     expect(await textOf(app.page.getByRole("button", { name: /listen · hear/ }))).toContain("探究を再開する");
   });
 
+  it("shows the prepositions course after the verbs, without taking the recommendation from them", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/");
+
+    const section = app.page.locator("section", { hasText: "前置詞コース" });
+    expect(await textOf(section)).toContain("〜に・〜で");
+    expect(await textOf(section)).toContain("at · in · on");
+    expect(await section.getByText("おすすめ").count()).toBe(0);
+    const headings = await app.page.locator("main h2").allTextContents();
+    expect(headings.findIndex((x) => x.includes("基本動詞コース"))).toBeLessThan(headings.findIndex((x) => x.includes("前置詞コース")));
+  });
+
+  it("opens the prepositions group with its hint, and with at and in chosen to compare first", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/");
+    await app.page.getByRole("button", { name: /at · in · on/ }).click();
+
+    const dialog = app.page.getByRole("dialog");
+    expect(await textOf(dialog)).toContain("場所の文と時間の文を分けて見比べる");
+    expect(await dialog.getByRole("button", { name: "at", exact: true }).getAttribute("aria-pressed")).toBe("true");
+    expect(await dialog.getByRole("button", { name: "on", exact: true }).getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("shows the schema left by the last inquiry and a link to the notes", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
@@ -64,6 +87,7 @@ describe("the home screen", () => {
     const main = app.page.locator("main");
     expect(await textOf(main)).toContain("Form your own hypotheses");
     expect(await textOf(main)).toContain("Basic verbs course");
+    expect(await textOf(main)).toContain("Prepositions course (place and time)");
     expect(await textOf(main)).not.toContain("基本動詞コース");
   });
 });

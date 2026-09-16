@@ -2,8 +2,50 @@ import { describe, expect, it } from "vitest";
 import { chooseLanguage, courses, defaultExampleSettings, genres, languageName, languageOptions, levels, showsTargetList, type CourseGroup } from "./courses";
 
 const english = courses.find((c) => c.l2 === "en")!;
+const prepositions = courses.find((c) => c.id === "prepositions")!;
 
-describe("the English course", () => {
+describe("the courses", () => {
+  it("give every course a unique id and a heading in both screen languages", () => {
+    const ids = courses.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(courses.every((c) => !!c.title.ja && !!c.title.en)).toBe(true);
+  });
+
+  it("put the basic verbs first for English, so the tutorial and the first recommendation stay there", () => {
+    expect(courses.filter((c) => c.l2 === "en").map((c) => c.id)).toEqual(["verbs", "prepositions"]);
+  });
+
+  it("use each group id only once across all courses", () => {
+    const ids = courses.flatMap((c) => c.groups.map((g) => g.id));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("never give two groups of one language the same name, since saved inquiries find their group by it", () => {
+    for (const lang of ["ja", "en"]) {
+      const names = courses.filter((c) => c.l2 === "en").flatMap((c) => c.groups.map((g) => g.label[lang] ?? g.label.en));
+      expect(new Set(names).size).toBe(names.length);
+    }
+  });
+});
+
+describe("the prepositions course", () => {
+  const group = prepositions.groups[0];
+
+  it("compares at, in and on as words, kept to place and time", () => {
+    expect(prepositions.l2).toBe("en");
+    expect(prepositions.groups).toHaveLength(1);
+    expect(group.targets.map((t) => t.label)).toEqual(["at", "in", "on"]);
+    expect(group.targets.every((t) => t.kind === "word" && t.spec === "preposition of place or time")).toBe(true);
+  });
+
+  it("names the group, hints and lists the words like the verb groups do", () => {
+    expect({ ja: !!group.label.ja, en: !!group.label.en, emoji: !!group.emoji, hintJa: !!group.hint?.ja, hintEn: !!group.hint?.en }).toEqual({ ja: true, en: true, emoji: true, hintJa: true, hintEn: true });
+    expect(showsTargetList(group, "ja")).toBe(true);
+    expect(showsTargetList(group, "en")).toBe(false);
+  });
+});
+
+describe("the English verbs course", () => {
   it("exists and covers the 13 basic verbs in 4 groups", () => {
     expect(english.groups).toHaveLength(4);
     expect(english.groups.flatMap((g) => g.targets)).toHaveLength(13);

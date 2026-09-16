@@ -21,6 +21,23 @@ describe("segment", () => {
     expect(typed(segs, "object")).toEqual(["the"]);
   });
 
+  it("does not light up a short target inside a longer word", () => {
+    const segs = segment("That cat sat at the station on Monday.", { target: "at" });
+    expect(typed(segs, "target")).toEqual(["at"]);
+    expect(texts(segs).join("")).toBe("That cat sat at the station on Monday.");
+    expect(typed(segment("At noon, someone was on the phone.", { target: "on" }), "target")).toEqual(["on"]);
+    expect(typed(segment("At noon we met.", { target: "at" }), "target")).toEqual(["At"]);
+  });
+
+  it("still marks a target inside a word when it never stands on its own", () => {
+    // a surface form cut short by the model is better shown than lost
+    expect(typed(segment("She was listening.", { target: "listen" }), "target")).toEqual(["listen"]);
+  });
+
+  it("marks a target inside running Japanese text, which has no spaces between words", () => {
+    expect(typed(segment("駅で待つ。", { target: "で" }), "target")).toEqual(["で"]);
+  });
+
   it("matches case-insensitively while keeping the original casing", () => {
     expect(typed(segment("Listen to me.", { target: "listen" }), "target")).toEqual(["Listen"]);
   });

@@ -18,6 +18,19 @@ function findAll(haystack: string, needle: string): [number, number][] {
   return out;
 }
 
+const isLetter = (ch: string | undefined) => !!ch && /[\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Greek}]/u.test(ch);
+
+/**
+ * The target hits that are not the inside of a longer word. A short target like "at" or "on" otherwise lights up
+ * in "that" and "one". Only scripts that separate words with spaces are checked: in Japanese or Chinese a word
+ * runs straight into the next one, so any hit counts. When no hit stands on its own (a surface form the model
+ * returned cut short), every hit is kept rather than showing nothing.
+ */
+function wholeWords(text: string, hits: [number, number][]) {
+  const whole = hits.filter(([s, e]) => !(isLetter(text[s]) && isLetter(text[s - 1])) && !(isLetter(text[e - 1]) && isLetter(text[e])));
+  return whole.length ? whole : hits;
+}
+
 /** Split a sentence into segments, marking the target and optional guide spans. */
 export function segment(text: string, spans: Partial<Record<SpanType, string | null | undefined>>): Segment[] {
   const order: SpanType[] = ["target", "object", "complement", "pp", "adverb"];
@@ -26,7 +39,7 @@ export function segment(text: string, spans: Partial<Record<SpanType, string | n
     const needle = spans[t];
     if (!needle) continue;
     const hits = findAll(text, needle);
-    const hit = t === "target" ? hits : hits.slice(0, 1);
+    const hit = t === "target" ? wholeWords(text, hits) : hits.slice(0, 1);
     for (const [s, e] of hit) {
       if (taken.some((x) => s < x.e && e > x.s)) continue;
       taken.push({ s, e, t });
