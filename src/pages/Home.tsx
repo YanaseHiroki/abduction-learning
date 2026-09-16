@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Trash2 } from "lucide-react";
@@ -31,6 +31,22 @@ function groupProgress(g: CourseGroup, inquiries: Inquiry[], l1: string, l2: str
   const remaining = g.targets.map((x) => x.label).filter((x) => !covered.has(x));
   // inquiries come newest first, so own[0] is the one to reopen
   return { latest: remaining.length === 0 ? own[0] : undefined, started: own.length > 0, remaining, covered };
+}
+
+/** A card in the course row: a course group, or free inquiry. */
+function EntryCard({ recommended, onClick, children }: { recommended: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "relative rounded-xl border p-4 text-left shadow-xs transition",
+        recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-background hover:border-primary/50 hover:shadow-sm",
+      )}
+    >
+      {recommended && <RecommendedBadge />}
+      {children}
+    </button>
+  );
 }
 
 /** The book this notebook follows (the publisher's official page). */
@@ -87,6 +103,17 @@ export function Home() {
     setDialog({ group: g, preselect });
   }
 
+  const firstFinished = groupCards.find((x) => x.latest);
+  const free = freeCard(!nextGroup && !tutorialInquiry);
+  function freeCard(recommended: boolean) {
+    return (
+      <EntryCard key="free" recommended={recommended} onClick={() => setDialog({ group: null })}>
+        <div className="text-lg font-semibold"><span className="mr-2">✨</span>{t({ ja: "自由に探究する", en: "Custom inquiry" })}</div>
+        <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{t({ ja: "2つ以上の英単語を自由に選べる", en: "Pick any two or more English words" })}</div>
+      </EntryCard>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       <section className="mb-8">
@@ -122,42 +149,28 @@ export function Home() {
         <section className="mb-8 rounded-2xl border bg-card p-5">
           <h2 className="text-sm font-semibold text-muted-foreground">{t({ ja: "🧭 基本動詞コース（本と同じ13語）", en: "🧭 Basic verbs course (the book's 13 verbs)" })}</h2>
           <Carousel>
-            {groupCards.map((card) => {
+            {groupCards.flatMap((card, i) => {
               const { g, latest, started, remaining } = card;
               // The book's order decides the recommended entry point: the first group not yet finished
               // (unless the tutorial is still running: then its "continue" is the one recommendation).
               const recommended = g === nextGroup && !tutorialInquiry;
-              return (
-                <button
-                  key={g.id}
-                  onClick={() => openGroup(card)}
-                  className={cn(
-                    "relative rounded-xl border p-4 text-left shadow-xs transition",
-                    recommended ? "border-blue-600 bg-blue-600 text-white hover:bg-blue-700" : "bg-background hover:border-primary/50 hover:shadow-sm",
-                  )}
-                >
-                  {recommended && <RecommendedBadge />}
+              const groupCard = (
+                <EntryCard key={g.id} recommended={recommended} onClick={() => openGroup(card)}>
                   <div className="text-lg font-semibold"><span className="mr-2">{g.emoji}</span>{g.label[uiLang] ?? g.label.en}</div>
                   {showsTargetList(g, uiLang) && <div className={cn("mt-1 text-sm", recommended ? "text-blue-100" : "text-muted-foreground")}>{g.targets.map((x) => x.label).join(" · ")}</div>}
                   {latest ? (
-                    <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 続きから", en: "▶ Continue" })}</div>
+                    <div className="mt-2 text-xs font-medium text-muted-foreground">{t({ ja: "▶ 探究を再開する", en: "▶ Resume inquiry" })}</div>
                   ) : started && (
                     <div className={cn("mt-2 text-xs font-medium", recommended ? "text-blue-100" : "text-muted-foreground")}>{t({ ja: `▶ 次は ${remaining.join(" · ")}`, en: `▶ Next: ${remaining.join(" · ")}` })}</div>
                   )}
-                </button>
+                </EntryCard>
               );
+              // Free inquiry is one more entry point of the same kind, so it sits in the row as a card: after the groups
+              // still to do and before the finished ones. Once every group is finished that puts it first, which is also
+              // when the recommendation moves to it for good.
+              return card === firstFinished ? [free, groupCard] : i === groupCards.length - 1 && !firstFinished ? [groupCard, free] : [groupCard];
             })}
           </Carousel>
-          <ButtonRow className="pt-6">
-            {/* Once every course group is started, free inquiry is the way forward, so the recommendation moves here for good. */}
-            {!nextGroup && !tutorialInquiry ? (
-              <Recommended>
-                <Button variant="recommended" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
-              </Recommended>
-            ) : (
-              <Button variant="outline" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
-            )}
-          </ButtonRow>
         </section>
       ) : (
         <section className="mb-8">
@@ -188,7 +201,7 @@ export function Home() {
 
       {inquiries.length > 0 && (
         <section className="rounded-2xl border bg-card p-5">
-          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "📚 続きから", en: "📚 Pick up where you left off" })}</h2>
+          <h2 className="mb-3 text-sm font-semibold text-muted-foreground">{t({ ja: "📚 探究を再開する", en: "📚 Resume an inquiry" })}</h2>
           <ul className="divide-y rounded-xl border bg-background">
             {inquiries.map((inq) => (
               <li key={inq.id} className="flex items-center gap-6 px-4 py-3">

@@ -34,7 +34,8 @@ describe("the home screen", () => {
     expect(await textOf(main)).toContain("基本動詞コース");
     expect(await textOf(main)).toContain("listen · hear");
     expect(await textOf(main)).toContain("say · tell · speak · talk");
-    expect(await textOf(main)).toContain("続きから");
+    expect(await textOf(main)).toContain("探究を再開する");
+    expect(await textOf(app.page.getByRole("button", { name: /自由に探究する/ }))).toContain("2つ以上の英単語を自由に選べる");
   });
 
   it("recommends the next group to explore, not the one already finished", async () => {
@@ -44,7 +45,7 @@ describe("the home screen", () => {
     const recommended = app.page.locator("section", { hasText: "基本動詞コース" }).getByText("おすすめ").first();
     expect(await shown(recommended)).toBe(true);
     // the demo finished "listen / hear", so that card offers to reopen it instead
-    expect(await textOf(app.page.getByRole("button", { name: /listen · hear/ }))).toContain("続きから");
+    expect(await textOf(app.page.getByRole("button", { name: /listen · hear/ }))).toContain("探究を再開する");
   });
 
   it("shows the schema left by the last inquiry and a link to the notes", async () => {

@@ -108,7 +108,7 @@ export function TutorialGuide({
     },
     {
       title: { ja: "🎉 チュートリアルはここまでです", en: "🎉 That's the tutorial" },
-      body: { ja: "観察 → 仮説 → 確かめる、を繰り返すのがこのアプリの使い方です。\nこの探究はホームの「📚 続きから」に残ります。", en: "Observe → hypothesize → test, again and again: that is how this app works.\nThis inquiry stays under \"📚 Pick up where you left off\" on Home." },
+      body: { ja: "観察 → 仮説 → 確かめる、を繰り返すのがこのアプリの使い方です。\nこの探究はホームの「📚 探究を再開する」に残ります。", en: "Observe → hypothesize → test, again and again: that is how this app works.\nThis inquiry stays under \"📚 Resume an inquiry\" on Home." },
       canNext: false,
     },
   ];
