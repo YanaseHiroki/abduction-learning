@@ -8,8 +8,13 @@
  * walks each screen at phone width and writes
  *   src/assets/help/<lang>/<id>.webp   the screenshot
  *   src/assets/help/shots.json         its size and where the rings go (in %)
+ *   src/assets/help/shots-text.json    the words on that screen, to notice a screenshot going stale
  * No AI is called: no AI button is pressed and every request leaving the dev server is blocked.
  * See docs/help-screenshots.md.
+ *
+ * Two more modes walk the same screens without touching the pictures:
+ *   `pnpm shots:check`   does the wording on screen still match the screenshots? (CI runs this)
+ *   `pnpm shots:record`  write shots-text.json for screenshots that are already right
  */
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -19,6 +24,8 @@ import { createServer } from "vite";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = path.join(root, "src/assets/help");
+/** Kept out of shots.json because the help page imports that one into the bundle; this is only for the check. */
+const TEXT_FILE = "shots-text.json";
 const VIEWPORT = { width: 390, height: 680 };
 const SCALE = 2;
 const WEBP_QUALITY = 0.8;
@@ -175,6 +182,27 @@ async function toWebp(encoder: Page, png: Buffer) {
   return Buffer.from(b64, "base64");
 }
 
+/**
+ * The words on the prepared screen, as one whitespace-free-ish line.
+ *
+ * Every run of whitespace collapses to a single space on purpose: where a line happens to wrap depends on
+ * the font, so a fingerprint that kept the line breaks would differ between a Mac and CI and cry wolf.
+ * Wording is what this catches — copy edited without re-shooting. A screenshot that goes stale only by
+ * layout (something newly clipped, say) reads the same and slips through; there is no cheap check for that.
+ */
+async function fingerprint(page: Page) {
+  return (await page.evaluate(() => document.body.innerText)).replace(/\s+/g, " ").trim();
+}
+
+/** Where two fingerprints part company, with a little of each side, so the report shows the actual edit. */
+function firstDifference(before: string, after: string) {
+  let i = 0;
+  while (i < before.length && i < after.length && before[i] === after[i]) i++;
+  const from = Math.max(0, i - 30);
+  const cut = (s: string) => `${from > 0 ? "…" : ""}${s.slice(from, i + 60)}${i + 60 < s.length ? "…" : ""}`;
+  return { before: cut(before), after: cut(after) };
+}
+
 async function launch(): Promise<Browser> {
   try {
     return await chromium.launch({ channel: "chrome" }); // the installed Google Chrome: no download needed
@@ -195,6 +223,8 @@ async function main() {
   const selected = shots.filter((s) => !only || only.includes(s.id));
   if (!langs.length || !selected.length) throw new Error(`nothing to shoot (shots: ${shots.map((s) => s.id).join(", ")})`);
   const partial = langs.length < LANGS.length || !!only;
+  // "shoot" writes the pictures; the other two only walk the screens and read the words off them.
+  const mode = args.has("check") ? "check" : args.has("record") ? "record" : "shoot";
 
   const server = await createServer({ root, logLevel: "warn", server: { port: 5190, strictPort: false, open: false } });
   await server.listen();
@@ -204,10 +234,26 @@ async function main() {
   const encoder = await browser.newPage();
   const manifestPath = path.join(outDir, "shots.json");
   const manifest: Record<string, Record<string, unknown>> = partial ? JSON.parse(await readFile(manifestPath, "utf8").catch(() => "{}")) : {};
+  const textPath = path.join(outDir, TEXT_FILE);
+  const recorded: Record<string, Record<string, string>> = JSON.parse(await readFile(textPath, "utf8").catch(() => "{}"));
+  const texts: Record<string, Record<string, string>> = partial ? recorded : {}; // unused in check, which writes nothing
+  const stale: { lang: string; id: string; before?: string; after: string; lost?: string }[] = [];
 
   try {
     for (const lang of langs) {
-      const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: "light", reducedMotion: "reduce", locale: lang === "ja" ? "ja-JP" : "en-US" });
+      // The demo's times are fixed instants that the screens print in local time, so without pinning the zone
+      // a screenshot says something different depending on where it was taken (and the check cries wolf on CI).
+      // Asia/Tokyo is what the committed pictures already show.
+      const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: SCALE, colorScheme: "light", reducedMotion: "reduce", locale: lang === "ja" ? "ja-JP" : "en-US", timezoneId: "Asia/Tokyo" });
+      // The screens hide their read-aloud buttons where the device has no voice for the language, and a
+      // headless Linux box has none at all. Answer for them, so the same buttons are there wherever this runs.
+      await context.addInitScript(() => {
+        const voices = [
+          { lang: "ja-JP", name: "shots ja", default: true, localService: true, voiceURI: "shots-ja" },
+          { lang: "en-US", name: "shots en", default: false, localService: true, voiceURI: "shots-en" },
+        ];
+        if (window.speechSynthesis) Object.defineProperty(window.speechSynthesis, "getVoices", { value: () => voices, configurable: true });
+      });
       // Only the dev server may be reached, so nothing can call an AI or the free tier by accident.
       await context.route("**/*", (route) => {
         const url = route.request().url();
@@ -230,15 +276,40 @@ async function main() {
       await page.locator("[data-seeded]").waitFor();
 
       const dir = path.join(outDir, lang);
-      if (!partial) await rm(dir, { recursive: true, force: true });
-      await mkdir(dir, { recursive: true });
+      if (mode === "shoot") {
+        if (!partial) await rm(dir, { recursive: true, force: true });
+        await mkdir(dir, { recursive: true });
+      }
       manifest[lang] ??= {};
+      texts[lang] ??= {};
 
       for (const shot of selected) {
-        await shot.prepare(page, go);
-        const rings = shot.rings(page);
-        if (shot.scroll) await scrollTo(page, rings);
+        // Every mode walks the screen and finds the rings, check included: a screen that changed enough to
+        // lose what a ring points at fails here, instead of waiting to break on somebody's next re-shoot.
+        let rings: Locator[][] = [];
+        try {
+          await shot.prepare(page, go);
+          rings = shot.rings(page);
+          if (shot.scroll) await scrollTo(page, rings);
+        } catch (e) {
+          if (mode !== "check") throw e;
+          stale.push({ lang, id: shot.id, after: "", lost: `${e}`.split("\n")[0] });
+          continue;
+        }
         await page.waitForTimeout(300); // let dialogs and scrolling settle
+
+        const words = await fingerprint(page);
+        if (mode === "check") {
+          const before = recorded[lang]?.[shot.id];
+          if (before !== words) stale.push({ lang, id: shot.id, before, after: words });
+          continue; // nothing to measure or draw: the pictures are not being touched
+        }
+        texts[lang][shot.id] = words;
+        if (mode === "record") {
+          console.log(`${lang}/${shot.id}  recorded`);
+          continue;
+        }
+
         const boxes = await Promise.all(rings.map(unionBox));
         const png = await page.screenshot({ animations: "disabled" });
         const webp = await toWebp(encoder, png);
@@ -260,11 +331,47 @@ async function main() {
       }
       await context.close();
     }
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+    if (mode !== "check") {
+      if (mode === "shoot") await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+      await writeFile(textPath, `${JSON.stringify(texts, null, 2)}\n`);
+    }
   } finally {
     await browser.close();
     await server.close();
   }
+
+  if (mode !== "check") return;
+  if (!stale.length) {
+    console.log(`the help screenshots match the screens (${langs.join(", ")}: ${selected.length} each)`);
+    return;
+  }
+  for (const { lang, id, before, after, lost } of stale) {
+    if (lost) {
+      console.error(`\n${lang}/${id}: the screen no longer has what this slide rings`);
+      console.error(`  ${lost}`);
+      console.error("  Fix the slide's prepare/rings in scripts/help-shots.ts, then re-shoot it.");
+      continue;
+    }
+    if (before === undefined) {
+      console.error(`\n${lang}/${id}: no wording recorded yet`);
+      continue;
+    }
+    const d = firstDifference(before, after);
+    console.error(`\n${lang}/${id}: the screen no longer says what the screenshot shows`);
+    console.error(`  screenshot: ${d.before}`);
+    console.error(`  screen now: ${d.after}`);
+  }
+  // A slide whose ring is lost cannot be re-shot until the script is fixed, so it is not listed here.
+  const reshoot = stale.filter((s) => !s.lost);
+  if (reshoot.length) {
+    console.error("\nRe-shoot those slides, then commit the pictures with the change:");
+    for (const lang of LANGS.filter((l) => reshoot.some((s) => s.lang === l))) {
+      const ids = reshoot.filter((s) => s.lang === lang).map((s) => s.id);
+      console.error(`  pnpm shots --lang=${lang} --only=${ids.join(",")}`);
+    }
+    console.error("\n(If the screenshots are already right and only the recorded wording is behind, run: pnpm shots:record)");
+  }
+  process.exitCode = 1;
 }
 
 await main();
