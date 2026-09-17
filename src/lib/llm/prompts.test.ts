@@ -147,6 +147,8 @@ describe("qaCheck", () => {
     expect(user).toContain("[0,0] A.");
     expect(user).toContain("[0,1] B.");
     expect(user).toContain("Report only real problems");
+    // Without it the free-tier proxy answers "unsupported prompt", and the check is silently skipped.
+    expect(lastCall().system).toContain(SYSTEM_SIGNATURE);
     expect(opts.cheap).toBe(true);
     expect(issues).toEqual([{ set_index: 0, sentence_index: 1, reason: "時制が合いません" }]);
   });
