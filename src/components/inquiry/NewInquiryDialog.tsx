@@ -59,7 +59,7 @@ export function NewInquiryDialog({
   const [targets, setTargets] = useState<Target[]>(() =>
     (group?.targets ?? initialTargets ?? []).map((x) => ({ ...x, id: nanoid(6) })),
   );
-  const [enabled, setEnabled] = useState<Set<string>>(() => new Set(group ? (preselect ? targets.filter((x) => preselect.includes(x.label)) : targets.slice(0, 2)).map((x) => x.id) : []));
+  const [enabled, setEnabled] = useState<Set<string>>(() => new Set((group ? (preselect ? targets.filter((x) => preselect.includes(x.label)) : targets.slice(0, 2)) : targets).map((x) => x.id)));
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<TargetKind>("word");
   const [question, setQuestion] = useState("");

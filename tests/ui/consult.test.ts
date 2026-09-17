@@ -42,6 +42,8 @@ describe("the word consultation", () => {
     expect(await shown(dialog.getByText("自由に探究する"))).toBe(true);
     expect(await shown(dialog.getByRole("button", { name: "think" }))).toBe(true);
     expect(await shown(dialog.getByRole("button", { name: "believe" }))).toBe(true);
+    // Carried-over words are in the inquiry, so they must not look like words left out.
+    expect(await dialog.getByRole("button", { name: "think" }).getAttribute("class")).not.toContain("opacity-60");
     expect(await dialog.getByRole("button", { name: /進む/ }).isEnabled()).toBe(true);
   });
 });
