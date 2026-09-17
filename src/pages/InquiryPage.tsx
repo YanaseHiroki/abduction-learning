@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronDown, Loader2, PanelRight } from "lucide-react";
+import { ArrowLeft, ChevronDown, Loader2, PanelRight, PanelRightClose } from "lucide-react";
 import { ExamplesCard } from "@/components/cards/ExamplesCard";
 import { HypothesisCard } from "@/components/cards/HypothesisCard";
 import { ObservationCard } from "@/components/cards/ObservationCard";
@@ -84,6 +84,14 @@ export function InquiryPage() {
   const inquiry = useInquiry(id);
   const cards = useCards(id);
   const [dialog, setDialog] = useState(false);
+  // Closed by default so the examples get the width; the choice is a per-viewer convenience, so storage failures fall back to closed.
+  const [panelOpen, setPanelOpen] = useState(() => {
+    try { return localStorage.getItem("inquiry.panelOpen") === "1"; } catch { return false; }
+  });
+  const togglePanel = () => setPanelOpen((v) => {
+    try { localStorage.setItem("inquiry.panelOpen", v ? "0" : "1"); } catch { /* ignore */ }
+    return !v;
+  });
   const [busy, setBusy] = useState(false);
   const [generating, setGenerating] = useState<{ cardId: string; progress: ExamplesProgress } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -191,7 +199,7 @@ export function InquiryPage() {
 
   return (
     <HintedCardContext.Provider value={guided ? null : (cards.at(-1)?.id ?? null)}>
-      <div className={guided ? "mx-auto max-w-6xl px-4 pb-56" : "mx-auto max-w-6xl px-4 pb-24"}>
+      <div className={guided ? "mx-auto max-w-[89rem] px-4 pb-56" : "mx-auto max-w-[89rem] px-4 pb-24"}>
         <div className="flex flex-wrap items-center gap-6 py-4">
           <Button render={<Link to="/" />} nativeButton={false} variant="ghost" size="sm"><ArrowLeft />{t({ ja: "ホーム", en: "Home" })}</Button>
           {inquiry.groupLabel && <span className="text-sm text-muted-foreground">{inquiry.groupLabel}</span>}
@@ -199,6 +207,9 @@ export function InquiryPage() {
             {inquiry.targets.map((x, i) => <TargetBadge key={x.id} target={x} index={i} className="text-base" />)}
           </div>
           <span className="text-xs text-muted-foreground">{inquiry.l1} → {inquiry.l2} · {genre ? (uiLang === "ja" ? genre.ja : genre.en) : inquiry.genre}</span>
+          <div className="ml-auto hidden lg:block">
+            <Button variant="outline" size="sm" aria-pressed={panelOpen} onClick={togglePanel}>{panelOpen ? <PanelRightClose /> : <PanelRight />}{panelOpen ? t({ ja: "仮説を閉じる", en: "Hide hypothesis" }) : t({ ja: "仮説", en: "Hypothesis" })}</Button>
+          </div>
           <div className="ml-auto lg:hidden">
             <Sheet>
               <SheetTrigger render={<Button variant="outline" size="sm" />}><PanelRight />{t({ ja: "仮説", en: "Hypothesis" })}</SheetTrigger>
@@ -213,7 +224,7 @@ export function InquiryPage() {
             <AlertDescription>{t({ ja: "例文の生成や翻訳テストには、無料枠か自分のAPIキー（Anthropic / OpenAI / Gemini）が必要です。", en: "Generating examples and running tests needs the free tier or your own key (Anthropic / OpenAI / Gemini)." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
           </Alert>
         )}
-        <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
+        <div className={panelOpen ? "grid gap-6 lg:grid-cols-[1fr_300px]" : "grid gap-6"}>
           <div className="min-w-0 space-y-4">
             {cards.length === 0 && (
               <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
@@ -229,7 +240,7 @@ export function InquiryPage() {
             )}
             <ErrorText code={error} className="text-sm text-destructive" />
           </div>
-          <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>
+          {panelOpen && <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>}
         </div>
         {guided && <TutorialGuide inquiry={inquiry} cards={cards} busy={busy} error={error} onPick={pick} />}
         {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}
