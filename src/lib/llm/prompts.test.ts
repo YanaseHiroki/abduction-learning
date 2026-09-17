@@ -283,6 +283,8 @@ describe("consultTargets", () => {
     await consultTargets("ja", "en", [{ role: "learner", text: "思うの言い方" }, { role: "assistant", text: "どんな場面？" }, { role: "learner", text: "会議" }]);
     const { system, user } = lastCall();
     expect(system).toContain("Always reply in Japanese");
+    // Without it the free-tier proxy answers "unsupported prompt".
+    expect(system).toContain(SYSTEM_SIGNATURE);
     expect(system).toContain("Do NOT explain how the expressions differ");
     expect(user).toBe("Learner: 思うの言い方\n\nYou: どんな場面？\n\nLearner: 会議");
   });
