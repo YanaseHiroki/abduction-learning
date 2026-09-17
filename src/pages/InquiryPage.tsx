@@ -199,7 +199,7 @@ export function InquiryPage() {
 
   return (
     <HintedCardContext.Provider value={guided ? null : (cards.at(-1)?.id ?? null)}>
-      <div className={guided ? "mx-auto max-w-[89rem] px-4 pb-56" : "mx-auto max-w-[89rem] px-4 pb-24"}>
+      <div className={guided ? "mx-auto max-w-[84rem] px-4 pb-56" : "mx-auto max-w-[84rem] px-4 pb-24"}>
         <div className="flex flex-wrap items-center gap-6 py-4">
           <Button render={<Link to="/" />} nativeButton={false} variant="ghost" size="sm"><ArrowLeft />{t({ ja: "ホーム", en: "Home" })}</Button>
           {inquiry.groupLabel && <span className="text-sm text-muted-foreground">{inquiry.groupLabel}</span>}
