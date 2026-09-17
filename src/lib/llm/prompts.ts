@@ -315,3 +315,35 @@ export async function writingFeedback(
   const { data, model, generatedAt } = await structured(systemPrompt(l1, l2), user, FeedbackSchema, { effort: "medium", maxTokens: 3000 });
   return { comments: data.comments, meta: { model, generatedAt } };
 }
+
+// ---------- Choosing what to compare (consultation before an inquiry) ----------
+
+const ConsultSchema = z.object({
+  reply: z.string().describe("the reply to the learner, in the learner's native language, a few short sentences"),
+  suggestion: z
+    .array(z.object({ label: z.string(), kind: z.enum(["word", "phrase", "pattern"]) }))
+    .nullable()
+    .describe("2–4 expressions to compare, when a concrete combination is being proposed in this reply; otherwise null"),
+});
+
+export type ConsultTurn = { role: "learner" | "assistant"; text: string };
+export type ConsultReply = z.infer<typeof ConsultSchema>;
+
+/**
+ * Helps pick the expressions for an inquiry, and nothing more: telling how they differ would take away
+ * the comparison the inquiry exists for, so this prompt forbids it just as the example prompts do.
+ */
+export async function consultTargets(l1: string, l2: string, history: ConsultTurn[], opts: CallOptions = {}) {
+  const system = `You help a learner of ${langName(l2)} decide which expressions to compare in an inquiry.
+The learner's native language is ${langName(l1)}. Always reply in ${langName(l1)}.
+
+In an inquiry the learner compares AI-generated example sentences of 2–4 similar ${langName(l2)} expressions and forms their own hypothesis about how they differ.
+
+Rules:
+1. Ask what the learner wants to express, where they get confused, or what situation they have in mind, when that is not clear yet. One or two short questions at a time.
+2. Propose combinations of 2–4 ${langName(l2)} expressions that are close in meaning or easily confused, and good to compare. Put the combination you currently recommend in "suggestion".
+3. Do NOT explain how the expressions differ in meaning, nuance, or usage. That is what the learner will discover. You may say why the set is worth comparing (e.g. "both can translate as ...").
+4. Keep replies short and friendly.`;
+  const user = history.map((x) => `${x.role === "learner" ? "Learner" : "You"}: ${x.text}`).join("\n\n");
+  return structured(system, user, ConsultSchema, { maxTokens: 2000, ...opts });
+}

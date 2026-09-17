@@ -19,9 +19,10 @@ class AbductionDB extends Dexie {
 
 export const db = new AbductionDB();
 
-export async function createInquiry(data: Omit<Inquiry, "id" | "createdAt" | "updatedAt">) {
+/** id: an id handed out beforehand, when AI calls were already charged to it (the word consultation on the free tier). */
+export async function createInquiry(data: Omit<Inquiry, "id" | "createdAt" | "updatedAt">, id = nanoid(10)) {
   const now = Date.now();
-  const inquiry: Inquiry = { ...data, id: nanoid(10), createdAt: now, updatedAt: now };
+  const inquiry: Inquiry = { ...data, id, createdAt: now, updatedAt: now };
   await db.inquiries.add(inquiry);
   return inquiry;
 }

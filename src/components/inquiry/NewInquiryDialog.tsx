@@ -34,6 +34,8 @@ export function NewInquiryDialog({
   l2,
   group,
   preselect,
+  initialTargets,
+  inquiryId,
   open,
   onOpenChange,
 }: {
@@ -42,6 +44,10 @@ export function NewInquiryDialog({
   group: CourseGroup | null; // null = custom
   /** labels of the group's words to start with (default: its first two) */
   preselect?: string[];
+  /** a custom inquiry's words, chosen beforehand in the consultation */
+  initialTargets?: Omit<Target, "id">[];
+  /** the id the consultation's AI calls were charged to, so the inquiry keeps it */
+  inquiryId?: string;
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
@@ -51,7 +57,7 @@ export function NewInquiryDialog({
   const nav = useNavigate();
   const [step, setStep] = useState(0);
   const [targets, setTargets] = useState<Target[]>(() =>
-    group ? group.targets.map((x) => ({ ...x, id: nanoid(6) })) : [],
+    (group?.targets ?? initialTargets ?? []).map((x) => ({ ...x, id: nanoid(6) })),
   );
   const [enabled, setEnabled] = useState<Set<string>>(() => new Set(group ? (preselect ? targets.filter((x) => preselect.includes(x.label)) : targets.slice(0, 2)).map((x) => x.id) : []));
   const [label, setLabel] = useState("");
@@ -81,7 +87,7 @@ export function NewInquiryDialog({
       question: question.trim() || undefined,
       genre: settings.genre,
       level: settings.level,
-    });
+    }, inquiryId);
     const generate: ExamplesParams = {
       targetIds: chosen.map((x) => x.id),
       count: settings.count,

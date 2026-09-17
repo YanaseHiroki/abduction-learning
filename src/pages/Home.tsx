@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Trash2 } from "lucide-react";
+import { ConsultDialog, type ConsultedTargets } from "@/components/inquiry/ConsultDialog";
 import { NewInquiryDialog } from "@/components/inquiry/NewInquiryDialog";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,8 @@ export function Home() {
   const t = useT();
   const nav = useNavigate();
   const { uiLang, defaultL2, tutorial } = useSettings();
-  const [dialog, setDialog] = useState<{ group: CourseGroup | null; preselect?: string[] } | null>(null);
+  const [dialog, setDialog] = useState<{ group: CourseGroup | null; preselect?: string[]; initialTargets?: ConsultedTargets; inquiryId?: string } | null>(null);
+  const [consulting, setConsulting] = useState(false);
   const loadedInquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []);
   const loadedNotes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []);
   const inquiries = loadedInquiries ?? [];
@@ -208,6 +210,10 @@ export function Home() {
               <div className="text-lg font-semibold"><span className="mr-2">✨</span>{t({ ja: "自由に探究する", en: "Custom inquiry" })}</div>
               <div className={cn("mt-1 text-sm", freeRecommended ? "text-blue-100" : "text-muted-foreground")}>{t({ ja: "2つ以上の英単語を自由に選べる", en: "Pick any two or more English words" })}</div>
             </EntryCard>
+            <EntryCard recommended={false} onClick={() => setConsulting(true)}>
+              <div className="text-lg font-semibold"><span className="mr-2">💬</span>{t({ ja: "AIと語を相談する", en: "Choose words with the AI" })}</div>
+              <div className="mt-1 text-sm text-muted-foreground">{t({ ja: "何を比べるか迷ったら、チャットで決めてから始められる", en: "Not sure what to compare? Decide in a chat, then start" })}</div>
+            </EntryCard>
           </div>
         </section>
       ) : (
@@ -217,6 +223,7 @@ export function Home() {
             <Recommended>
               <Button variant="recommended" onClick={() => setDialog({ group: null })}>{t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" })}</Button>
             </Recommended>
+            <Button variant="outline" onClick={() => setConsulting(true)}>{t({ ja: "💬 AIと語を相談する", en: "💬 Choose words with the AI" })}</Button>
           </ButtonRow>
         </section>
       )}
@@ -256,7 +263,16 @@ export function Home() {
         </section>
       )}
 
-      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={NATIVE_LANGUAGE} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} open onOpenChange={(o) => !o && setDialog(null)} />}
+      {consulting && (
+        <ConsultDialog
+          l1={NATIVE_LANGUAGE}
+          l2={defaultL2}
+          open
+          onOpenChange={setConsulting}
+          onStart={(initialTargets, inquiryId) => { setConsulting(false); setDialog({ group: null, initialTargets, inquiryId }); }}
+        />
+      )}
+      {dialog && <NewInquiryDialog key={dialog.inquiryId ?? dialog.group?.id ?? "custom"} l1={NATIVE_LANGUAGE} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} initialTargets={dialog.initialTargets} inquiryId={dialog.inquiryId} open onOpenChange={(o) => !o && setDialog(null)} />}
     </div>
   );
 }

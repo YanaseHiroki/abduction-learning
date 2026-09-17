@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SYSTEM_SIGNATURE } from "./providers";
 import { structured } from "./client";
-import { frameTest, generateExamples, generateExamplesForTarget, qaCheck, translateTest, writingFeedback } from "./prompts";
+import { consultTargets, frameTest, generateExamples, generateExamplesForTarget, qaCheck, translateTest, writingFeedback } from "./prompts";
 import type { GenerateExamplesInput } from "./prompts";
 import type { Sentence, Target } from "../types";
 import { courses } from "../courses";
@@ -274,5 +274,16 @@ describe("the at / in / on course", () => {
     const { user } = lastCall();
     expect(user).toContain('one of these candidates only: "at", "in", "on"');
     expect(user).toContain("Where Japanese expresses the target after its word (a particle or postposition), the number sits before that whole phrase");
+  });
+});
+
+describe("consultTargets", () => {
+  it("replies in the learner's language, never explains the differences, and sends the whole conversation", async () => {
+    reply({ reply: "ok", suggestion: null });
+    await consultTargets("ja", "en", [{ role: "learner", text: "思うの言い方" }, { role: "assistant", text: "どんな場面？" }, { role: "learner", text: "会議" }]);
+    const { system, user } = lastCall();
+    expect(system).toContain("Always reply in Japanese");
+    expect(system).toContain("Do NOT explain how the expressions differ");
+    expect(user).toBe("Learner: 思うの言い方\n\nYou: どんな場面？\n\nLearner: 会議");
   });
 });
