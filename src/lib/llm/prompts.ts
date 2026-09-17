@@ -334,8 +334,10 @@ export type ConsultReply = z.infer<typeof ConsultSchema>;
  * the comparison the inquiry exists for, so this prompt forbids it just as the example prompts do.
  */
 export async function consultTargets(l1: string, l2: string, history: ConsultTurn[], opts: CallOptions = {}) {
-  const system = `You help a learner of ${langName(l2)} decide which expressions to compare in an inquiry.
-The learner's native language is ${langName(l1)}. Always reply in ${langName(l1)}.
+  // Built on the shared system prompt: the free-tier proxy refuses any prompt without its signature.
+  const system = `${systemPrompt(l1, l2)}
+
+Task: help the learner decide which ${langName(l2)} expressions to compare in an inquiry. Always reply in ${langName(l1)}.
 
 In an inquiry the learner compares AI-generated example sentences of 2–4 similar ${langName(l2)} expressions and forms their own hypothesis about how they differ.
 
