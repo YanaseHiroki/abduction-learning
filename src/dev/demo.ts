@@ -191,7 +191,6 @@ export async function seedDemo(lang: "ja" | "en") {
   const hasKey = Object.values(providers).some((p) => p.apiKey);
   setSettings({
     uiLang: lang,
-    defaultL1: "ja",
     defaultL2: "en",
     ...(hasKey ? {} : { provider: "anthropic", providers: { ...providers, anthropic: { ...defaultSettings.providers.anthropic, apiKey: "demo" } } }),
     showTranslations: true,

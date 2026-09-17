@@ -15,8 +15,8 @@ import { ANALYTICS_ENABLED } from "@/lib/analytics";
 import { courses, languageName, showsTargetList, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
 import type { Inquiry } from "@/lib/types";
-import { useT } from "@/lib/i18n";
-import { setTutorial, useSettings } from "@/lib/settings";
+import { languageWord, useT } from "@/lib/i18n";
+import { NATIVE_LANGUAGE, setTutorial, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
@@ -55,28 +55,13 @@ function EntryCard({ recommended, onClick, children }: { recommended: boolean; o
   );
 }
 
-/** "Language" in each language the app offers, keyed by primary subtag. */
-const LANGUAGE_WORD: Record<string, string> = {
-  ja: "言語", en: "Language", zh: "语言", ko: "언어", fr: "Langue", de: "Sprache", es: "Idioma",
-  it: "Lingua", pt: "Idioma", ru: "Язык", vi: "Ngôn ngữ", th: "ภาษา", id: "Bahasa",
-};
-
-/**
- * Follows the browser's language rather than uiLang: someone who landed on a screen they can't read
- * still needs to recognise the control that switches it.
- */
-function languageWord() {
-  const code = (navigator.languages?.[0] ?? navigator.language ?? "").split("-")[0].toLowerCase();
-  return LANGUAGE_WORD[code] ?? "Language";
-}
-
 /** The book this notebook follows (the publisher's official page). */
 const BOOK_URL = "https://bookplus.nikkei.com/atcl/catalog/26/03/23/02546/";
 
 export function Home() {
   const t = useT();
   const nav = useNavigate();
-  const { uiLang, defaultL1, defaultL2, tutorial } = useSettings();
+  const { uiLang, defaultL2, tutorial } = useSettings();
   const [dialog, setDialog] = useState<{ group: CourseGroup | null; preselect?: string[] } | null>(null);
   const loadedInquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []);
   const loadedNotes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []);
@@ -112,7 +97,7 @@ export function Home() {
   // reopens its latest inquiry instead of starting another: a new genre or verification goes into the same inquiry,
   // so the hypothesis keeps growing in one place. Those groups move to the end. A group explored only partway
   // (say & tell of four) stays in place and starts its next inquiry with the words not yet compared.
-  const cards = ownCourses.flatMap((course) => course.groups).map((g) => ({ g, ...groupProgress(g, inquiries, defaultL1, defaultL2) }));
+  const cards = ownCourses.flatMap((course) => course.groups).map((g) => ({ g, ...groupProgress(g, inquiries, NATIVE_LANGUAGE, defaultL2) }));
   cards.sort((a, b) => Number(!!a.latest) - Number(!!b.latest));
   // Courses come in the order they are recommended, so the next group is the first unfinished one.
   const nextGroup = cards.find((x) => !x.latest)?.g;
@@ -167,11 +152,11 @@ export function Home() {
               <span className="text-foreground">
                 {uiLang === "ja" ? (
                   <>
-                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
+                    <LangPill>{languageName(NATIVE_LANGUAGE, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
                   </>
                 ) : (
                   <>
-                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
+                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(NATIVE_LANGUAGE, uiLang)}</LangPill>
                   </>
                 )}
               </span>
@@ -271,7 +256,7 @@ export function Home() {
         </section>
       )}
 
-      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={defaultL1} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} open onOpenChange={(o) => !o && setDialog(null)} />}
+      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={NATIVE_LANGUAGE} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} open onOpenChange={(o) => !o && setDialog(null)} />}
     </div>
   );
 }

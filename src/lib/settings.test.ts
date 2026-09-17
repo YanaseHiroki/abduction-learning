@@ -32,15 +32,15 @@ describe("loading", () => {
     expect(getSettings().providers.gemini).toEqual(defaultSettings.providers.gemini);
   });
 
-  it("frees a pair stored with the same language on both sides, without waiting for the learner to touch it", async () => {
-    const { getSettings } = await freshSettings({ defaultL1: "en", defaultL2: "en" });
-    expect(getSettings().defaultL1).toBe("en");
-    expect(getSettings().defaultL2).not.toBe("en");
+  it("drops the old native-language setting and keeps the language being learned", async () => {
+    const { getSettings } = await freshSettings({ uiLang: "en", defaultL1: "en", defaultL2: "fr" });
+    expect(getSettings()).toMatchObject({ uiLang: "en", defaultL2: "fr" });
+    expect(getSettings()).not.toHaveProperty("defaultL1");
   });
 
-  it("leaves a stored pair of two different languages exactly as it was", async () => {
-    const { getSettings } = await freshSettings({ defaultL1: "fr", defaultL2: "ja" });
-    expect(getSettings()).toMatchObject({ defaultL1: "fr", defaultL2: "ja" });
+  it("frees a stored language being learned that is the fixed native language", async () => {
+    const { getSettings, defaultSettings } = await freshSettings({ defaultL1: "en", defaultL2: "ja" });
+    expect(getSettings().defaultL2).toBe(defaultSettings.defaultL2);
   });
 
   it("keeps provider entries that were stored and defaults the others", async () => {
