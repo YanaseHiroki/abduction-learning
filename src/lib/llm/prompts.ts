@@ -138,7 +138,8 @@ export async function qaCheck(l1: string, l2: string, sets: { sentences: Sentenc
     .join("\n");
   const user = `Check each ${langName(l2)} sentence for grammatical errors or clearly unnatural wording (wrong verb form, agreement, missing article, broken tense). Report only real problems; minor stylistic issues are fine. Reasons in ${langName(l1)}.\n\n${listing}`;
   const { data } = await structured(
-    `You are a careful proofreader of ${langName(l2)}. Output only the JSON schema.`,
+    // Built on the shared system prompt: the free-tier proxy refuses any prompt without its signature.
+    `${systemPrompt(l1, l2)}\n\nTask: act as a careful proofreader of ${langName(l2)}.`,
     user,
     QASchema,
     { cheap: true, effort: "low", maxTokens: 2000, ...opts },
