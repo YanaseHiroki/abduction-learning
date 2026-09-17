@@ -34,7 +34,7 @@ function groupProgress(g: CourseGroup, inquiries: Inquiry[], l1: string, l2: str
   return { latest: remaining.length === 0 ? own[0] : undefined, started: own.length > 0, remaining, covered };
 }
 
-/** A language name shown like a picked dropdown value, in the "🌐 学習する言語を変更する" hint. */
+/** A language name shown like a picked dropdown value, in the "🌐 Language" hint. */
 function LangPill({ children }: { children: ReactNode }) {
   return <span className="rounded-md border bg-muted px-1.5 py-0.5">{children}</span>;
 }
@@ -53,6 +53,21 @@ function EntryCard({ recommended, onClick, children }: { recommended: boolean; o
       {children}
     </button>
   );
+}
+
+/** "Language" in each language the app offers, keyed by primary subtag. */
+const LANGUAGE_WORD: Record<string, string> = {
+  ja: "言語", en: "Language", zh: "语言", ko: "언어", fr: "Langue", de: "Sprache", es: "Idioma",
+  it: "Lingua", pt: "Idioma", ru: "Язык", vi: "Ngôn ngữ", th: "ภาษา", id: "Bahasa",
+};
+
+/**
+ * Follows the browser's language rather than uiLang: someone who landed on a screen they can't read
+ * still needs to recognise the control that switches it.
+ */
+function languageWord() {
+  const code = (navigator.languages?.[0] ?? navigator.language ?? "").split("-")[0].toLowerCase();
+  return LANGUAGE_WORD[code] ?? "Language";
 }
 
 /** The book this notebook follows (the publisher's official page). */
@@ -118,24 +133,6 @@ export function Home() {
       <section className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <div className="mt-4 grid items-start gap-3 sm:grid-cols-2">
-          <Disclosure
-            label={t({ ja: "🌐 学習する言語を変更する", en: "🌐 Change study languages" })}
-            hint={
-              <span className="text-foreground">
-                {uiLang === "ja" ? (
-                  <>
-                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
-                  </>
-                ) : (
-                  <>
-                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
-                  </>
-                )}
-              </span>
-            }
-          >
-            <LanguageFields />
-          </Disclosure>
           <Disclosure label={t({ ja: "📖 このアプリについて", en: "📖 About this app" })}>
             <p className="text-sm whitespace-pre-line text-muted-foreground">
               {t({ ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。\n今井むつみ先生の", en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation.\nAn unofficial, fan-made notebook following the method in Professor Mutsumi Imai's book " })}
@@ -163,6 +160,24 @@ export function Home() {
                 })}
               </p>
             )}
+          </Disclosure>
+          <Disclosure
+            label={`🌐 ${languageWord()}`}
+            hint={
+              <span className="text-foreground">
+                {uiLang === "ja" ? (
+                  <>
+                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
+                  </>
+                ) : (
+                  <>
+                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
+                  </>
+                )}
+              </span>
+            }
+          >
+            <LanguageFields />
           </Disclosure>
         </div>
       </section>

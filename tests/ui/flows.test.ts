@@ -219,7 +219,7 @@ describe("settings", () => {
   it("moves the language being learned aside when the native language takes its place", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
-    await app.page.getByRole("button", { name: /学習する言語を変更する/ }).click();
+    await app.page.getByRole("button", { name: /🌐/ }).click();
 
     // 母語 = 英語, while 学ぶ言語 is still 英語
     await app.page.getByRole("combobox").filter({ hasText: "日本語" }).first().click();
