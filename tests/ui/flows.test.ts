@@ -216,18 +216,17 @@ describe("settings", () => {
     expect(await app.page.evaluate(() => document.documentElement.lang)).toBe("en");
   });
 
-  it("moves the language being learned aside when the native language takes its place", async () => {
+  it("offers every language but the native Japanese to learn, and stores the pick", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
-    await app.page.getByRole("button", { name: /学習する言語を変更する/ }).click();
+    await app.page.getByRole("button", { name: /🌐/ }).click();
 
-    // 母語 = 英語, while 学ぶ言語 is still 英語
-    await app.page.getByRole("combobox").filter({ hasText: "日本語" }).first().click();
-    await app.page.getByRole("option", { name: "英語", exact: true }).click();
+    await app.page.getByRole("combobox").filter({ hasText: "英語" }).click();
+    expect(await app.page.getByRole("option", { name: "日本語", exact: true }).count()).toBe(0);
+    await app.page.getByRole("option", { name: "フランス語", exact: true }).click();
 
     const stored = await app.page.evaluate(() => JSON.parse(localStorage.getItem("abduction-learning.settings")!));
-    expect(stored.defaultL1).toBe("en");
-    expect(stored.defaultL2).toBe("ja");
+    expect(stored.defaultL2).toBe("fr");
   });
 
   it("turns the page dark and keeps it dark after a reload", async () => {

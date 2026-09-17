@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sendFeedback, type FeedbackKind } from "@/lib/llm/client";
 import { useT, type Localized } from "@/lib/i18n";
-import { useSettings } from "@/lib/settings";
+import { NATIVE_LANGUAGE, useSettings } from "@/lib/settings";
 
 const kinds: { value: FeedbackKind; label: Localized }[] = [
   { value: "usage", label: { ja: "🤔 使い方が分からない", en: "🤔 How do I…?" } },
@@ -40,7 +40,7 @@ export function FeedbackDialog({ open, onOpenChange, initialKind }: { open: bool
     screen: pathname + search,
     uiLang: s.uiLang,
     ai: s.provider === "shared" ? "shared (free tier)" : `${s.provider} / ${s.providers[s.provider].model}`,
-    languages: `${s.defaultL1} → ${s.defaultL2}`,
+    languages: `${NATIVE_LANGUAGE} → ${s.defaultL2}`,
     tutorial: s.tutorial.status,
     viewport: `${window.innerWidth}×${window.innerHeight}`,
     browser: navigator.userAgent,

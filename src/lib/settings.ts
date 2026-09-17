@@ -1,5 +1,4 @@
 import { useSyncExternalStore } from "react";
-import { chooseLanguage } from "./courses";
 import type { Provider } from "./llm/providers";
 
 export type Theme = "light" | "dark" | "system";
@@ -20,6 +19,13 @@ export interface TutorialState {
   step: number;
 }
 
+/**
+ * The learner's native language (inquiry.l1). It used to be a setting of its own, but nearly every learner
+ * speaks Japanese, and a second, separate choice next to the screen language only confused people. It stays
+ * apart from uiLang so a Japanese speaker can use the English screen and still take the English courses.
+ */
+export const NATIVE_LANGUAGE = "ja";
+
 export interface Settings {
   /** which tab is active in Settings: the shared free tier, or one provider with the learner's own key */
   provider: Provider | "shared";
@@ -28,7 +34,6 @@ export interface Settings {
   uiLang: "ja" | "en";
   /** "system" follows the OS light/dark preference */
   theme: Theme;
-  defaultL1: string;
   defaultL2: string;
   showTranslations: boolean;
   ttsRate: number;
@@ -52,7 +57,6 @@ export const defaultSettings: Settings = {
   qaEnabled: true,
   uiLang: "ja",
   theme: "system",
-  defaultL1: "ja",
   defaultL2: "en",
   showTranslations: true,
   ttsRate: 0.95,
@@ -64,18 +68,15 @@ function load(): Settings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultSettings;
-    const parsed = JSON.parse(raw) as Partial<Settings> & { apiKey?: string; model?: string };
+    const { defaultL1: _dropped, ...parsed } = JSON.parse(raw) as Partial<Settings> & { apiKey?: string; model?: string; defaultL1?: string };
     const merged: Settings = {
       ...defaultSettings,
       ...parsed,
       providers: { ...defaultSettings.providers, ...(parsed.providers ?? {}) },
     };
-    // A pair saved as the same language on both sides was reachable before chooseLanguage, and would
-    // leave the learner studying the language they speak. Free it on the way in, so a profile that is
-    // never touched again does not keep starting inquiries like that.
-    if (merged.defaultL1 === merged.defaultL2) {
-      merged.defaultL2 = chooseLanguage("l1", merged.defaultL1, { l1: merged.defaultL1, l2: merged.defaultL2 }).l2;
-    }
+    // Learning the native language makes no sense (the prompt would read "studies Japanese … native language
+    // is Japanese"). A profile saved with a different native language could have chosen it, so free it on the way in.
+    if (merged.defaultL2 === NATIVE_LANGUAGE) merged.defaultL2 = defaultSettings.defaultL2;
     // migrate the v1 single-key layout
     if (parsed.apiKey && !merged.providers.anthropic.apiKey) {
       merged.providers.anthropic = { apiKey: parsed.apiKey, model: parsed.model ?? "claude-opus-5" };

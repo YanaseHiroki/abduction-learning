@@ -15,8 +15,8 @@ import { ANALYTICS_ENABLED } from "@/lib/analytics";
 import { courses, languageName, showsTargetList, type CourseGroup } from "@/lib/courses";
 import { db, deleteInquiry } from "@/lib/db";
 import type { Inquiry } from "@/lib/types";
-import { useT } from "@/lib/i18n";
-import { setTutorial, useSettings } from "@/lib/settings";
+import { languageWord, useT } from "@/lib/i18n";
+import { NATIVE_LANGUAGE, setTutorial, useSettings } from "@/lib/settings";
 import { fmtDate } from "@/lib/text";
 import { cn } from "@/lib/utils";
 
@@ -34,7 +34,7 @@ function groupProgress(g: CourseGroup, inquiries: Inquiry[], l1: string, l2: str
   return { latest: remaining.length === 0 ? own[0] : undefined, started: own.length > 0, remaining, covered };
 }
 
-/** A language name shown like a picked dropdown value, in the "🌐 学習する言語を変更する" hint. */
+/** A language name shown like a picked dropdown value, in the "🌐 Language" hint. */
 function LangPill({ children }: { children: ReactNode }) {
   return <span className="rounded-md border bg-muted px-1.5 py-0.5">{children}</span>;
 }
@@ -61,7 +61,7 @@ const BOOK_URL = "https://bookplus.nikkei.com/atcl/catalog/26/03/23/02546/";
 export function Home() {
   const t = useT();
   const nav = useNavigate();
-  const { uiLang, defaultL1, defaultL2, tutorial } = useSettings();
+  const { uiLang, defaultL2, tutorial } = useSettings();
   const [dialog, setDialog] = useState<{ group: CourseGroup | null; preselect?: string[] } | null>(null);
   const loadedInquiries = useLiveQuery(() => db.inquiries.orderBy("updatedAt").reverse().toArray(), []);
   const loadedNotes = useLiveQuery(() => db.schemaNotes.orderBy("createdAt").reverse().limit(1).toArray(), []);
@@ -97,7 +97,7 @@ export function Home() {
   // reopens its latest inquiry instead of starting another: a new genre or verification goes into the same inquiry,
   // so the hypothesis keeps growing in one place. Those groups move to the end. A group explored only partway
   // (say & tell of four) stays in place and starts its next inquiry with the words not yet compared.
-  const cards = ownCourses.flatMap((course) => course.groups).map((g) => ({ g, ...groupProgress(g, inquiries, defaultL1, defaultL2) }));
+  const cards = ownCourses.flatMap((course) => course.groups).map((g) => ({ g, ...groupProgress(g, inquiries, NATIVE_LANGUAGE, defaultL2) }));
   cards.sort((a, b) => Number(!!a.latest) - Number(!!b.latest));
   // Courses come in the order they are recommended, so the next group is the first unfinished one.
   const nextGroup = cards.find((x) => !x.latest)?.g;
@@ -118,24 +118,6 @@ export function Home() {
       <section className="mb-8">
         <h1 className="text-2xl font-semibold tracking-tight">{t({ ja: "例文から自分で仮説を立てて、確かめる。", en: "Form your own hypotheses from examples, then test them." })}</h1>
         <div className="mt-4 grid items-start gap-3 sm:grid-cols-2">
-          <Disclosure
-            label={t({ ja: "🌐 学習する言語を変更する", en: "🌐 Change study languages" })}
-            hint={
-              <span className="text-foreground">
-                {uiLang === "ja" ? (
-                  <>
-                    <LangPill>{languageName(defaultL1, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
-                  </>
-                ) : (
-                  <>
-                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(defaultL1, uiLang)}</LangPill>
-                  </>
-                )}
-              </span>
-            }
-          >
-            <LanguageFields />
-          </Disclosure>
           <Disclosure label={t({ ja: "📖 このアプリについて", en: "📖 About this app" })}>
             <p className="text-sm whitespace-pre-line text-muted-foreground">
               {t({ ja: "似た意味の語を並べ、AIに例文だけを出させて比較し、仮説を立てて翻訳テストで検証する。\n今井むつみ先生の", en: "Line up similar words, have the AI produce examples only, compare, hypothesize, and test by translation.\nAn unofficial, fan-made notebook following the method in Professor Mutsumi Imai's book " })}
@@ -163,6 +145,24 @@ export function Home() {
                 })}
               </p>
             )}
+          </Disclosure>
+          <Disclosure
+            label={`🌐 ${languageWord()}`}
+            hint={
+              <span className="text-foreground">
+                {uiLang === "ja" ? (
+                  <>
+                    <LangPill>{languageName(NATIVE_LANGUAGE, uiLang)}</LangPill>で<LangPill>{languageName(defaultL2, uiLang)}</LangPill>を学習する
+                  </>
+                ) : (
+                  <>
+                    Learning <LangPill>{languageName(defaultL2, uiLang)}</LangPill> in <LangPill>{languageName(NATIVE_LANGUAGE, uiLang)}</LangPill>
+                  </>
+                )}
+              </span>
+            }
+          >
+            <LanguageFields />
           </Disclosure>
         </div>
       </section>
@@ -256,7 +256,7 @@ export function Home() {
         </section>
       )}
 
-      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={defaultL1} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} open onOpenChange={(o) => !o && setDialog(null)} />}
+      {dialog && <NewInquiryDialog key={dialog.group?.id ?? "custom"} l1={NATIVE_LANGUAGE} l2={defaultL2} group={dialog.group} preselect={dialog.preselect} open onOpenChange={(o) => !o && setDialog(null)} />}
     </div>
   );
 }

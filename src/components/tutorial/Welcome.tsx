@@ -13,8 +13,8 @@ import { Recommended } from "@/components/ui/recommended";
 import { StepDots } from "@/components/ui/step-dots";
 import { importAll } from "@/lib/backup";
 import { showsTargetList } from "@/lib/courses";
-import { useT } from "@/lib/i18n";
-import { setTutorial, useSettings } from "@/lib/settings";
+import { languageWord, useT } from "@/lib/i18n";
+import { NATIVE_LANGUAGE, setTutorial, useSettings } from "@/lib/settings";
 import { startTutorial, tutorialGroup } from "@/lib/tutorial";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
  */
 export function Welcome() {
   const t = useT();
-  const { uiLang, defaultL1, defaultL2, provider } = useSettings();
+  const { uiLang, defaultL2, provider } = useSettings();
   const nav = useNavigate();
   const [mode, setMode] = useState<"tour" | "import">("tour");
   const [step, setStep] = useState(0);
@@ -40,7 +40,7 @@ export function Welcome() {
   async function start() {
     setStarting(true);
     const custom = group ? null : words.map((w) => ({ label: w.trim(), kind: w.trim().includes(" ") ? ("phrase" as const) : ("word" as const) }));
-    const { id, generate } = await startTutorial(defaultL1, defaultL2, custom);
+    const { id, generate } = await startTutorial(NATIVE_LANGUAGE, defaultL2, custom);
     nav(`/inquiry/${id}`, { state: { generate } satisfies StartState });
   }
 
@@ -100,7 +100,7 @@ export function Welcome() {
               <Button variant="recommended" size="lg" onClick={() => setStep(1)}>{t({ ja: "🚀 はじめる", en: "🚀 Get started" })}</Button>
             </Recommended>
           </NavRow>
-          <Disclosure className="mt-8" label="🌐 学習する言語を変更する / Language">
+          <Disclosure className="mt-8" label={`🌐 ${languageWord()}`}>
             <LanguageFields />
           </Disclosure>
         </div>
