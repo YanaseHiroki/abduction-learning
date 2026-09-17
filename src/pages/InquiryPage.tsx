@@ -84,9 +84,9 @@ export function InquiryPage() {
   const inquiry = useInquiry(id);
   const cards = useCards(id);
   const [dialog, setDialog] = useState(false);
-  // Wide screens show the panel by default; the choice is a per-viewer convenience, so storage failures just fall back to open.
+  // Closed by default so the examples get the width; the choice is a per-viewer convenience, so storage failures fall back to closed.
   const [panelOpen, setPanelOpen] = useState(() => {
-    try { return localStorage.getItem("inquiry.panelOpen") !== "0"; } catch { return true; }
+    try { return localStorage.getItem("inquiry.panelOpen") === "1"; } catch { return false; }
   });
   const togglePanel = () => setPanelOpen((v) => {
     try { localStorage.setItem("inquiry.panelOpen", v ? "0" : "1"); } catch { /* ignore */ }
