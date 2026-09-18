@@ -73,11 +73,11 @@ export function ConsultDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90dvh] flex-col sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t({ ja: "💬 比べる語をAIと相談する", en: "💬 Choose words with the AI" })}</DialogTitle>
+          <DialogTitle>{t({ ja: "💬 相談して決める", en: "💬 Decide in a chat" })}</DialogTitle>
           <DialogDescription className="whitespace-pre-line">
             {t({
-              ja: "言いたいことや、迷っている表現を書いてください。\n比べるとよい語の組み合わせを一緒に考えます（違いの答えは教えません）。",
-              en: "Write what you want to say, or which expressions confuse you.\nThe AI suggests words worth comparing (without telling you how they differ).",
+              ja: "言いたいことや、迷っていることばを書いてください。\n比べるとよい組み合わせを一緒に考えます。違いの答えは教えませんよ。",
+              en: "Write what you want to say, or which words confuse you.\nWe will work out a combination worth comparing together. I will not tell you how they differ, though.",
             })}
           </DialogDescription>
         </DialogHeader>
@@ -93,7 +93,7 @@ export function ConsultDialog({
                       <span key={j} lang={l2} className={cn("rounded-lg border px-3 py-1 text-base", targetColor(j))}>{s.label}</span>
                     ))}
                   </div>
-                  <Button size="sm" onClick={() => onStart(x.suggestion!, inquiryId)}>{t({ ja: "🚀 この組み合わせで探究を始める", en: "🚀 Start an inquiry with these" })}</Button>
+                  <Button size="sm" onClick={() => onStart(x.suggestion!, inquiryId)}>{t({ ja: "🚀 この組み合わせで始める", en: "🚀 Start with these" })}</Button>
                 </div>
               )}
             </div>

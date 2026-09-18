@@ -16,15 +16,15 @@ import { cn } from "@/lib/utils";
  * must match the shot ids there. See docs/help-screenshots.md.
  */
 const slides: { id: string; title: Localized; body: Localized }[] = [
-  { id: "course", title: { ja: "🧭 コースを選ぶ", en: "🧭 Pick a course" }, body: { ja: "似た意味の語のグループから選びます。", en: "Choose a group of words with similar meanings." } },
-  { id: "words", title: { ja: "🔤 比べる語を選ぶ", en: "🔤 Pick words to compare" }, body: { ja: "2語ずつ比べるのが見やすいです。", en: "Two at a time is easiest to see." } },
-  { id: "genre", title: { ja: "🎬 場面を選ぶ", en: "🎬 Pick a scene" }, body: { ja: "例文のジャンルを決めます。", en: "Choose the kind of example sentences." } },
-  { id: "examples", title: { ja: "👀 例文を眺める", en: "👀 Read the examples" }, body: { ja: "解説はありません。\n違いを自分で探します。", en: "There are no explanations.\nFind the differences yourself." } },
-  { id: "observe", title: { ja: "🔍 観察する", en: "🔍 Observe" }, body: { ja: "気になった所を選んで印を付けます。", en: "Select what catches your eye and add it." } },
-  { id: "hypothesis", title: { ja: "✍️ 仮説を書く", en: "✍️ Write a hypothesis" }, body: { ja: "「こういう時に使う」と自分の言葉で書きます。", en: "Say when each word is used, in your own words." } },
-  { id: "translate", title: { ja: "🧪 翻訳テストで確かめる", en: "🧪 Test with a translation" }, body: { ja: "どの語が使われるか予想してから答えを見ます。", en: "Predict which word appears, then check." } },
-  { id: "save", title: { ja: "📒 まとめて保存する", en: "📒 Sum up and save" }, body: { ja: "気づきノートでいつでも読み返せます。", en: "Read it again any time in your notes." } },
-  { id: "next", title: { ja: "🔁 次の一手を選ぶ", en: "🔁 Pick the next step" }, body: { ja: "順番は自由です。\n何度でも回します。", en: "Any order is fine.\nGo around as many times as you like." } },
+  { id: "course", title: { ja: "🧭 組み合わせを選ぶ", en: "🧭 Pick a combination" }, body: { ja: "「いいえ」を押すと、用意した組み合わせが出ます。\n気になるものを選んでください。", en: "Press \"No\" and the ready-made combinations come out.\nPick one that catches your eye." } },
+  { id: "words", title: { ja: "🔤 比べることばを選ぶ", en: "🔤 Pick words to compare" }, body: { ja: "2つずつ比べるのが見やすいですよ。", en: "Two at a time is easiest to see." } },
+  { id: "genre", title: { ja: "🎬 場面を選ぶ", en: "🎬 Pick a scene" }, body: { ja: "どんな場面の例文で比べるか、決めましょう。", en: "Decide what kind of scene to compare in." } },
+  { id: "examples", title: { ja: "👀 例文を眺める", en: "👀 Read the examples" }, body: { ja: "解説はありません。\n違いを自分で探してみましょう。", en: "There are no explanations.\nFind the differences yourself." } },
+  { id: "observe", title: { ja: "🔍 見比べる", en: "🔍 Compare" }, body: { ja: "気になった所をなぞって、表に集めます。", en: "Select what catches your eye and collect it in a table." } },
+  { id: "hypothesis", title: { ja: "✍️ 仮説を書く", en: "✍️ Write your hypothesis" }, body: { ja: "「こういう時に使う」と、自分のことばで書きます。", en: "Say when each word is used, in your own words." } },
+  { id: "translate", title: { ja: "🧪 訳して確かめる", en: "🧪 Check by translating" }, body: { ja: "どのことばが使われるか予想してから、答えを見ます。", en: "Predict which word appears, then check." } },
+  { id: "save", title: { ja: "📒 まとめて保存する", en: "📒 Sum up and save" }, body: { ja: "気づきノートに残せば、いつでも読み返せます。", en: "Save it to your notes and read it again any time." } },
+  { id: "next", title: { ja: "🔁 次はこれ！", en: "🔁 Up next" }, body: { ja: "順番は自由です。\n何度でも回しましょう。", en: "Any order is fine.\nGo around as many times as you like." } },
 ];
 
 /** Where to draw the ring, in % of the screenshot. */

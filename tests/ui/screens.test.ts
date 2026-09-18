@@ -25,55 +25,65 @@ afterEach(async () => {
   }
 });
 
+/** Home asks whether a combination is in mind; "no" brings out the ready-made ones. */
+async function browseCombinations(a: AppPage) {
+  await a.page.getByRole("button", { name: "いいえ", exact: true }).click();
+  await a.page.getByText(/気になる組み合わせがあれば/).waitFor();
+}
+
 describe("the home screen", () => {
-  it("shows the course, its groups and the inquiry to continue", async () => {
+  it("opens on one question, with the streak and level above it and nothing else to read", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
     const main = app.page.locator("main");
 
-    expect(await textOf(main)).toContain("基本コース");
+    expect(await textOf(main)).toContain("組み合わせはありますか");
+    expect(await textOf(main)).toContain("レベル");
+    expect(await textOf(main)).toContain("🔥");
+    expect(await textOf(main)).not.toContain("listen · hear");
+    expect(await main.getByRole("button", { name: "はい", exact: true }).count()).toBe(1);
+    expect(await main.getByRole("button", { name: "いいえ", exact: true }).count()).toBe(1);
+  });
+
+  it("brings out the ready-made combinations on \"no\", and the inquiries to go back to", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/");
+    await browseCombinations(app);
+    const main = app.page.locator("main");
+
     expect(await textOf(main)).toContain("listen · hear");
     expect(await textOf(main)).toContain("say · tell · speak · talk");
-    expect(await textOf(main)).toContain("探究を再開する");
-    expect(await textOf(app.page.getByRole("button", { name: /自由に探究する/ }))).toContain("2つ以上の英単語を自由に選べる");
+    expect(await textOf(main)).toContain("💬 相談して決める");
+    expect(await textOf(main)).toContain("前の探究にもどる");
   });
 
   it("recommends the next group to explore, not the one already finished", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
 
-    const recommended = app.page.locator("section", { hasText: "基本コース" }).getByText("おすすめ").first();
+    const recommended = app.page.locator("section", { hasText: "気になる組み合わせ" }).getByText("おすすめ").first();
     expect(await shown(recommended)).toBe(true);
     // the demo finished "listen / hear", so that card offers to reopen it instead
-    expect(await textOf(app.page.getByRole("button", { name: /listen · hear/ }))).toContain("探究を再開する");
+    expect(await textOf(app.page.getByRole("button", { name: /listen · hear/ }))).toContain("続きをやる");
   });
 
-  it("puts every course's groups in one basic-course row, prepositions after the verbs, without taking the recommendation", async () => {
+  it("puts every course's groups in one row, prepositions after the verbs, without taking the recommendation", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
 
-    const section = app.page.locator("section", { hasText: "基本コース" });
+    const section = app.page.locator("section", { hasText: "気になる組み合わせ" });
     const labels = await section.locator(".snap-start").allTextContents();
     expect(labels.findIndex((x) => x.includes("〜に・〜で"))).toBeGreaterThan(labels.findIndex((x) => x.includes("話す")));
-    expect(labels.some((x) => x.includes("自由に探究する"))).toBe(false);
     expect(await textOf(section)).toContain("at · in · on");
     expect(await app.page.getByRole("button", { name: /at · in · on/ }).getByText("おすすめ").count()).toBe(0);
-    expect(await app.page.locator("main h2").allTextContents()).not.toContainEqual(expect.stringContaining("前置詞コース"));
-  });
-
-  it("sets free inquiry apart under its own heading, in the same section as the basic course", async () => {
-    app = await openApp({ seed: true });
-    await app.go("/");
-
-    const section = app.page.locator("section", { hasText: "基本コース" });
-    const headings = await section.locator("h2").allTextContents();
-    expect(headings).toEqual(["🧭 基本コース", "✏️ オリジナルのコース"]);
-    expect(await section.getByRole("button", { name: /自由に探究する/ }).count()).toBe(1);
   });
 
   it("opens the prepositions group with its hint, and with at and in chosen to compare first", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
     await app.page.getByRole("button", { name: /at · in · on/ }).click();
 
     const dialog = app.page.getByRole("dialog");
@@ -82,9 +92,10 @@ describe("the home screen", () => {
     expect(await dialog.getByRole("button", { name: "on", exact: true }).getAttribute("aria-pressed")).toBe("false");
   });
 
-  it("shows the schema left by the last inquiry and a link to the notes", async () => {
+  it("keeps what the last inquiry found behind a fold, with a link to the notes", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await app.page.getByRole("button", { name: /前にわかったこと/ }).click();
 
     const main = await screenText(app.page);
     expect(main).toContain("listen = 自分から耳を向けて聞く");
@@ -96,10 +107,9 @@ describe("the home screen", () => {
     await app.go("/");
 
     const main = app.page.locator("main");
-    expect(await textOf(main)).toContain("Form your own hypotheses");
-    expect(await textOf(main)).toContain("Basic course");
-    expect(await textOf(main)).toContain("Your own course");
-    expect(await textOf(main)).not.toContain("基本コース");
+    expect(await textOf(main)).toContain("Do you have a combination of words in mind");
+    expect(await textOf(main)).toContain("Level");
+    expect(await textOf(main)).not.toContain("組み合わせ");
   });
 });
 
@@ -109,11 +119,11 @@ describe("the inquiry screen", () => {
     await app.go("/inquiry/demo");
     const main = app.page.locator("main");
 
-    expect(await textOf(main)).toContain("📝 例文セット");
-    expect(await textOf(main)).toContain("🔍 観察");
+    expect(await textOf(main)).toContain("📝 例文");
+    expect(await textOf(main)).toContain("🔍 見比べる");
     expect(await textOf(main)).toContain("💡 仮説");
-    expect(await textOf(main)).toContain("🌐 検証：翻訳テスト");
-    expect(await textOf(main)).toContain("🏁 まとめ・出力");
+    expect(await textOf(main)).toContain("🌐 訳して確かめる");
+    expect(await textOf(main)).toContain("🏁 まとめ");
   });
 
   it("numbers the steps of the method across the cards", async () => {
@@ -169,7 +179,7 @@ describe("the inquiry screen", () => {
     await app.go("/inquiry/no-such-inquiry");
 
     expect(await shown(app.page.locator("main"))).toBe(true);
-    expect(await screenText(app.page)).not.toContain("📝 例文セット");
+    expect(await screenText(app.page)).not.toContain("📝 例文");
   });
 });
 
@@ -190,14 +200,14 @@ describe("the help screen", () => {
   it("opens on the first slide and walks forward and back", async () => {
     app = await openApp({ seed: true });
     await app.go("/help");
-    const first = app.page.getByText("🧭 コースを選ぶ");
-    const second = app.page.getByText("🔤 比べる語を選ぶ");
+    const first = app.page.getByText("🧭 組み合わせを選ぶ");
+    const second = app.page.getByText("🔤 比べることばを選ぶ");
 
     expect(await shown(first)).toBe(true);
 
     await app.page.getByRole("button", { name: /進む/ }).click();
     expect(await shown(second)).toBe(true);
-    expect(await screenText(app.page)).not.toContain("🧭 コースを選ぶ");
+    expect(await screenText(app.page)).not.toContain("🧭 組み合わせを選ぶ");
 
     await app.page.getByRole("button", { name: /戻る/ }).first().click();
     expect(await shown(first)).toBe(true);

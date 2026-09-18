@@ -175,7 +175,7 @@ export function VerifyTranslationCard({ card, inquiry }: { card: Card<"verify_tr
                     <td className="py-1">{pred ? <TargetBadge target={pred} index={inquiry.targets.indexOf(pred)} /> : "—"}</td>
                     <td className="py-1 font-medium">{a.word}</td>
                     <td className={cn("py-1 text-xs font-semibold", match ? "text-emerald-600" : "text-rose-600")}>
-                      {match ? t({ ja: "一致", en: "match" }) : t({ ja: "不一致 → 仮説を見直す材料", en: "mismatch → revisit the hypothesis" })}
+                      {match ? t({ ja: "一致", en: "match" }) : t({ ja: "不一致 → 仮説を直すヒント", en: "mismatch → a hint for revising" })}
                     </td>
                   </tr>
                 );

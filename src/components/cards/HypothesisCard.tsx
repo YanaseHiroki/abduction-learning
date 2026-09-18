@@ -55,14 +55,14 @@ export function HypothesisCard({ card, inquiry, cards }: { card: Card<"hypothesi
   return (
     <CardShell
       card={card}
-      title={t({ ja: `私たちのアブダクション v${p.version}`, en: `Our abduction v${p.version}` })}
+      title={t({ ja: `あなたの考え v${p.version}`, en: `Your idea v${p.version}` })}
       hint={cardHint({ ...card, payload: { ...p, lines } }, inquiry)}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           {notes.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger render={<Button size="sm" variant="ghost" />}>
-                <BookMarked />{t({ ja: "過去のスキーマを持ち込む", en: "Bring in a past schema" })}
+                <BookMarked />{t({ ja: "前にわかったことを持ち込む", en: "Bring in what you found before" })}
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="max-w-sm">
                 {notes.map((n) => (
@@ -129,7 +129,7 @@ export function HypothesisCard({ card, inquiry, cards }: { card: Card<"hypothesi
         })}
         {(written || p.notes) && (
           <Textarea
-            placeholder={t({ ja: "根拠・メモ（どの観察からそう考えたか、構文との関係、包含関係の図の説明…）", en: "Evidence and notes: which observation led here, relation to syntax, inclusion diagram…" })}
+            placeholder={t({ ja: "根拠・メモ（どこを見てそう思ったか、文の形との関係…）", en: "Evidence and notes: what made you think so, how the sentence shapes relate…" })}
             defaultValue={p.notes}
             onBlur={(e) => e.target.value !== p.notes && updateCardPayload(card, { notes: e.target.value })}
           />

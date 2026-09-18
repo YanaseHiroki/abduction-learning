@@ -119,7 +119,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
   return (
     <CardShell card={card} title={perspLabel} hint={!usesExamples || examples ? cardHint(card, inquiry) : undefined}>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="text-sm text-muted-foreground">{t({ ja: "着眼点", en: "Perspective" })}</span>
+        <span className="text-sm text-muted-foreground">{t({ ja: "見るポイント", en: "What to look at" })}</span>
         <Select
           items={[...pack.perspectives.map((x) => ({ value: x.id, label: uiLang === "ja" ? x.ja : x.en })), ...(perspective ? [] : [{ value: p.perspective, label: p.perspective }])]}
           value={p.perspective}
@@ -149,7 +149,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
             <Input
               autoFocus
               className="h-7 w-40 text-sm"
-              placeholder={t({ ja: "自分の着眼点（Enterで決定）", en: "Custom perspective (press Enter)" })}
+              placeholder={t({ ja: "自分で決めたポイント（Enterで決定）", en: "Your own point (press Enter)" })}
               value={customPersp}
               onChange={(e) => setCustomPersp(e.target.value)}
               // clicking away commits too, so what was typed is never silently thrown away
@@ -163,7 +163,7 @@ export function ObservationCard({ card, inquiry, cards }: { card: Card<"observat
         ) : (
           <Button size="xs" variant="ghost" className="text-muted-foreground" onClick={() => setCustomOpen(true)}>{t({ ja: "✏️ 自分で決める", en: "✏️ Write my own" })}</Button>
         )}
-        {p.marks.length === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "おすすめの着眼点を選んであります。", en: "A suggested perspective is preselected." })}</span>}
+        {p.marks.length === 0 && <span className="text-xs text-muted-foreground">{t({ ja: "おすすめのポイントを選んであります。", en: "A suggested point is preselected." })}</span>}
         {usesExamples && manySets && <ExamplesPicker cards={cards} inquiry={inquiry} value={p.examplesCardId} onChange={(id) => updateCardPayload(card, { examplesCardId: id })} />}
       </div>
 

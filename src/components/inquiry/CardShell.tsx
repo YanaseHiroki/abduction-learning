@@ -11,13 +11,13 @@ import type { Card, CardKind } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const kindMeta: Record<CardKind, { emoji: string; ja: string; en: string; step: string; stripe: string }> = {
-  examples: { emoji: "📝", ja: "例文セット", en: "Example set", step: "STEP 1", stripe: "border-l-sky-500" },
-  observation: { emoji: "🔍", ja: "観察", en: "Observation", step: "STEP 2", stripe: "border-l-amber-500" },
-  syntax: { emoji: "🧩", ja: "構文分析", en: "Syntax", step: "STEP 2", stripe: "border-l-amber-600" },
+  examples: { emoji: "📝", ja: "例文", en: "Examples", step: "STEP 1", stripe: "border-l-sky-500" },
+  observation: { emoji: "🔍", ja: "見比べる", en: "Compare", step: "STEP 2", stripe: "border-l-amber-500" },
+  syntax: { emoji: "🧩", ja: "文の形を見る", en: "Sentence shapes", step: "STEP 2", stripe: "border-l-amber-600" },
   hypothesis: { emoji: "💡", ja: "仮説", en: "Hypothesis", step: "STEP 2", stripe: "border-l-rose-500" },
-  verify_translation: { emoji: "🌐", ja: "検証：翻訳テスト", en: "Verify: translation test", step: "STEP 3", stripe: "border-l-emerald-500" },
-  verify_frame: { emoji: "🧪", ja: "検証：フレームテスト", en: "Verify: frame test", step: "STEP 3", stripe: "border-l-emerald-600" },
-  summary: { emoji: "🏁", ja: "まとめ・出力", en: "Summary & writing", step: "OUTPUT", stripe: "border-l-violet-500" },
+  verify_translation: { emoji: "🌐", ja: "訳して確かめる", en: "Check by translating", step: "STEP 3", stripe: "border-l-emerald-500" },
+  verify_frame: { emoji: "🧪", ja: "型に当てはめて確かめる", en: "Check with frames", step: "STEP 3", stripe: "border-l-emerald-600" },
+  summary: { emoji: "🏁", ja: "まとめ", en: "Summary", step: "STEP 4", stripe: "border-l-violet-500" },
 };
 
 export function CardShell({
@@ -41,7 +41,7 @@ export function CardShell({
 
   // The trash sits next to the card's own switches, so a card holding work asks first: there is no undo.
   function remove() {
-    if (cardHasContent(card) && !confirm(t({ ja: `${name} のカードを削除しますか？\n書いた内容は元に戻せません。`, en: `Delete this ${name} card?\nWhat you wrote cannot be brought back.` }))) return;
+    if (cardHasContent(card) && !confirm(t({ ja: `${name} のカードを消しますか？\n書いた内容は元に戻せません。`, en: `Delete this ${name} card?\nWhat you wrote cannot be brought back.` }))) return;
     deleteCard(card.id);
   }
 

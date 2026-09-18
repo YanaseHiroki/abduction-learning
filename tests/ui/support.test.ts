@@ -123,7 +123,7 @@ describe("the ways into the support screen", () => {
     // Unseeded, so the settings keep their default: the free tier (the demo seed brings its own key).
     app = await openApp({ proxy: p.answer });
     await app.go("/");
-    await app.page.getByRole("button", { name: /自由に探究する/ }).click();
+    await app.page.getByRole("button", { name: "はい", exact: true }).click();
     const offer = app.page.getByRole("link", { name: /投げ銭で、今日の無料枠を広げられます/ });
     expect(await shown(offer)).toBe(true);
 
@@ -137,7 +137,7 @@ describe("the ways into the support screen", () => {
   it("do not mention money when it is this device's own share that ran out", async () => {
     app = await openApp({ proxy: proxy(deviceFull).answer });
     await app.go("/");
-    await app.page.getByRole("button", { name: /自由に探究する/ }).click();
+    await app.page.getByRole("button", { name: "はい", exact: true }).click();
     expect(await shown(app.page.getByText("今日無料で始められる探究の数を使い切りました"))).toBe(true);
     expect(await app.page.getByText("投げ銭").count()).toBe(0);
   });

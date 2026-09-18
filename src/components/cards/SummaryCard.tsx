@@ -44,7 +44,7 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
 
   return (
     <CardShell card={card} hint={cardHint(card, inquiry)}>
-      <h4 className="mb-1 text-sm font-semibold">{t({ ja: "🧠 スキーマ（最終仮説）", en: "🧠 Schema (final hypothesis)" })}</h4>
+      <h4 className="mb-1 text-sm font-semibold">{t({ ja: "🧠 わかったこと（最後の仮説）", en: "🧠 What you found (final hypothesis)" })}</h4>
       <div className="space-y-1.5">
         {p.lines.map((l) => {
           const tg = inquiry.targets.find((x) => x.id === l.targetId);
@@ -68,8 +68,8 @@ export function SummaryCard({ card, inquiry }: { card: Card<"summary">; inquiry:
 
       {(p.savedNoteId || p.writing.some((x) => x.trim())) && (
         <>
-          <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "✍️ ライティング: このスキーマを使って自分の場面で書く", en: "✍️ Writing: apply the schema to your own situations" })}</h4>
-          <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "仕事や趣味など、自分が実際に使いそうな場面の文を3つ。", en: "Three sentences from situations you would actually use." })}</p>
+          <h4 className="mt-5 mb-1 text-sm font-semibold">{t({ ja: "✍️ わかったことを使って、自分の場面で書いてみましょう", en: "✍️ Use what you found in your own situations" })}</h4>
+          <p className="mb-2 text-xs text-muted-foreground">{t({ ja: "仕事や趣味など、自分が実際に使いそうな場面の文を3つ書いてください。", en: "Write three sentences from situations you would actually use." })}</p>
           <div className="space-y-2">
             {writing.map((w, i) => (
               <div key={i}>

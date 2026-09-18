@@ -103,7 +103,7 @@ export function NewInquiryDialog({
 
   const addForm = (
     <form className="flex gap-3" onSubmit={(e) => { e.preventDefault(); addTarget(); }}>
-      <Input lang={l2} value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t({ ja: "語・句・パターン（例: look at）", en: "A word, phrase, or pattern" })} />
+      <Input lang={l2} value={label} onChange={(e) => setLabel(e.target.value)} placeholder={t({ ja: "ことば（例: look at）", en: "A word or phrase (e.g. look at)" })} />
       <Select items={[{ value: "word", label: t({ ja: "語", en: "word" }) }, { value: "phrase", label: t({ ja: "句", en: "phrase" }) }, { value: "pattern", label: t({ ja: "パターン", en: "pattern" }) }]} value={kind} onValueChange={(v) => v && setKind(v as TargetKind)}>
         <SelectTrigger className="w-24 shrink-0"><SelectValue /></SelectTrigger>
         <SelectContent>
@@ -116,7 +116,7 @@ export function NewInquiryDialog({
     </form>
   );
 
-  const title = group ? `${group.emoji} ${group.label[uiLang] ?? group.label.en}` : t({ ja: "✨ 自由に探究する", en: "✨ Custom inquiry" });
+  const title = group ? `${group.emoji} ${group.label[uiLang] ?? group.label.en}` : t({ ja: "✨ 自分で決めた組み合わせ", en: "✨ Your own combination" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,8 +126,8 @@ export function NewInquiryDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className="whitespace-pre-line">
             {step === 0
-              ? `${t({ ja: "🔤 比べる語を選びます（2〜4個）。", en: "🔤 Pick 2–4 similar expressions." })}\n${group?.hint ? group.hint[uiLang] ?? group.hint.en : t({ ja: "2語ずつ比べるのがいちばん見通しがよいです。", en: "Two at a time is easiest to see." })}`
-              : t({ ja: "🎬 どんな場面の例文で比べるかを選びます。", en: "🎬 Pick the kind of scene to compare in." })}
+              ? `${group ? t({ ja: "🔤 比べることばを選んでください（2〜4個）。", en: "🔤 Pick the words to compare (2–4)." }) : t({ ja: "🔤 比べたいことばを2〜4個、入れてください。", en: "🔤 Enter 2–4 words you want to compare." })}\n${group?.hint ? group.hint[uiLang] ?? group.hint.en : t({ ja: "2つずつ比べるのが、いちばん見やすいですよ。", en: "Two at a time is easiest to see." })}`
+              : t({ ja: "🎬 どんな場面の例文で比べますか？", en: "🎬 What kind of scene shall we compare in?" })}
           </DialogDescription>
         </DialogHeader>
 
@@ -157,7 +157,7 @@ export function NewInquiryDialog({
                 })}
               </div>
             )}
-            {group ? <Disclosure label={t({ ja: "➕ 語を追加する", en: "➕ Add an expression" })}>{addForm}</Disclosure> : addForm}
+            {group ? <Disclosure label={t({ ja: "➕ ことばを足す", en: "➕ Add a word" })}>{addForm}</Disclosure> : addForm}
           </div>
         ) : (
           <div key="genre" className="grid gap-4 animate-in fade-in slide-in-from-right-4">
@@ -165,7 +165,7 @@ export function NewInquiryDialog({
             <Disclosure label={t({ ja: "⚙️ オプションを変更する", en: "⚙️ Change options" })}>
               <div className="grid gap-4">
                 <div className="grid gap-1.5">
-                  <Label>{t({ ja: "問い（任意）", en: "Guiding question (optional)" })}</Label>
+                  <Label>{t({ ja: "知りたいこと（任意）", en: "What you want to know (optional)" })}</Label>
                   <Input lang={l1} value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={t({ ja: "例: I think の代わりになる動詞は？", en: "e.g. What can replace 'I think'?" })} />
                 </div>
                 <ExampleSettingsFields value={settings} onChange={setSettings} />
@@ -179,13 +179,13 @@ export function NewInquiryDialog({
         <DialogFooter>
           {step === 0 ? (
             <>
-              {!enoughTargets && <span className="text-xs text-muted-foreground sm:mr-auto">{t({ ja: "比べる語を2つ以上選んでください。", en: "Pick at least two expressions to compare." })}</span>}
+              {!enoughTargets && <span className="text-xs text-muted-foreground sm:mr-auto">{t({ ja: "比べることばを、2つ以上選んでください。", en: "Pick at least two words to compare." })}</span>}
               <Button disabled={!enoughTargets} onClick={() => setStep(1)}>{t({ ja: "進む ▶", en: "Next ▶" })}</Button>
             </>
           ) : (
             <>
               <Button variant="outline" className="sm:mr-auto" onClick={() => setStep(0)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>
-              <Button disabled={!enoughTargets} onClick={create}>{t({ ja: "🚀 探究を始める", en: "🚀 Start" })}</Button>
+              <Button disabled={!enoughTargets} onClick={create}>{t({ ja: "🚀 例文を出す", en: "🚀 Show examples" })}</Button>
             </>
           )}
         </DialogFooter>

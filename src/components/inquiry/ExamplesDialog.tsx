@@ -34,8 +34,8 @@ export function ExamplesDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t({ ja: "📝 例文セットを出力する", en: "📝 Generate an example set" })}</DialogTitle>
-          <DialogDescription className="whitespace-pre-line">{t({ ja: "どんな場面の例文で比べるかを選びます。\nAIは頼むまで解説しません。", en: "Pick the kind of scene to compare in.\nThe AI will not explain until asked." })}</DialogDescription>
+          <DialogTitle>{t({ ja: "📝 例文を出す", en: "📝 Get examples" })}</DialogTitle>
+          <DialogDescription className="whitespace-pre-line">{t({ ja: "どんな場面の例文で比べますか？\nAIは、頼むまで解説しません。", en: "What kind of scene shall we compare in?\nThe AI will not explain until asked." })}</DialogDescription>
         </DialogHeader>
         <GenreTiles value={settings.genre} onChange={(genre) => setSettings({ ...settings, genre })} />
         <Disclosure label={t({ ja: "⚙️ オプションを変更する", en: "⚙️ Change options" })}>
