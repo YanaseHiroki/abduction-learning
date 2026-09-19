@@ -22,8 +22,8 @@ interface GuideStep {
 }
 
 /**
- * The tutorial's coach panel on the inquiry page: one instruction and one button at a time,
- * walking through examples → observation → hypothesis → translation test → summary.
+ * The first inquiry's coach panel on the inquiry page: one instruction and one button at a time,
+ * walking through examples → compare → hypothesis → check by translating → summary.
  * It only adds cards through the page's own `onPick`; once a card is out, its body is the card's own hint (lib/guide),
  * which the card stops showing while this panel is open.
  */
@@ -69,46 +69,46 @@ export function TutorialGuide({
   const failed = !busy && (!!error || (!hasExamples && cards.some((c) => c.kind === "examples")));
   const steps: GuideStep[] = [
     busy
-      ? { title: { ja: "📘 例文を作っています", en: "📘 Making examples" }, body: { ja: "AIが例文を作っています。\n1分ほどかかることがあります。", en: "The AI is writing examples.\nThis can take a minute." }, canNext: false }
+      ? { title: { ja: "📘 例文を作っています", en: "📘 Making examples" }, body: { ja: "AIが例文を書いています。\n1分ほど待ってくださいね。", en: "The AI is writing examples.\nGive it a minute or so." }, canNext: false }
       : failed && !hasExamples
-        ? { title: { ja: "📘 例文を出せませんでした", en: "📘 No examples yet" }, body: { ja: "上のメッセージを確かめてから、もう一度出してみてください。", en: "Check the message above, then try again." }, action: { label: { ja: "🔁 もう一度出す", en: "🔁 Try again" }, run: () => onPick("examples") }, canNext: false }
+        ? { title: { ja: "📘 例文を出せませんでした", en: "📘 No examples yet" }, body: { ja: "上のメッセージを確かめてから、もう一度出してみましょう。", en: "Check the message above, then let's try again." }, action: { label: { ja: "🔁 もう一度出す", en: "🔁 Try again" }, run: () => onPick("examples") }, canNext: false }
         : // Nothing running and nothing to read: the learner closed the example dialog, so offer it again.
           !hasExamples
-          ? { title: { ja: "📘 まず例文を出す", en: "📘 Start with examples" }, body: { ja: "比べる2語の例文を出すところから始めます。", en: "Start by generating examples of the two words you are comparing." }, action: { label: { ja: "📝 例文を出す", en: "📝 Generate examples" }, run: () => onPick("examples") }, canNext: false }
+          ? { title: { ja: "📘 まず例文を出しましょう", en: "📘 Let's start with examples" }, body: { ja: "比べる2つのことばの例文を出すところからです。", en: "First, get examples of the two words you are comparing." }, action: { label: { ja: "📝 例文を出す", en: "📝 Get examples" }, run: () => onPick("examples") }, canNext: false }
           : {
-            title: { ja: "📘 例文を眺める", en: "📘 Look over the examples" },
+            title: { ja: "📘 例文を眺めましょう", en: "📘 Have a look at the examples" },
             body: hint("examples")!,
             canNext: true,
           },
     {
-      title: { ja: "👀 観察する", en: "👀 Observe" },
-      body: hint("observation") ?? { ja: "次は、違いの手がかりを集めます。", en: "Next, collect clues to the difference." },
-      action: latest("observation") ? undefined : { label: { ja: "👀 観察カードを出す", en: "👀 Add an observation card" }, run: add("observation") },
+      title: { ja: "👀 見比べましょう", en: "👀 Let's compare" },
+      body: hint("observation") ?? { ja: "次は、違いの手がかりを集めます。", en: "Next, let's collect clues to the difference." },
+      action: latest("observation") ? undefined : { label: { ja: "👀 見比べるカードを出す", en: "👀 Add a compare card" }, run: add("observation") },
       canNext: true,
     },
     {
-      title: { ja: "✍️ 仮説を書く", en: "✍️ Write a hypothesis" },
-      body: hint("hypothesis") ?? { ja: "集めた手がかりから、自分の考えを言葉にします。", en: "Put what you noticed into words." },
+      title: { ja: "✍️ 仮説を書きましょう", en: "✍️ Write your hypothesis" },
+      body: hint("hypothesis") ?? { ja: "集めた手がかりから、自分の考えをことばにします。", en: "Put what you noticed into words." },
       action: latest("hypothesis") ? undefined : { label: { ja: "✍️ 仮説カードを出す", en: "✍️ Add a hypothesis card" }, run: add("hypothesis") },
       canNext: true,
     },
     {
-      title: { ja: "🧪 翻訳テストで確かめる", en: "🧪 Test by translation" },
+      title: { ja: "🧪 訳して確かめましょう", en: "🧪 Check by translating" },
       body: translation
-        ? withTail(hint("verify_translation")!, !translation.payload.result && sample ? { ja: "文は書き換えても構いません。", en: "Feel free to rewrite the sentence." } : null)
-        : { ja: "仮説が正しいかを、翻訳で確かめます。", en: "Check the hypothesis with a translation." },
-      action: translation ? undefined : { label: { ja: "🧪 翻訳テストを出す", en: "🧪 Add a translation test" }, run: add("verify_translation") },
+        ? withTail(hint("verify_translation")!, !translation.payload.result && sample ? { ja: "文は書き換えても大丈夫です。", en: "Feel free to rewrite the sentence." } : null)
+        : { ja: "仮説が合っているか、翻訳で確かめます。", en: "Let's check your hypothesis with a translation." },
+      action: translation ? undefined : { label: { ja: "🧪 確かめるカードを出す", en: "🧪 Add a check card" }, run: add("verify_translation") },
       canNext: !!translation?.payload.result,
     },
     {
-      title: { ja: "📝 まとめる", en: "📝 Wrap up" },
+      title: { ja: "📝 まとめましょう", en: "📝 Wrap up" },
       body: hint("summary") ?? { ja: "わかったことを、まとめとして残します。", en: "Keep what you found as a summary." },
       action: summary ? undefined : { label: { ja: "📝 まとめカードを出す", en: "📝 Add a summary card" }, run: add("summary") },
       canNext: !!summary?.payload.savedNoteId,
     },
     {
-      title: { ja: "🎉 チュートリアルはここまでです", en: "🎉 That's the tutorial" },
-      body: { ja: "観察 → 仮説 → 確かめる、を繰り返すのがこのアプリの使い方です。\nこの探究はホームの「📚 探究を再開する」に残ります。", en: "Observe → hypothesize → test, again and again: that is how this app works.\nThis inquiry stays under \"📚 Resume an inquiry\" on Home." },
+      title: { ja: "🎉 最初の探究、おつかれさまでした！", en: "🎉 Your first inquiry is done!" },
+      body: { ja: "見比べる → 仮説 → 確かめる。この繰り返しが、このアプリの使い方です。\nこの探究は、ホームの「📚 前の探究にもどる」からいつでも開けます。", en: "Compare → hypothesize → check, again and again: that is how this app works.\nYou can reopen this inquiry any time from \"📚 Go back to an inquiry\" on Home." },
       canNext: false,
     },
   ];
@@ -141,7 +141,7 @@ export function TutorialGuide({
           className="pt-3"
           back={<>
             {step > 0 && <Button variant="outline" onClick={() => go(step - 1)}>{t({ ja: "◀ 戻る", en: "◀ Back" })}</Button>}
-            {!last && <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={finish}>{t({ ja: "⏭️ チュートリアルを終える", en: "⏭️ End the tutorial" })}</Button>}
+            {!last && <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={finish}>{t({ ja: "⏭️ 案内を終える", en: "⏭️ End the guide" })}</Button>}
           </>}
         >
           {last ? (

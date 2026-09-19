@@ -50,6 +50,12 @@ interface ShotDef {
 // The demo inquiry finishes "聞く" (which then reopens it), so the course slides use "話す", the recommended next group.
 // The words read "say · tell · speak · talk" under the Japanese name and "say / tell / speak / talk" as the English name itself.
 const courseCard = (page: Page) => page.getByRole("button", { name: /say [·/] tell [·/] speak [·/] talk/ });
+/** Home opens on "any combination in mind?"; the ready-made ones come out on "no". */
+const browse = async (page: Page, go: (hashPath: string) => Promise<void>) => {
+  await go("/");
+  await page.getByRole("button", { name: either("いいえ", "No", true) }).click();
+  await courseCard(page).waitFor();
+};
 const dialog = (page: Page) => page.getByRole("dialog");
 const card = (page: Page, id: string) => page.locator(`#card-demo-${id}`);
 
@@ -57,14 +63,14 @@ const card = (page: Page, id: string) => page.locator(`#card-demo-${id}`);
 const shots: ShotDef[] = [
   {
     id: "course",
-    prepare: async (_page, go) => go("/"),
+    prepare: browse,
     rings: (page) => [[courseCard(page)]],
     scroll: true,
   },
   {
     id: "words",
     prepare: async (page, go) => {
-      await go("/");
+      await browse(page, go);
       await courseCard(page).click();
       await dialog(page).waitFor();
     },
@@ -73,7 +79,7 @@ const shots: ShotDef[] = [
   {
     id: "genre",
     prepare: async (page, go) => {
-      await go("/");
+      await browse(page, go);
       await courseCard(page).click();
       await dialog(page).getByRole("button", { name: either("進む", "Next") }).click();
       await dialog(page).locator('[aria-pressed="true"]').waitFor();
@@ -136,7 +142,7 @@ const shots: ShotDef[] = [
       // The demo's summary is unsaved, so the next-step panel is still a quiet line until "move on anyway".
       await page.getByRole("button", { name: either("先に次へ進む", "Move on anyway") }).click();
     },
-    rings: (page) => [[page.getByText(/^(👉 )?(次の一手|Next step)$/).locator("xpath=..")]],
+    rings: (page) => [[page.getByText(/^(👉 )?(次はこれ！|Up next)$/).locator("xpath=..")]],
     scroll: true,
   },
 ];

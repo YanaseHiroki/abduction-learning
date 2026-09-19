@@ -14,6 +14,8 @@ import type { StartState } from "@/components/inquiry/NewInquiryDialog";
 import { HypothesisPanel } from "@/components/inquiry/HypothesisPanel";
 import { TargetBadge } from "@/components/inquiry/TargetBadge";
 import { TutorialGuide } from "@/components/tutorial/TutorialGuide";
+import { ProgressStrip } from "@/components/ProgressStrip";
+import { RewardToast } from "@/components/RewardToast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { ButtonRow } from "@/components/ui/button-row";
@@ -47,14 +49,14 @@ function NextSteps({ inquiry, cards, hasHypothesis, onPick }: { inquiry: Inquiry
   if (!cardReady(last, inquiry) && early !== last.id) {
     return (
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-dashed px-5 py-3 text-sm text-muted-foreground">
-        <span>{t({ ja: "上のカードを進めると、ここに次の一手が出ます。", en: "Work on the card above and the next step appears here." })}</span>
+        <span>{t({ ja: "上のカードを進めると、ここに次にやることが出ますよ。", en: "Work on the card above and I will show you what comes next." })}</span>
         <Button variant="link" size="sm" className="h-auto px-0 text-muted-foreground" onClick={() => setEarly(last.id)}>{t({ ja: "先に次へ進む ▸", en: "Move on anyway ▸" })}</Button>
       </div>
     );
   }
   return (
     <section className="rounded-xl border-2 border-blue-500/60 bg-card px-5 py-5 shadow-sm sm:px-6" aria-live="polite">
-      <div className="text-sm font-semibold">{t({ ja: "👉 次の一手", en: "👉 Next step" })}</div>
+      <div className="text-sm font-semibold">{t({ ja: "👉 次はこれ！", en: "👉 Up next" })}</div>
       <p className="mt-1 text-sm text-muted-foreground">{t(primary.why)}</p>
       <ButtonRow className="mt-4">
         <Recommended>
@@ -63,7 +65,7 @@ function NextSteps({ inquiry, cards, hasHypothesis, onPick }: { inquiry: Inquiry
       </ButtonRow>
       <Collapsible className="mt-4">
         <CollapsibleTrigger className="group flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-          {t({ ja: "ほかの一手", en: "Other steps" })}<ChevronDown className="size-3.5 transition-transform group-data-panel-open:rotate-180" />
+          {t({ ja: "ほかにできること", en: "Other things you can do" })}<ChevronDown className="size-3.5 transition-transform group-data-panel-open:rotate-180" />
         </CollapsibleTrigger>
         <CollapsibleContent>
           <ButtonRow className="mt-3">
@@ -207,28 +209,29 @@ export function InquiryPage() {
             {inquiry.targets.map((x, i) => <TargetBadge key={x.id} target={x} index={i} className="text-base" />)}
           </div>
           <span className="text-xs text-muted-foreground">{inquiry.l1} → {inquiry.l2} · {genre ? (uiLang === "ja" ? genre.ja : genre.en) : inquiry.genre}</span>
-          <div className="ml-auto hidden lg:block">
-            <Button variant="outline" size="sm" aria-pressed={panelOpen} onClick={togglePanel}>{panelOpen ? <PanelRightClose /> : <PanelRight />}{panelOpen ? t({ ja: "仮説を閉じる", en: "Hide hypothesis" }) : t({ ja: "仮説", en: "Hypothesis" })}</Button>
+          <ProgressStrip compact className="ml-auto" />
+          <div className="hidden lg:block">
+            <Button variant="outline" size="sm" aria-pressed={panelOpen} onClick={togglePanel}>{panelOpen ? <PanelRightClose /> : <PanelRight />}{panelOpen ? t({ ja: "仮説を閉じる", en: "Hide hypothesis" }) : t({ ja: "いまの仮説", en: "Hypothesis" })}</Button>
           </div>
-          <div className="ml-auto lg:hidden">
+          <div className="lg:hidden">
             <Sheet>
-              <SheetTrigger render={<Button variant="outline" size="sm" />}><PanelRight />{t({ ja: "仮説", en: "Hypothesis" })}</SheetTrigger>
+              <SheetTrigger render={<Button variant="outline" size="sm" />}><PanelRight />{t({ ja: "いまの仮説", en: "Hypothesis" })}</SheetTrigger>
               <SheetContent><SheetTitle className="sr-only">hypothesis</SheetTitle><div className="mt-6"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></SheetContent>
             </Sheet>
           </div>
         </div>
-        {inquiry.question && <p className="mb-4 rounded-lg border border-dashed px-3 py-2 text-sm"><span className="mr-2 text-muted-foreground">{t({ ja: "問い", en: "Question" })}</span>{inquiry.question}</p>}
+        {inquiry.question && <p className="mb-4 rounded-lg border border-dashed px-3 py-2 text-sm"><span className="mr-2 text-muted-foreground">{t({ ja: "知りたいこと", en: "Question" })}</span>{inquiry.question}</p>}
         {!hasCredential() && (
           <Alert className="mb-4">
             <AlertTitle>{t({ ja: "AIの接続先が未設定です", en: "No AI connection configured" })}</AlertTitle>
-            <AlertDescription>{t({ ja: "例文の生成や翻訳テストには、無料枠か自分のAPIキー（Anthropic / OpenAI / Gemini）が必要です。", en: "Generating examples and running tests needs the free tier or your own key (Anthropic / OpenAI / Gemini)." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
+            <AlertDescription>{t({ ja: "例文を出したり訳して確かめたりするには、無料枠か自分のAPIキー（Anthropic / OpenAI / Gemini）が必要です。", en: "Getting examples and checking translations needs the free tier or your own key (Anthropic / OpenAI / Gemini)." })} <Link className="underline" to="/settings">{t({ ja: "設定へ", en: "Settings" })}</Link></AlertDescription>
           </Alert>
         )}
         <div className={panelOpen ? "grid gap-6 lg:grid-cols-[1fr_300px]" : "grid gap-6"}>
           <div className="min-w-0 space-y-4">
             {cards.length === 0 && (
               <div className="rounded-xl border border-dashed p-8 text-center text-sm whitespace-pre-line text-muted-foreground">
-                {t({ ja: "まずは STEP 1: 例文セットを出力しましょう。\n訳もついていますが、単語の使い分けの解説はあえていたしません。", en: "Start with STEP 1: generate an example set.\nTranslations are included, but how the words differ is deliberately not explained." })}
+                {t({ ja: "まずは例文を出しましょう。\n訳は付きますが、使い分けの解説はわざと出しません。", en: "Let's start by getting some examples.\nTranslations are included, but how the words differ is deliberately not explained." })}
               </div>
             )}
             {cards.map(render)}
@@ -236,12 +239,13 @@ export function InquiryPage() {
               <NextSteps key={cards.at(-1)!.id} inquiry={inquiry} cards={cards} hasHypothesis={!!latest} onPick={pick} />
             )}
             {busy && !generating && (
-              <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文の生成を始めています…", en: "Starting generation…" })}</div>
+              <div className="flex items-center gap-2 rounded-xl border border-dashed p-6 text-sm text-muted-foreground"><Loader2 className="animate-spin" />{t({ ja: "例文を出し始めています…", en: "Starting on the examples…" })}</div>
             )}
             <ErrorText code={error} className="text-sm text-destructive" />
           </div>
           {panelOpen && <div className="hidden lg:block"><div className="sticky top-16"><HypothesisPanel inquiry={inquiry} latest={latest} cards={cards} /></div></div>}
         </div>
+        <RewardToast />
         {guided && <TutorialGuide inquiry={inquiry} cards={cards} busy={busy} error={error} onPick={pick} />}
         {dialog && <ExamplesDialog inquiry={inquiry} open={dialog} onOpenChange={setDialog} onSubmit={generate} busy={busy} />}
       </div>

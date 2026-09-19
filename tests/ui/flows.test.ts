@@ -49,18 +49,21 @@ describe("the first run", () => {
     await app.go("/");
     const main = await screenText(app.page);
 
-    expect(main).toContain("例文から自分で仮説を立てて、確かめる。");
-    expect(main).toContain("🚀 はじめる");
-    expect(main).not.toContain("基本コース");
+    expect(main).toContain("はじめて使いますか？");
+    expect(await app.page.getByRole("button", { name: "はい", exact: true }).count()).toBe(1);
+    expect(await app.page.getByRole("button", { name: "いいえ", exact: true }).count()).toBe(1);
+    expect(main).not.toContain("組み合わせはありますか");
   });
 
-  it("offers the way to skip, and shows the menu once it is taken", async () => {
+  it("lets a returning learner go straight to the menu, and shows it once they do", async () => {
     app = await firstRun();
     await app.go("/");
 
-    await app.page.getByRole("button", { name: /チュートリアルを飛ばす/ }).click();
+    await app.page.getByRole("button", { name: "いいえ", exact: true }).click();
+    expect(await shown(app.page.getByText(/前に使っていたデータはありますか/))).toBe(true);
+    await app.page.getByRole("button", { name: /このまま始める/ }).click();
 
-    expect(await shown(app.page.getByText("🧭 基本コース"))).toBe(true);
+    expect(await shown(app.page.getByText(/組み合わせはありますか/))).toBe(true);
     expect(await app.page.evaluate(() => JSON.parse(localStorage.getItem("abduction-learning.settings")!).tutorial.status)).toBe("done");
   });
 
@@ -68,9 +71,9 @@ describe("the first run", () => {
     app = await firstRun();
     await app.go("/");
 
-    await app.page.getByRole("button", { name: /はじめる/ }).click();
+    await app.page.getByRole("button", { name: "はい", exact: true }).click();
 
-    expect(await shown(app.page.getByText("🎯 最初の課題"))).toBe(true);
+    expect(await shown(app.page.getByText(/最初のお題はこれです/))).toBe(true);
     const main = await screenText(app.page);
     expect(main).toContain("listen · hear");
     expect(main).toContain("AIの接続先がまだ設定されていません");
@@ -79,7 +82,7 @@ describe("the first run", () => {
   it("starts the tutorial's inquiry, and says it cannot generate rather than calling anything", async () => {
     app = await firstRun();
     await app.go("/");
-    await app.page.getByRole("button", { name: /はじめる/ }).click();
+    await app.page.getByRole("button", { name: "はい", exact: true }).click();
 
     await app.page.getByRole("button", { name: /例文を出す/ }).click();
     await app.page.waitForURL(/#\/inquiry\//);
@@ -119,11 +122,13 @@ describe("the first run", () => {
 
     app = await firstRun();
     await app.go("/");
-    await app.page.getByRole("button", { name: /データを引き継ぐ/ }).click();
+    await app.page.getByRole("button", { name: "いいえ", exact: true }).click();
+    await app.page.getByRole("button", { name: /ファイルから引き継ぐ/ }).click();
     await app.page.setInputFiles('input[type="file"]', file);
 
     expect(await shown(app.page.getByText(/件の探究を読み込みました/))).toBe(true);
     await app.page.getByRole("button", { name: /ホームへ/ }).click();
+    await app.page.getByRole("button", { name: /前の探究にもどる/ }).click();
     expect(await screenText(app.page)).toContain("聞く");
   });
 
@@ -134,17 +139,24 @@ describe("the first run", () => {
 
     app = await firstRun();
     await app.go("/");
-    await app.page.getByRole("button", { name: /データを引き継ぐ/ }).click();
+    await app.page.getByRole("button", { name: "いいえ", exact: true }).click();
+    await app.page.getByRole("button", { name: /ファイルから引き継ぐ/ }).click();
     await app.page.setInputFiles('input[type="file"]', file);
 
-    expect(await shown(app.page.getByText(/読み込めませんでした/))).toBe(true);
+    expect(await shown(app.page.getByText(/読めませんでした/))).toBe(true);
   });
 });
+
+/** Home asks whether a combination is in mind; "no" brings out the ready-made ones. */
+async function browseCombinations(a: AppPage) {
+  await a.page.getByRole("button", { name: "いいえ", exact: true }).click();
+}
 
 describe("starting an inquiry from a course group", () => {
   it("opens the group's words, preselecting the pair to compare first", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
 
     await app.page.getByRole("button", { name: /say · tell · speak · talk/ }).click();
     const dialog = app.page.getByRole("dialog");
@@ -160,6 +172,7 @@ describe("starting an inquiry from a course group", () => {
   it("carries the group's advice into the dialog", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
     await app.page.getByRole("button", { name: /say · tell · speak · talk/ }).click();
 
     expect(await textOf(app.page.getByRole("dialog"))).toContain("まず say & tell");
@@ -168,6 +181,7 @@ describe("starting an inquiry from a course group", () => {
   it("moves on to the genre and level, with one genre already chosen", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
     await app.page.getByRole("button", { name: /say · tell · speak · talk/ }).click();
     const dialog = app.page.getByRole("dialog");
 
@@ -180,11 +194,23 @@ describe("starting an inquiry from a course group", () => {
   it("reopens the finished group's inquiry instead of starting another", async () => {
     app = await openApp({ seed: true });
     await app.go("/");
+    await browseCombinations(app);
 
     await app.page.getByRole("button", { name: /listen · hear/ }).click();
     await app.page.waitForURL(/#\/inquiry\//);
 
     expect(app.page.url()).toContain("#/inquiry/demo");
+  });
+
+  it("opens the dialog for the learner's own words straight from \"yes\"", async () => {
+    app = await openApp({ seed: true });
+    await app.go("/");
+
+    await app.page.getByRole("button", { name: "はい", exact: true }).click();
+    const dialog = app.page.getByRole("dialog");
+
+    expect(await textOf(dialog)).toContain("自分で決めた組み合わせ");
+    expect(await textOf(dialog)).toContain("2つ以上選んでください");
   });
 });
 
@@ -326,6 +352,6 @@ describe("working inside an inquiry", () => {
 
     await app.page.locator('main a[href="#/"]').first().click();
 
-    expect(await shown(app.page.getByText("🧭 基本コース"))).toBe(true);
+    expect(await shown(app.page.getByText(/組み合わせはありますか/))).toBe(true);
   });
 });
