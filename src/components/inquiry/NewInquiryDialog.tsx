@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, X } from "lucide-react";
+import { Plus, Undo2, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Disclosure } from "@/components/ui/disclosure";
@@ -65,7 +65,9 @@ export function NewInquiryDialog({
   const [question, setQuestion] = useState("");
   const [settings, setSettings] = useState<ExampleSettings>(() => defaultExampleSettings());
 
-  const chosen = group ? targets.filter((x) => enabled.has(x.id)) : targets;
+  // A custom word crossed out with × stays on screen, greyed, so a word dropped while trimming the
+  // consultation's suggestion can be brought back with one click instead of being typed again.
+  const chosen = targets.filter((x) => enabled.has(x.id));
   // Every screen after this one compares one expression against another, so one alone is not a start.
   const enoughTargets = chosen.length >= 2;
 
@@ -141,7 +143,7 @@ export function NewInquiryDialog({
                     <button
                       key={x.id}
                       type="button"
-                      aria-pressed={group ? on : undefined}
+                      aria-pressed={on}
                       onClick={() => {
                         const n = new Set(enabled);
                         if (on) n.delete(x.id); else if (n.size < 4) n.add(x.id);
@@ -151,7 +153,7 @@ export function NewInquiryDialog({
                     >
                       {x.label}
                       {x.kind !== "word" && <span className="text-[10px] uppercase opacity-70">{x.kind}</span>}
-                      {!group && <X className="size-3.5" onClick={(e) => { e.stopPropagation(); setTargets(targets.filter((y) => y.id !== x.id)); }} />}
+                      {!group && (on ? <X className="size-3.5" aria-hidden /> : <Undo2 className="size-3.5" aria-hidden />)}
                     </button>
                   );
                 })}
