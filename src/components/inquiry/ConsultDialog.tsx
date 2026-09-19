@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useT } from "@/lib/i18n";
 import { describeError, setActiveInquiry } from "@/lib/llm/client";
@@ -48,9 +49,15 @@ export function ConsultDialog({
   }, [inquiryId]);
   useEffect(() => { bottom.current?.scrollIntoView({ block: "end" }); }, [turns, busy]);
 
+  // The opening question always has the same shape, so the learner only types the words it is about.
+  // Later turns answer the AI's follow-up questions, which that shape would not fit, so they stay free text.
+  const opening = turns.length === 0;
+  const suffix = t({ ja: "はどう言い分ければいい？", en: ": how do I say it in different ways?" });
+
   async function send() {
-    const text = draft.trim();
-    if (!text || busy) return;
+    const typed = draft.trim();
+    if (!typed || busy) return;
+    const text = opening ? `${typed}${suffix}` : typed;
     const history = [...turns, { role: "learner" as const, text }];
     setTurns(history);
     setDraft("");
@@ -63,7 +70,7 @@ export function ConsultDialog({
       setError(describeError(e));
       // Give the message back so it can be sent again as it was.
       setTurns(turns);
-      setDraft(text);
+      setDraft(typed);
     } finally {
       setBusy(false);
     }
@@ -107,14 +114,28 @@ export function ConsultDialog({
         <NoCredentialNote />
         <DialogFooter>
           <form className="flex w-full items-end gap-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-            <Textarea
-              lang={l1}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              // Enter sends; Shift+Enter and IME confirmation do not.
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
-              placeholder={t({ ja: "例: 「思う」を英語でどう言い分ければいい？", en: "e.g. Which words mean 'think' in different ways?" })}
-            />
+            {opening ? (
+              <div className="flex min-w-0 flex-1 items-center gap-2">
+                <Input
+                  lang={l1}
+                  className="min-w-32 flex-1"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder={t({ ja: "例: 「思う」", en: "e.g. 'think'" })}
+                  aria-label={t({ ja: "言い分けを知りたいことば", en: "The word you want to say in different ways" })}
+                />
+                {/* Wraps on a phone rather than squeezing the box the learner types in. */}
+                <span className="min-w-0 text-sm text-muted-foreground">{suffix}</span>
+              </div>
+            ) : (
+              <Textarea
+                lang={l1}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                // Enter sends; Shift+Enter and IME confirmation do not.
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send(); } }}
+              />
+            )}
             <Button type="submit" size="icon" className="shrink-0" disabled={busy || !draft.trim()} aria-label={t({ ja: "送信", en: "Send" })}><Send /></Button>
           </form>
         </DialogFooter>
