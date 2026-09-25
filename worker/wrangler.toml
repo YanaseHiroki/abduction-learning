@@ -23,11 +23,14 @@ LIMIT_DEVICE_FIRST_DAY = "5"
 # Per IP: slows down clearing the anonymous device ID to get another first day. Must be >= the first-day limit.
 LIMIT_IP = "10"
 # Everyone together, counted in inquiries. A backstop only: the money is capped by DAILY_BUDGET_USD below.
-# 330 ≈ $3 at the 2026-09 average of $0.009 per inquiry (docs/model-bench-2026-09.md), so on an ordinary
-# day ADMIT_BUDGET_USD stops admissions first. LIMIT_IP still applies, so 330 takes at least 33 distinct IPs.
+# 1650 ≈ $15 at the 2026-09 average of $0.009 per inquiry (docs/model-bench-2026-09.md), so on an ordinary
+# day ADMIT_BUDGET_USD stops admissions first. LIMIT_IP still applies, so 1650 takes at least 165 distinct IPs.
+# Raised from 330 / $3 for the days after the app is introduced on Yuru Gengogaku Radio, when a burst of
+# first-time learners would otherwise find the free tier gone by the morning. Put back to 330 / $3 / $2.50
+# once the burst is over.
 # The support page states DAILY_BUDGET_USD (via /quota) and explains it with COST_PER_INQUIRY_USD in
 # src/lib/support.ts: change that together with the per-inquiry average above (docs/funding.md).
-LIMIT_GLOBAL = "330"
+LIMIT_GLOBAL = "1650"
 # AI calls an admitted inquiry may use (one inquiry typically needs 15–30), and how many days it stays open.
 CALLS_PER_INQUIRY = "60"
 INQUIRY_TTL_DAYS = "3"
@@ -36,9 +39,10 @@ INQUIRY_TTL_DAYS = "3"
 # below, then settles to the usage the provider reports. No call is sent once today's spend plus its
 # reservation would pass DAILY_BUDGET_USD, so the day cannot cost more than that however the calls are used.
 # New inquiries stop at ADMIT_BUDGET_USD, leaving the rest for inquiries already under way
-# ($0.50 ≈ 55 inquiries at the $0.009 average), so a learner is rarely cut off mid-inquiry.
-DAILY_BUDGET_USD = "3"
-ADMIT_BUDGET_USD = "2.5"
+# ($2.50 ≈ 275 inquiries at the $0.009 average), so a learner is rarely cut off mid-inquiry. The reserve is
+# kept at a sixth of the budget: with more learners admitted, more inquiries are under way at the cutoff.
+DAILY_BUDGET_USD = "15"
+ADMIT_BUDGET_USD = "12.5"
 # USD per 1M tokens for MODEL (OpenAI's list price, 2026-09). Must equal MODEL's row in src/lib/llm/candidates.ts,
 # the table the #/bench page costs runs with; src/lib/llm/candidates.test.ts fails if they drift apart.
 # Change these together with MODEL. If either is missing or 0, /generate answers 503 instead of spending blind.
@@ -71,8 +75,9 @@ DONATION_USD_RATES = "USD=1,JPY=0.0067,EUR=1.08"
 
 # Workers Logs keeps what the Worker logs on Cloudflare's side, so a failure can be traced after the fact
 # instead of only while someone happens to run `wrangler tail`. Free plan (2026-09): 200,000 log events a day,
-# kept 3 days. The limits above bound a day at LIMIT_GLOBAL x CALLS_PER_INQUIRY ≈ 20,000 AI calls, each writing
-# one or two lines, plus /quota reads: far inside that, so every request is kept (rate 1).
+# kept 3 days. The limits above bound a day at LIMIT_GLOBAL x CALLS_PER_INQUIRY ≈ 100,000 AI calls, each writing
+# one or two lines, plus /quota reads. The typical 15–30 calls per inquiry stays inside that, so every request
+# is kept (rate 1); only a day of 1650 inquiries all using their full 60 calls would reach the allowance.
 # Invocation logs are off: they record the request headers, the learner's IP among them. src/index.ts writes
 # its own line per request instead (route, status, duration) and never logs IPs, texts, addresses or keys.
 [observability]
