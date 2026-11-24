@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
  * must match the shot ids there. See docs/help-screenshots.md.
  */
 const slides: { id: string; title: Localized; body: Localized }[] = [
-  { id: "course", title: { ja: "🧭 組み合わせを選ぶ", en: "🧭 Pick a combination" }, body: { ja: "「いいえ」を押すと、用意した組み合わせが出ます。\n気になるものを選んでください。", en: "Press \"No\" and the ready-made combinations come out.\nPick one that catches your eye." } },
+  { id: "course", title: { ja: "🧭 組み合わせを選ぶ", en: "🧭 Pick a combination" }, body: { ja: "比べたいことばが決まっていなくても大丈夫。\n用意した組み合わせから、気になるものを選びましょう。", en: "No words in mind yet? That's fine.\nPick a ready-made combination that catches your eye." } },
   { id: "words", title: { ja: "🔤 比べることばを選ぶ", en: "🔤 Pick words to compare" }, body: { ja: "2つずつ比べるのが見やすいですよ。", en: "Two at a time is easiest to see." } },
   { id: "genre", title: { ja: "🎬 場面を選ぶ", en: "🎬 Pick a scene" }, body: { ja: "どんな場面の例文で比べるか、決めましょう。", en: "Decide what kind of scene to compare in." } },
   { id: "examples", title: { ja: "👀 例文を眺める", en: "👀 Read the examples" }, body: { ja: "解説はありません。\n違いを自分で探してみましょう。", en: "There are no explanations.\nFind the differences yourself." } },
